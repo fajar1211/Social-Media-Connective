@@ -1,0 +1,875 @@
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  Search,
+  MoreHorizontal,
+  Eye,
+  Pencil,
+  Share2,
+  Trash2,
+  Inbox,
+  Users,
+  Link2,
+  Check,
+} from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ClientStatusBadge, PlatformBadge } from "@/components/badges";
+import { actions, useStore, PLATFORMS, SOCIAL_PLATFORMS, type Client, type Platform, type SocialPlatform, type SocialConnection } from "@/lib/content-store";
+
+export const Route = createFileRoute("/clients")({
+  head: () => ({
+    meta: [
+      { title: "Clients — Social Media Connective Admin" },
+      { name: "description", content: "Manage the clients your marketing content belongs to." },
+      { property: "og:title", content: "Clients — Social Media Connective Admin" },
+      {
+        property: "og:description",
+        content: "Manage the clients your marketing content belongs to.",
+      },
+    ],
+  }),
+  component: ClientsPage,
+});
+
+function ClientCard({
+  client,
+  contentCount,
+  onEdit,
+  onEditPlatforms,
+  onSocialIntegration,
+  onView,
+  onDelete,
+}: {
+  client: Client;
+  contentCount: number;
+  onEdit: () => void;
+  onEditPlatforms: () => void;
+  onSocialIntegration: () => void;
+  onView: () => void;
+  onDelete: () => void;
+}) {
+  const navigate = useNavigate();
+  return (
+    <div
+      className="cursor-pointer rounded-xl border bg-card p-4 shadow-soft transition-colors hover:bg-accent/40"
+      onClick={() => navigate({ to: "/clients/$clientId", params: { clientId: client.id } })}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{client.name}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {contentCount} content item{contentCount !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => e.stopPropagation()}>
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem onClick={onView}>
+              <Eye className="mr-2 size-4" /> View Details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>
+              <Pencil className="mr-2 size-4" /> Edit Name
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onEditPlatforms}>
+              <Share2 className="mr-2 size-4" /> Manage Platforms
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onSocialIntegration}>
+              <Link2 className="mr-2 size-4" /> Social Integration
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+              <Trash2 className="mr-2 size-4" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <ClientStatusBadge active={client.active} />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {client.platforms.length > 0 ? (
+          client.platforms.map((p) => <PlatformBadge key={p} platform={p} />)
+        ) : (
+          <span className="text-xs text-muted-foreground">No platforms</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ClientsPage() {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isChildRoute = pathname !== "/clients";
+
+  if (isChildRoute) {
+    return <Outlet />;
+  }
+
+  const { clients, content } = useStore();
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const [adding, setAdding] = useState(false);
+  const [clientId, setClientId] = useState("");
+  const [name, setName] = useState("");
+
+  const [editing, setEditing] = useState<Client | null>(null);
+  const [editClientId, setEditClientId] = useState("");
+  const [editName, setEditName] = useState("");
+
+  const [editingPlatforms, setEditingPlatforms] = useState<Client | null>(null);
+  const [platformSelection, setPlatformSelection] = useState<Platform[]>([]);
+
+  const [viewing, setViewing] = useState<Client | null>(null);
+
+  const [deleting, setDeleting] = useState<Client | null>(null);
+
+  const [socialIntegration, setSocialIntegration] = useState<Client | null>(null);
+  const [socialSelection, setSocialSelection] = useState<Partial<Record<SocialPlatform, SocialConnection>>>({});
+
+  const filtered = useMemo(() => {
+    let list = clients;
+    if (query.trim()) {
+      list = list.filter((c) => c.name.toLowerCase().includes(query.trim().toLowerCase()));
+    }
+    if (statusFilter === "active") list = list.filter((c) => c.active);
+    if (statusFilter === "inactive") list = list.filter((c) => !c.active);
+    return list;
+  }, [clients, query, statusFilter]);
+
+  const contentCount = (clientName: string) =>
+    content.filter((i) => i.client === clientName).length;
+
+  const clientContent = (clientName: string) =>
+    content
+      .filter((i) => i.client === clientName)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 3);
+
+  const resetDialogs = () => {
+    setAdding(false);
+    setClientId("");
+    setName("");
+    setEditing(null);
+    setEditClientId("");
+    setEditName("");
+    setEditingPlatforms(null);
+    setPlatformSelection([]);
+    setSocialIntegration(null);
+    setSocialSelection({});
+    setViewing(null);
+    setDeleting(null);
+  };
+
+  return (
+    <>
+      <PageHeader
+        title="Clients"
+        subtitle={`${clients.length} client${clients.length !== 1 ? "s" : ""} total · ${clients.filter((c) => c.active).length} active`}
+        actions={<Button onClick={() => setAdding(true)}>Add Client</Button>}
+      />
+
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search clients"
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <div className="mb-4 flex size-11 items-center justify-center rounded-full bg-muted">
+              <Inbox className="size-5 text-muted-foreground" strokeWidth={1.75} />
+            </div>
+            <p className="text-sm font-medium">
+              {clients.length === 0 ? "No clients yet" : "No clients match your search"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {clients.length === 0
+                ? "Add your first client to get started."
+                : "Try adjusting your search or filter."}
+            </p>
+            {clients.length === 0 && (
+              <Button className="mt-6" onClick={() => setAdding(true)}>
+                Add Client
+              </Button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="hidden overflow-hidden rounded-xl border bg-card shadow-soft md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Client Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Platforms</TableHead>
+                    <TableHead>Content</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((c) => (
+                    <TableRow
+                      key={c.id}
+                      onClick={() => navigate({ to: "/clients/$clientId", params: { clientId: c.id } })}
+                      className="cursor-pointer"
+                    >
+                      <TableCell className="font-medium">{c.name}</TableCell>
+                      <TableCell>
+                        <ClientStatusBadge active={c.active} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1.5">
+                          {c.platforms.length > 0 ? (
+                            c.platforms.map((p) => (
+                              <PlatformBadge key={p} platform={p} />
+                            ))
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {contentCount(c.name)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem
+                              onClick={() => setViewing(c)}
+                            >
+                              <Eye className="mr-2 size-4" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditing(c);
+                                setEditClientId(c.id);
+                                setEditName(c.name);
+                              }}
+                            >
+                              <Pencil className="mr-2 size-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingPlatforms(c);
+                                setPlatformSelection([...c.platforms]);
+                              }}
+                            >
+                              <Share2 className="mr-2 size-4" /> Manage Platforms
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSocialIntegration(c);
+                                setSocialSelection({ ...c.socialIntegrations });
+                              }}
+                            >
+                              <Link2 className="mr-2 size-4" /> Social Integration
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleting(c)}
+                            >
+                              <Trash2 className="mr-2 size-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="grid gap-3 md:hidden">
+              {filtered.map((c) => (
+                <ClientCard
+                  key={c.id}
+                  client={c}
+                  contentCount={contentCount(c.name)}
+                  onEdit={() => {
+                    setEditing(c);
+                    setEditClientId(c.id);
+                    setEditName(c.name);
+                  }}
+                  onEditPlatforms={() => {
+                    setEditingPlatforms(c);
+                    setPlatformSelection([...c.platforms]);
+                  }}
+                  onSocialIntegration={() => {
+                    setSocialIntegration(c);
+                    setSocialSelection({ ...c.socialIntegrations });
+                  }}
+                  onView={() => setViewing(c)}
+                  onDelete={() => setDeleting(c)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <Dialog
+        open={adding}
+        onOpenChange={(o) => {
+          if (!o) {
+            setAdding(false);
+            setClientId("");
+            setName("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Client ID</Label>
+            <Input
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              placeholder="e.g. 435522"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && clientId.trim() && name.trim()) {
+                  actions.addClient(clientId.trim(), name.trim(), []);
+                  toast.success("Client added");
+                  setAdding(false);
+                  setClientId("");
+                  setName("");
+                }
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Unique ID for the client. Used in URL: /clients/{"<this-id>"}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Client Name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Acme Corp"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && clientId.trim() && name.trim()) {
+                  actions.addClient(clientId.trim(), name.trim(), []);
+                  toast.success("Client added");
+                  setAdding(false);
+                  setClientId("");
+                  setName("");
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAdding(false);
+                setClientId("");
+                setName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!clientId.trim()) {
+                  toast.error("Enter a client ID.");
+                  return;
+                }
+                if (!name.trim()) {
+                  toast.error("Enter a client name.");
+                  return;
+                }
+                if (clients.some((c) => c.id === clientId.trim())) {
+                  toast.error("Client ID already exists.");
+                  return;
+                }
+                actions.addClient(clientId.trim(), name.trim(), []);
+                toast.success("Client added");
+                setAdding(false);
+                setClientId("");
+                setName("");
+              }}
+            >
+              Add Client
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!editing}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditing(null);
+            setEditClientId("");
+            setEditName("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Client ID</Label>
+            <Input
+              value={editClientId}
+              onChange={(e) => setEditClientId(e.target.value)}
+              placeholder="e.g. 435522"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && editClientId.trim() && editName.trim() && editing) {
+                  if (editClientId.trim() !== editing.id && clients.some((c) => c.id === editClientId.trim())) {
+                    toast.error("Client ID already exists.");
+                    return;
+                  }
+                  actions.updateClient(editing.id, { id: editClientId.trim(), name: editName.trim() });
+                  toast.success("Client updated");
+                  setEditing(null);
+                  setEditClientId("");
+                  setEditName("");
+                }
+              }}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Client Name</Label>
+            <Input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Client name"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && editClientId.trim() && editName.trim() && editing) {
+                  if (editClientId.trim() !== editing.id && clients.some((c) => c.id === editClientId.trim())) {
+                    toast.error("Client ID already exists.");
+                    return;
+                  }
+                  actions.updateClient(editing.id, { id: editClientId.trim(), name: editName.trim() });
+                  toast.success("Client updated");
+                  setEditing(null);
+                  setEditClientId("");
+                  setEditName("");
+                }
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">Active</p>
+              <p className="text-xs text-muted-foreground">
+                {editing?.active ? "Client is currently active" : "Client is currently inactive"}
+              </p>
+            </div>
+            <Switch
+              checked={editing?.active ?? true}
+              onCheckedChange={(checked) => {
+                if (editing) {
+                  actions.updateClient(editing.id, { active: checked });
+                  setEditing({ ...editing, active: checked });
+                  toast.success(`Client ${checked ? "activated" : "deactivated"}`);
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditing(null);
+                setEditClientId("");
+                setEditName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!editClientId.trim()) {
+                  toast.error("Enter a client ID.");
+                  return;
+                }
+                if (!editName.trim()) {
+                  toast.error("Enter a client name.");
+                  return;
+                }
+                if (editing) {
+                  if (editClientId.trim() !== editing.id && clients.some((c) => c.id === editClientId.trim())) {
+                    toast.error("Client ID already exists.");
+                    return;
+                  }
+                  actions.updateClient(editing.id, { id: editClientId.trim(), name: editName.trim() });
+                  toast.success("Client updated");
+                  setEditing(null);
+                  setEditClientId("");
+                  setEditName("");
+                }
+              }}
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!editingPlatforms}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditingPlatforms(null);
+            setPlatformSelection([]);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage Platforms — {editingPlatforms?.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Select which platforms this client uses for marketing content.
+          </p>
+          <div className="space-y-2 pt-2">
+            {PLATFORMS.map((p) => (
+              <label
+                key={p}
+                className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/40"
+              >
+                <Checkbox
+                  checked={platformSelection.includes(p)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setPlatformSelection([...platformSelection, p]);
+                    } else {
+                      setPlatformSelection(platformSelection.filter((x) => x !== p));
+                    }
+                  }}
+                />
+                <span className="text-sm font-medium">{p}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingPlatforms(null);
+                setPlatformSelection([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingPlatforms) {
+                  actions.updateClient(editingPlatforms.id, {
+                    platforms: platformSelection,
+                  });
+                  toast.success("Platforms updated");
+                  setEditingPlatforms(null);
+                  setPlatformSelection([]);
+                }
+              }}
+            >
+              Save Platforms
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {socialIntegration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border bg-card shadow-overlay">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <div>
+                <h2 className="text-lg font-semibold">Social Integration</h2>
+                <p className="text-sm text-muted-foreground">{socialIntegration.name}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSocialIntegration(null);
+                  setSocialSelection({});
+                }}
+              >
+                ✕
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <p className="mb-4 text-sm text-muted-foreground">
+                Connect this client's social media accounts to enable direct posting and analytics.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {SOCIAL_PLATFORMS.map((p) => {
+                  const conn = socialSelection[p];
+                  const isConnected = conn?.connected === true;
+                  return (
+                    <div
+                      key={p}
+                      className={`rounded-xl border p-4 transition-colors ${isConnected ? "border-success/30 bg-success/5" : "bg-card"}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`flex size-10 items-center justify-center rounded-xl ${isConnected ? "bg-success/12" : "bg-muted"}`}>
+                            {isConnected ? (
+                              <Check className="size-5 text-success" strokeWidth={2} />
+                            ) : (
+                              <Link2 className="size-5 text-muted-foreground" strokeWidth={1.75} />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">{p}</p>
+                            {isConnected ? (
+                              <p className="text-xs text-muted-foreground">
+                                {conn.accountName}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Not connected</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        {isConnected ? (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">
+                              {conn.connectedAt ? `Connected ${conn.connectedAt}` : "Connected"}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSocialSelection({
+                                  ...socialSelection,
+                                  [p]: { connected: false },
+                                });
+                                toast.success(`${p} disconnected`);
+                              }}
+                            >
+                              Disconnect
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              setSocialSelection({
+                                ...socialSelection,
+                                [p]: {
+                                  connected: true,
+                                  accountName: `${socialIntegration.name} ${p}`,
+                                  accountId: `${Date.now()}`,
+                                  connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                                },
+                              });
+                              toast.success(`${p} connected`);
+                            }}
+                          >
+                            Connect
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSocialIntegration(null);
+                  setSocialSelection({});
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (socialIntegration) {
+                    actions.updateClient(socialIntegration.id, {
+                      socialIntegrations: socialSelection,
+                    });
+                    toast.success("Social integrations saved");
+                    setSocialIntegration(null);
+                    setSocialSelection({});
+                  }
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Dialog
+        open={!!viewing}
+        onOpenChange={(o) => !o && setViewing(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{viewing?.name}</DialogTitle>
+          </DialogHeader>
+          {viewing && (
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Status:</span>
+                <ClientStatusBadge active={viewing.active} />
+              </div>
+
+              <div>
+                <p className="mb-2 text-muted-foreground">Platforms</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {viewing.platforms.length > 0 ? (
+                    viewing.platforms.map((p) => (
+                      <PlatformBadge key={p} platform={p} />
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground">No platforms assigned.</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-muted-foreground">
+                  {contentCount(viewing.name)} total content item{contentCount(viewing.name) !== 1 ? "s" : ""}
+                </p>
+                {clientContent(viewing.name).length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Recent Content
+                    </p>
+                    {clientContent(viewing.name).map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between rounded-lg border p-2.5"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{item.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.platform} · {item.status}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Link
+                to="/content"
+                onClick={() => setViewing(null)}
+                className="inline-flex items-center text-sm font-medium text-primary hover:underline"
+              >
+                View all content →
+              </Link>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleting?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this client. Content associated with this client will
+              not be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleting(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleting) {
+                  actions.deleteClient(deleting.id);
+                  toast.success("Client deleted");
+                  setDeleting(null);
+                }
+              }}
+            >
+              Delete Client
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
