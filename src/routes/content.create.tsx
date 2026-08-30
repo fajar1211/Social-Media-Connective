@@ -149,8 +149,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 function CreateContent() {
   const searchParams = new URLSearchParams(window.location.search);
-  const urlClientId = searchParams.get("clientId") || "";
-  const urlClientName = searchParams.get("clientName") || "";
+  const urlClientId = (searchParams.get("clientId") || "").replace(/"/g, "");
+  const urlClientName = (searchParams.get("clientName") || "").replace(/"/g, "");
   const { clients } = useStore();
   const navigate = useNavigate();
   const imageInputRef = useRef<HTMLInputElement>(null);
