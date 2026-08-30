@@ -104,9 +104,7 @@ const sample: Omit<ContentItem, "id">[] = [
 ];
 
 function ImportSection({ clientName }: { clientName: string }) {
-  const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [rows, setRows] = useState<Omit<ContentItem, "id">[] | null>(null);
@@ -116,9 +114,9 @@ function ImportSection({ clientName }: { clientName: string }) {
   const handleFiles = (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const ok = /\.(csv|xlsx?|json|png|jpe?g|webp)$/i.test(file.name);
+    const ok = /\.(docx|pdf|md)$/i.test(file.name);
     if (!ok) {
-      toast.error("Unsupported file. Use CSV, Excel, JSON or images.");
+      toast.error("Unsupported file. Use .docx, .pdf, or .md");
       return;
     }
     setFileName(file.name);
@@ -159,44 +157,26 @@ function ImportSection({ clientName }: { clientName: string }) {
 
   return (
     <div className="rounded-xl border bg-card p-6 shadow-soft">
-      <h2 className="text-base font-semibold">Import Posts</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Import existing marketing content for {clientName}.
-      </p>
-
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          handleFiles(e.dataTransfer.files);
-        }}
-        className={`mt-4 flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors ${
-          dragging ? "border-primary bg-accent/50" : "border-border"
-        }`}
-      >
-        <div className="mb-3 flex size-10 items-center justify-center rounded-full bg-muted">
-          <UploadCloud className="size-5 text-muted-foreground" strokeWidth={1.75} />
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold">Import Posts</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Import existing marketing content for {clientName}.
+          </p>
         </div>
-        <p className="text-sm font-medium">Drag &amp; drop your files here</p>
-        <p className="my-1.5 text-xs text-muted-foreground">or</p>
-        <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-          Browse Files
-        </Button>
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          accept=".csv,.xls,.xlsx,.json,image/*"
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-        <p className="mt-3 text-xs text-muted-foreground">
-          Supported: CSV, Excel, JSON, Images
-        </p>
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputRef}
+            type="file"
+            className="hidden"
+            accept=".docx,.pdf,.md"
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+          <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
+            <UploadCloud className="mr-1.5 size-3.5" />
+            Import Posts (.docx, .pdf, .md)
+          </Button>
+        </div>
       </div>
 
       {fileName && (
