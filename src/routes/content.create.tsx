@@ -51,18 +51,18 @@ export const Route = createFileRoute("/content/create")({
 const goals = ["Education", "Promotion", "Engagement", "Awareness", "Announcement", "Other"];
 
 const timezones = [
-  "Asia/Jakarta",
-  "Asia/Makassar",
-  "Asia/Jayapura",
-  "Asia/Singapore",
-  "Asia/Tokyo",
-  "Asia/Seoul",
-  "Asia/Shanghai",
-  "Asia/Dubai",
-  "Europe/London",
-  "Europe/Paris",
-  "America/New_York",
-  "America/Los_Angeles",
+  { value: "Asia/Jakarta", label: "Asia/Jakarta (GMT+7)" },
+  { value: "Asia/Makassar", label: "Asia/Makassar (GMT+8)" },
+  { value: "Asia/Jayapura", label: "Asia/Jayapura (GMT+9)" },
+  { value: "Asia/Singapore", label: "Asia/Singapore (GMT+8)" },
+  { value: "Asia/Tokyo", label: "Asia/Tokyo (GMT+9)" },
+  { value: "Asia/Seoul", label: "Asia/Seoul (GMT+9)" },
+  { value: "Asia/Shanghai", label: "Asia/Shanghai (GMT+8)" },
+  { value: "Asia/Dubai", label: "Asia/Dubai (GMT+4)" },
+  { value: "Europe/London", label: "Europe/London (GMT+0)" },
+  { value: "Europe/Paris", label: "Europe/Paris (GMT+1)" },
+  { value: "America/New_York", label: "America/New_York (GMT-5)" },
+  { value: "America/Los_Angeles", label: "America/Los_Angeles (GMT-8)" },
 ];
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -86,9 +86,9 @@ function CreateContent() {
   const [selectedClientId, setSelectedClientId] = useState(urlClientId);
   const [selectedClientName, setSelectedClientName] = useState(urlClientName);
   const [topic, setTopic] = useState("");
-  const [goal, setGoal] = useState("Education");
-  const [platform, setPlatform] = useState<SocialPlatform>("Facebook");
-  const [type, setType] = useState<ContentType>("Carousel");
+  const [goal, setGoal] = useState("");
+  const [platform, setPlatform] = useState<SocialPlatform | "">("");
+  const [type, setType] = useState<ContentType | "">("");
   const [body, setBody] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -166,8 +166,8 @@ function CreateContent() {
     actions.addContent({
       title: topic.trim(),
       client: client.name,
-      platform: platform as any,
-      type,
+      platform: (platform || "Facebook") as any,
+      type: (type || "Carousel") as ContentType,
       status,
       date: new Date().toISOString().slice(0, 10),
       caption: topic.trim(),
@@ -213,8 +213,8 @@ function CreateContent() {
         actions.addContent({
           title: topic.trim(),
           client: client.name,
-          platform: platform as any,
-          type,
+          platform: (platform || "Facebook") as any,
+          type: (type || "Carousel") as ContentType,
           status: "Approved",
           date: new Date().toISOString().slice(0, 10),
           caption: topic.trim(),
@@ -275,8 +275,8 @@ function CreateContent() {
         actions.addContent({
           title: topic.trim(),
           client: client.name,
-          platform: platform as any,
-          type,
+          platform: (platform || "Facebook") as any,
+          type: (type || "Carousel") as ContentType,
           status: "Submitted",
           date: scheduledDate.toISOString().slice(0, 10),
           caption: topic.trim(),
@@ -368,7 +368,7 @@ function CreateContent() {
             <Row label="Goal">
               <Select value={goal} onValueChange={setGoal}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select Goal" />
                 </SelectTrigger>
                 <SelectContent>
                   {goals.map((g) => (
@@ -382,7 +382,7 @@ function CreateContent() {
             <Row label="Platform">
               <Select value={platform} onValueChange={(v) => setPlatform(v as SocialPlatform)}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select Platform" />
                 </SelectTrigger>
                 <SelectContent>
                   {connectedPlatforms.length > 0 ? (
@@ -404,7 +404,7 @@ function CreateContent() {
             <Row label="Content Type">
               <Select value={type} onValueChange={(v) => setType(v as ContentType)}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select Type" />
                 </SelectTrigger>
                 <SelectContent>
                   {CONTENT_TYPES.map((t) => (
@@ -510,17 +510,31 @@ function CreateContent() {
           )}
 
           <div className="space-y-3">
-            <Row label="Publish Options">
-              <Select value={publishMode || ""} onValueChange={(v) => setPublishMode(v as "now" | "later")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select publish option" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="now">Publish Now</SelectItem>
-                  <SelectItem value="later">Schedule For Later</SelectItem>
-                </SelectContent>
-              </Select>
-            </Row>
+            <Label className="text-sm">Publish Options</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPublishMode("now")}
+                className={`flex-1 rounded-lg border p-3 text-sm font-medium transition-colors ${
+                  publishMode === "now"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-muted bg-muted/50 text-muted-foreground hover:border-primary/50"
+                }`}
+              >
+                Publish Now
+              </button>
+              <button
+                type="button"
+                onClick={() => setPublishMode("later")}
+                className={`flex-1 rounded-lg border p-3 text-sm font-medium transition-colors ${
+                  publishMode === "later"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-muted bg-muted/50 text-muted-foreground hover:border-primary/50"
+                }`}
+              >
+                Schedule For Later
+              </button>
+            </div>
 
             {publishMode === "later" && (
               <div className="space-y-3 rounded-lg border bg-muted/50 p-4">
@@ -531,8 +545,8 @@ function CreateContent() {
                     </SelectTrigger>
                     <SelectContent>
                       {timezones.map((tz) => (
-                        <SelectItem key={tz} value={tz}>
-                          {tz}
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -569,7 +583,7 @@ function CreateContent() {
                 </Button>
                 <Button
                   className="flex-1"
-                  disabled={loading || (publishMode === "later" && (!scheduleDate || !scheduleTime))}
+                  disabled={loading || !platform || !type || !goal || (publishMode === "later" && (!scheduleDate || !scheduleTime))}
                   onClick={() => {
                     if (publishMode === "now") {
                       generate();
