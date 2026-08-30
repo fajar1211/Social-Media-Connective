@@ -381,7 +381,7 @@ function CreateContent() {
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-4" />
-            Back to {client?.name || "Clients"}
+            Back
           </Link>
         ) : (
           <Link
