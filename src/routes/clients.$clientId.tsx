@@ -58,7 +58,7 @@ const statusCards = [
   { key: "Deleted", label: "Deleted", icon: Trash2 },
 ] as const;
 
-const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.ReactNode; description: string }> = {
+const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.ReactNode; description: string; comingSoon?: boolean }> = {
   Facebook: {
     color: "bg-[#1877F2]",
     icon: (
@@ -85,8 +85,9 @@ const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.React
       </svg>
     ),
     description: "Connect YouTube channel to manage videos and playlists.",
+    comingSoon: true,
   },
-  "Google Business Profile": {
+  GBP: {
     color: "bg-[#4285F4]",
     icon: (
       <svg className="size-6 fill-white" viewBox="0 0 24 24">
@@ -96,7 +97,8 @@ const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.React
         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
       </svg>
     ),
-    description: "Connect Google Business Profile to manage local posts and reviews.",
+    description: "Manage local posts and reviews.",
+    comingSoon: true,
   },
   LinkedIn: {
     color: "bg-[#0A66C2]",
@@ -105,7 +107,17 @@ const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.React
         <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
       </svg>
     ),
-    description: "Connect LinkedIn to publish articles and company updates.",
+    description: "Publish articles and company updates.",
+    comingSoon: true,
+  },
+  Blog: {
+    color: "bg-[#21759B]",
+    icon: (
+      <svg className="size-6 fill-white" viewBox="0 0 24 24">
+        <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zM3.009 12c0-1.298.283-2.532.784-3.648L7.694 19.09A8.013 8.013 0 013.009 12zm8.991 9c-.962 0-1.896-.14-2.785-.401l2.965-8.64 3.042 8.345a.588.588 0 00.046.093A7.987 7.987 0 0112 21zm1.251-13.368l-3.468 10.114a.532.532 0 01-.031.078 7.955 7.955 0 01-2.245-5.435c0-3.309 2.577-6.037 5.812-6.32l-.068 1.563zm5.037-1.611L13.338 18.8a7.96 7.96 0 012.377.238c.339-.825.53-1.726.53-2.675 0-2.421-1.318-4.536-3.281-5.673l-.031-.042z"/>
+      </svg>
+    ),
+    description: "Publish blog articles via WordPress.",
   },
 };
 
@@ -307,9 +319,10 @@ function SocialIntegrationCard({
   onDisconnect: () => void;
 }) {
   const config = PLATFORM_CONFIG[platform];
+  const isComingSoon = config.comingSoon === true;
 
   return (
-    <div className={`rounded-xl border p-5 transition-all ${connected ? "border-success/30 bg-success/5" : "border-dashed bg-card hover:border-border/80"}`}>
+    <div className={`rounded-xl border p-5 transition-all ${connected ? "border-success/30 bg-success/5" : isComingSoon ? "border-dashed bg-card opacity-75" : "border-dashed bg-card hover:border-border/80"}`}>
       <div className="flex items-start gap-4">
         <div className={`flex size-12 items-center justify-center rounded-xl ${config.color}`}>
           {config.icon}
@@ -317,7 +330,11 @@ function SocialIntegrationCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold">{platform}</h3>
-            {connected ? (
+            {isComingSoon ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+                Coming Soon
+              </span>
+            ) : connected ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                 <Check className="size-3" /> Connected
               </span>
@@ -336,7 +353,12 @@ function SocialIntegrationCard({
           )}
         </div>
         <div className="shrink-0">
-          {connected ? (
+          {isComingSoon ? (
+            <Button size="sm" disabled className="bg-muted text-muted-foreground">
+              <Link2 className="mr-1.5 size-3.5" />
+              Coming Soon
+            </Button>
+          ) : connected ? (
             <div className="flex flex-col gap-2">
               <Button variant="destructive" size="sm" onClick={onDisconnect}>
                 <Trash2 className="mr-1.5 size-3.5" />
