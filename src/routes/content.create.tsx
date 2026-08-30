@@ -51,18 +51,91 @@ export const Route = createFileRoute("/content/create")({
 const goals = ["Education", "Promotion", "Engagement", "Awareness", "Announcement", "Other"];
 
 const timezones = [
-  { value: "Asia/Jakarta", label: "Asia/Jakarta (GMT+7)" },
-  { value: "Asia/Makassar", label: "Asia/Makassar (GMT+8)" },
-  { value: "Asia/Jayapura", label: "Asia/Jayapura (GMT+9)" },
-  { value: "Asia/Singapore", label: "Asia/Singapore (GMT+8)" },
-  { value: "Asia/Tokyo", label: "Asia/Tokyo (GMT+9)" },
-  { value: "Asia/Seoul", label: "Asia/Seoul (GMT+9)" },
-  { value: "Asia/Shanghai", label: "Asia/Shanghai (GMT+8)" },
-  { value: "Asia/Dubai", label: "Asia/Dubai (GMT+4)" },
-  { value: "Europe/London", label: "Europe/London (GMT+0)" },
-  { value: "Europe/Paris", label: "Europe/Paris (GMT+1)" },
-  { value: "America/New_York", label: "America/New_York (GMT-5)" },
-  { value: "America/Los_Angeles", label: "America/Los_Angeles (GMT-8)" },
+  // UTC-12 to UTC-1
+  { value: "Pacific/BakerIsland", label: "Baker Island (UTC-12)" },
+  { value: "Pacific/Johnston", label: "Johnston Atoll (UTC-11)" },
+  { value: "Pacific/Honolulu", label: "Honolulu, Hawaii (UTC-10)" },
+  { value: "America/Anchorage", label: "Anchorage, Alaska (UTC-9)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (UTC-8)" },
+  { value: "America/Denver", label: "Denver (UTC-7)" },
+  { value: "America/Chicago", label: "Chicago (UTC-6)" },
+  { value: "America/New_York", label: "New York (UTC-5)" },
+  { value: "America/Caracas", label: "Caracas (UTC-4)" },
+  { value: "America/Halifax", label: "Halifax (UTC-4)" },
+  { value: "America/Sao_Paulo", label: "São Paulo (UTC-3)" },
+  { value: "America/Argentina/Buenos_Aires", label: "Buenos Aires (UTC-3)" },
+  { value: "Atlantic/South_Georgia", label: "South Georgia (UTC-2)" },
+  { value: "Atlantic/Azores", label: "Azores (UTC-1)" },
+  // UTC+0
+  { value: "Europe/London", label: "London (UTC+0)" },
+  { value: "Europe/Lisbon", label: "Lisbon (UTC+0)" },
+  { value: "Africa/Casablanca", label: "Casablanca (UTC+0)" },
+  { value: "Africa/Abidjan", label: "Abidjan (UTC+0)" },
+  // UTC+1
+  { value: "Europe/Paris", label: "Paris (UTC+1)" },
+  { value: "Europe/Berlin", label: "Berlin (UTC+1)" },
+  { value: "Europe/Rome", label: "Rome (UTC+1)" },
+  { value: "Europe/Madrid", label: "Madrid (UTC+1)" },
+  { value: "Africa/Lagos", label: "Lagos (UTC+1)" },
+  { value: "Africa/Algiers", label: "Algiers (UTC+1)" },
+  // UTC+2
+  { value: "Europe/Athens", label: "Athens (UTC+2)" },
+  { value: "Europe/Istanbul", label: "Istanbul (UTC+2)" },
+  { value: "Africa/Cairo", label: "Cairo (UTC+2)" },
+  { value: "Africa/Johannesburg", label: "Johannesburg (UTC+2)" },
+  // UTC+3
+  { value: "Europe/Moscow", label: "Moscow (UTC+3)" },
+  { value: "Asia/Baghdad", label: "Baghdad (UTC+3)" },
+  { value: "Africa/Nairobi", label: "Nairobi (UTC+3)" },
+  { value: "Asia/Riyadh", label: "Riyadh (UTC+3)" },
+  // UTC+4
+  { value: "Asia/Dubai", label: "Dubai (UTC+4)" },
+  { value: "Asia/Baku", label: "Baku (UTC+4)" },
+  { value: "Europe/Samara", label: "Samara (UTC+4)" },
+  // UTC+5
+  { value: "Asia/Karachi", label: "Karachi (UTC+5)" },
+  { value: "Asia/Tashkent", label: "Tashkent (UTC+5)" },
+  // UTC+5:30
+  { value: "Asia/Kolkata", label: "Mumbai, Kolkata (UTC+5:30)" },
+  { value: "Asia/Colombo", label: "Colombo (UTC+5:30)" },
+  // UTC+6
+  { value: "Asia/Dhaka", label: "Dhaka (UTC+6)" },
+  { value: "Asia/Almaty", label: "Almaty (UTC+6)" },
+  // UTC+7
+  { value: "Asia/Bangkok", label: "Bangkok (UTC+7)" },
+  { value: "Asia/Ho_Chi_Minh", label: "Ho Chi Minh (UTC+7)" },
+  { value: "Asia/Jakarta", label: "Jakarta (UTC+7)" },
+  { value: "Asia/Phnom_Penh", label: "Phnom Penh (UTC+7)" },
+  // UTC+8
+  { value: "Asia/Shanghai", label: "Shanghai (UTC+8)" },
+  { value: "Asia/Singapore", label: "Singapore (UTC+8)" },
+  { value: "Asia/Hong_Kong", label: "Hong Kong (UTC+8)" },
+  { value: "Asia/Taipei", label: "Taipei (UTC+8)" },
+  { value: "Asia/Makassar", label: "Makassar (UTC+8)" },
+  { value: "Asia/Manila", label: "Manila (UTC+8)" },
+  { value: "Australia/Perth", label: "Perth (UTC+8)" },
+  // UTC+9
+  { value: "Asia/Tokyo", label: "Tokyo (UTC+9)" },
+  { value: "Asia/Seoul", label: "Seoul (UTC+9)" },
+  { value: "Asia/Pyongyang", label: "Pyongyang (UTC+9)" },
+  { value: "Asia/Jayapura", label: "Jayapura (UTC+9)" },
+  // UTC+9:30
+  { value: "Australia/Adelaide", label: "Adelaide (UTC+9:30)" },
+  // UTC+10
+  { value: "Australia/Sydney", label: "Sydney (UTC+10)" },
+  { value: "Australia/Melbourne", label: "Melbourne (UTC+10)" },
+  { value: "Pacific/Guam", label: "Guam (UTC+10)" },
+  { value: "Asia/Vladivostok", label: "Vladivostok (UTC+10)" },
+  // UTC+11
+  { value: "Pacific/Guadalcanal", label: "Guadalcanal (UTC+11)" },
+  { value: "Asia/Srednekolymsk", label: "Srednekolymsk (UTC+11)" },
+  // UTC+12
+  { value: "Pacific/Auckland", label: "Auckland (UTC+12)" },
+  { value: "Asia/Kamchatka", label: "Kamchatka (UTC+12)" },
+  // UTC+13
+  { value: "Pacific/Tongatapu", label: "Tongatapu (UTC+13)" },
+  // UTC+14
+  { value: "Pacific/Kiritimati", label: "Kiritimati (UTC+14)" },
 ];
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -511,28 +584,53 @@ function CreateContent() {
 
           <div className="space-y-3">
             <Label className="text-sm">Publish Options</Label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setPublishMode("now")}
-                className={`flex-1 rounded-lg border p-3 text-sm font-medium transition-colors ${
+                className={`group relative flex flex-col items-center gap-2 rounded-xl border-2 p-5 transition-all ${
                   publishMode === "now"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-muted bg-muted/50 text-muted-foreground hover:border-primary/50"
+                    ? "border-green-500 bg-green-500/5 shadow-md shadow-green-500/10"
+                    : "border-muted hover:border-green-300 hover:bg-green-500/5"
                 }`}
               >
-                Publish Now
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                  publishMode === "now"
+                    ? "bg-green-500 text-white"
+                    : "bg-muted text-muted-foreground group-hover:bg-green-100 group-hover:text-green-600"
+                }`}>
+                  <Send className="h-4 w-4" />
+                </div>
+                <span className={`text-sm font-semibold ${
+                  publishMode === "now" ? "text-green-700" : "text-foreground"
+                }`}>
+                  Publish Now
+                </span>
+                <span className="text-xs text-muted-foreground">Post immediately</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setPublishMode("later")}
-                className={`flex-1 rounded-lg border p-3 text-sm font-medium transition-colors ${
+                className={`group relative flex flex-col items-center gap-2 rounded-xl border-2 p-5 transition-all ${
                   publishMode === "later"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-muted bg-muted/50 text-muted-foreground hover:border-primary/50"
+                    ? "border-blue-500 bg-blue-500/5 shadow-md shadow-blue-500/10"
+                    : "border-muted hover:border-blue-300 hover:bg-blue-500/5"
                 }`}
               >
-                Schedule For Later
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                  publishMode === "later"
+                    ? "bg-blue-500 text-white"
+                    : "bg-muted text-muted-foreground group-hover:bg-blue-100 group-hover:text-blue-600"
+                }`}>
+                  <CalendarClock className="h-4 w-4" />
+                </div>
+                <span className={`text-sm font-semibold ${
+                  publishMode === "later" ? "text-blue-700" : "text-foreground"
+                }`}>
+                  Schedule For Later
+                </span>
+                <span className="text-xs text-muted-foreground">Pick date & time</span>
               </button>
             </div>
 
