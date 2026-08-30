@@ -316,6 +316,14 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const { clients } = useStore();
   const client = clients.find((c) => c.id === clientId);
   const socialIntegrationsRef = useRef(client?.socialIntegrations || {});
+  const [isPaused, setIsPaused] = useState(false);
+
+  const magicLinkUrl = `https://socmedconnective.marketingconnective.com/client/${clientId}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(magicLinkUrl);
+    toast.success("Magic link copied to clipboard!");
+  };
 
   if (client) {
     socialIntegrationsRef.current = client.socialIntegrations;
@@ -410,6 +418,61 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl border bg-card p-6 shadow-soft">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold">Client Magic Link</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Share this link with {client.name} to let them submit content directly.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <div className="flex-1 rounded-lg border bg-muted px-3 py-2">
+            <input
+              type="text"
+              value={magicLinkUrl}
+              readOnly
+              className="w-full bg-transparent text-sm text-foreground outline-none"
+            />
+          </div>
+          <Button size="sm" onClick={handleCopyLink}>
+            <Link2 className="mr-1.5 size-3.5" />
+            Copy
+          </Button>
+          <Button
+            size="sm"
+            variant={isPaused ? "default" : "outline"}
+            onClick={() => {
+              setIsPaused(!isPaused);
+              toast.success(isPaused ? "Magic link activated" : "Magic link paused");
+            }}
+          >
+            {isPaused ? (
+              <>
+                <Check className="mr-1.5 size-3.5" />
+                Resume
+              </>
+            ) : (
+              <>
+                <Trash2 className="mr-1.5 size-3.5" />
+                Pause
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${isPaused ? "bg-warning/10 text-warning" : "bg-success/10 text-success"}`}>
+            {isPaused ? "Paused" : "Active"}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {isPaused ? "Link is currently paused" : "Link is active and accepting submissions"}
+          </span>
+        </div>
+      </div>
+
       <div className="rounded-xl border bg-card p-6 shadow-soft">
         <div className="flex items-center justify-between">
           <div>
