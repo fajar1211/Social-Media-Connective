@@ -52,7 +52,7 @@ function Dashboard() {
         subtitle="Manage and organize your marketing content in one place."
         actions={
           <Button asChild>
-            <Link to="/content/create" search={{}}>Create Content</Link>
+            <Link to="/content/create">Create Content</Link>
           </Button>
         }
       />

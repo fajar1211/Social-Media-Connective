@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -45,10 +45,6 @@ export const Route = createFileRoute("/content/create")({
       },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    clientId: (search?.clientId as string) || "",
-    clientName: (search?.clientName as string) || "",
-  }),
   component: CreateContent,
 });
 
@@ -64,7 +60,9 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function CreateContent() {
-  const { clientId, clientName } = Route.useSearch();
+  const searchParams = new URLSearchParams(window.location.search);
+  const clientId = searchParams.get("clientId") || "";
+  const clientName = searchParams.get("clientName") || "";
   const { clients } = useStore();
   const navigate = useNavigate();
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -302,17 +300,11 @@ function CreateContent() {
         )}
       </div>
 
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Create Content</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Create marketing content for {client?.name || "your client"}.
-          </p>
-        </div>
-        <Button onClick={() => save("Suggested")}>
-          <Save className="mr-1.5 size-3.5" />
-          Create Content
-        </Button>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Create Content</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Create marketing content for {client?.name || "your client"}.
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -471,7 +463,7 @@ function CreateContent() {
           )}
 
           <Button className="w-full" onClick={generate} disabled={loading}>
-            {loading ? "Generating…" : "Generate Content"}
+            {loading ? "Processing…" : "Schedule Now"}
           </Button>
         </div>
 
@@ -551,15 +543,6 @@ function CreateContent() {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button variant="outline" onClick={generate} className="flex-1">
-              Regenerate
-            </Button>
-            <Button onClick={() => save("Submitted")} className="flex-1">
-              <Clock className="mr-1.5 size-3.5" />
-              Submit
-            </Button>
-          </div>
         </div>
       </div>
     </>

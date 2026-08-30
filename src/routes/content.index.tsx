@@ -23,7 +23,7 @@ function AllContent() {
         subtitle="Every piece of marketing content in your library."
         actions={
           <Button asChild>
-            <Link to="/content/create" search={{}}>Create Content</Link>
+            <Link to="/content/create">Create Content</Link>
           </Button>
         }
       />
