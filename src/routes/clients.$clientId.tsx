@@ -915,7 +915,7 @@ function PublishedTab({ client }: { client: { id: string; name: string } }) {
             Content published to Facebook will appear here.
           </p>
           <Button asChild variant="outline" className="mt-4">
-            <Link to="/content/create">Create Content</Link>
+            <Link to="/content/create" search={{ clientId: client.id, clientName: client.name }}>Create Content</Link>
           </Button>
         </div>
       )}
@@ -1474,7 +1474,7 @@ function ClientDetailPage() {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link to="/content/create">Create Content</Link>
+            <Link to="/content/create" search={{ clientId: client.id, clientName: client.name }}>Create Content</Link>
           </Button>
         </div>
       </div>

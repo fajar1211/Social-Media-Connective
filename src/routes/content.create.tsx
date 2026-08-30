@@ -61,13 +61,15 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 function CreateContent() {
   const searchParams = new URLSearchParams(window.location.search);
-  const clientId = searchParams.get("clientId") || "";
-  const clientName = searchParams.get("clientName") || "";
+  const urlClientId = searchParams.get("clientId") || "";
+  const urlClientName = searchParams.get("clientName") || "";
   const { clients } = useStore();
   const navigate = useNavigate();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
+  const [selectedClientId, setSelectedClientId] = useState(urlClientId);
+  const [selectedClientName, setSelectedClientName] = useState(urlClientName);
   const [topic, setTopic] = useState("");
   const [goal, setGoal] = useState("Education");
   const [platform, setPlatform] = useState<SocialPlatform>("Facebook");
@@ -82,7 +84,7 @@ function CreateContent() {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
 
-  const client = clients.find((c) => c.id === clientId);
+  const client = clients.find((c) => c.id === selectedClientId);
   const fbConnection = client?.socialIntegrations?.Facebook;
   const pages: FacebookPage[] = fbConnection?.pages || [];
   const isFacebook = platform === "Facebook";
@@ -280,10 +282,10 @@ function CreateContent() {
   return (
     <>
       <div className="mb-6">
-        {clientId ? (
+        {selectedClientId ? (
           <Link
             to="/clients/$clientId"
-            params={{ clientId }}
+            params={{ clientId: selectedClientId }}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-4" />
@@ -306,6 +308,32 @@ function CreateContent() {
           Create marketing content for {client?.name || "your client"}.
         </p>
       </div>
+
+      {!selectedClientId && (
+        <div className="mb-6 rounded-xl border bg-card p-6 shadow-soft">
+          <Row label="Select Client">
+            <Select
+              value={selectedClientId}
+              onValueChange={(value) => {
+                const selected = clients.find((c) => c.id === value);
+                setSelectedClientId(value);
+                setSelectedClientName(selected?.name || "");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a client" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Row>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-5 rounded-xl border bg-card p-6 shadow-soft lg:col-span-2">
