@@ -50,6 +50,21 @@ export const Route = createFileRoute("/content/create")({
 
 const goals = ["Education", "Promotion", "Engagement", "Awareness", "Announcement", "Other"];
 
+const timezones = [
+  "Asia/Jakarta",
+  "Asia/Makassar",
+  "Asia/Jayapura",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Asia/Seoul",
+  "Asia/Shanghai",
+  "Asia/Dubai",
+  "Europe/London",
+  "Europe/Paris",
+  "America/New_York",
+  "America/Los_Angeles",
+];
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
@@ -83,6 +98,10 @@ function CreateContent() {
   const [scheduleDateTime, setScheduleDateTime] = useState("");
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
+  const [publishMode, setPublishMode] = useState<"now" | "later" | null>(null);
+  const [timezone, setTimezone] = useState("Asia/Jakarta");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
 
   const client = clients.find((c) => c.id === selectedClientId);
   const fbConnection = client?.socialIntegrations?.Facebook;
@@ -490,9 +509,81 @@ function CreateContent() {
             </div>
           )}
 
-          <Button className="w-full" onClick={generate} disabled={loading}>
-            {loading ? "Processing…" : "Schedule Now"}
-          </Button>
+          <div className="space-y-3">
+            <Row label="Publish Options">
+              <Select value={publishMode || ""} onValueChange={(v) => setPublishMode(v as "now" | "later")}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select publish option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="now">Publish Now</SelectItem>
+                  <SelectItem value="later">Schedule For Later</SelectItem>
+                </SelectContent>
+              </Select>
+            </Row>
+
+            {publishMode === "later" && (
+              <div className="space-y-3 rounded-lg border bg-muted/50 p-4">
+                <Row label="Timezone">
+                  <Select value={timezone} onValueChange={setTimezone}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timezones.map((tz) => (
+                        <SelectItem key={tz} value={tz}>
+                          {tz}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Row>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Row label="Date">
+                    <Input
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
+                    />
+                  </Row>
+                  <Row label="Time">
+                    <Input
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                    />
+                  </Row>
+                </div>
+              </div>
+            )}
+
+            {publishMode && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setPublishMode(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  disabled={loading || (publishMode === "later" && (!scheduleDate || !scheduleTime))}
+                  onClick={() => {
+                    if (publishMode === "now") {
+                      generate();
+                    } else {
+                      toast.success(`Scheduled for ${scheduleDate} ${scheduleTime} (${timezone})`);
+                      navigate({ to: "/submitted" });
+                    }
+                  }}
+                >
+                  {loading ? "Processing…" : publishMode === "now" ? "Publish Post" : "Schedule Post"}
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="space-y-5 rounded-xl border bg-card p-6 shadow-soft">
