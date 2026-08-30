@@ -117,6 +117,24 @@ type SocialConnection = {
 
 ## ⏳ Pending / Next Steps
 
+### 🎯 Target Integration: Amplypost-like Platform
+> **Reference**: https://www.amplypost.com
+> **Goal**: Build a full social media scheduling & publishing platform like Amplypost
+
+**Amplypost Features to Replicate:**
+- [ ] Multi-platform scheduling (Facebook, Instagram, YouTube, TikTok, LinkedIn, X, Threads, Bluesky, Pinterest, Google Business Profile)
+- [ ] Content calendar view (see upcoming posts at a glance)
+- [ ] Connected accounts dashboard
+- [ ] One post → multiple platforms
+- [ ] Video scheduling (YouTube, TikTok)
+- [ ] Instant publish + scheduled publish
+- [ ] Dashboard with analytics
+- [ ] Pricing tiers (Free / Pro / Business)
+- [ ] Agency workflow (multi-client management)
+- [ ] Content preview before publish
+
+---
+
 ### Facebook Developer Setup (BLOCKING)
 1. **Add Redirect URI** in Facebook Developer Dashboard → Facebook Login → Settings:
    - `http://localhost:8080/api/auth/facebook/callback`

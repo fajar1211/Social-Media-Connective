@@ -59,9 +59,9 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                client_id: "1797916071226372",
+                client_id: "1513088904188454",
                 client_secret: process.env["META_APP_SECRET"] || "YOUR_APP_SECRET",
-                redirect_uri: "http://localhost:8080/api/auth/facebook/callback",
+                redirect_uri: "https://socmedconnective.marketingconnective.com/api/auth/facebook/callback",
                 code: code,
               }),
             }
