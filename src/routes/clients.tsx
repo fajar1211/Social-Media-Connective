@@ -6,19 +6,13 @@ import {
   MoreHorizontal,
   Eye,
   Pencil,
-  Share2,
   Trash2,
   Inbox,
-  Users,
-  Link2,
-  Check,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -59,7 +53,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ClientStatusBadge, PlatformBadge } from "@/components/badges";
-import { actions, useStore, PLATFORMS, SOCIAL_PLATFORMS, type Client, type Platform, type SocialPlatform, type SocialConnection } from "@/lib/content-store";
+import { actions, useStore, type Client, type Platform } from "@/lib/content-store";
 
 export const Route = createFileRoute("/clients")({
   head: () => ({
@@ -80,16 +74,12 @@ function ClientCard({
   client,
   contentCount,
   onEdit,
-  onEditPlatforms,
-  onSocialIntegration,
   onView,
   onDelete,
 }: {
   client: Client;
   contentCount: number;
   onEdit: () => void;
-  onEditPlatforms: () => void;
-  onSocialIntegration: () => void;
   onView: () => void;
   onDelete: () => void;
 }) {
@@ -118,12 +108,6 @@ function ClientCard({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onEdit}>
               <Pencil className="mr-2 size-4" /> Edit Name
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onEditPlatforms}>
-              <Share2 className="mr-2 size-4" /> Manage Platforms
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onSocialIntegration}>
-              <Link2 className="mr-2 size-4" /> Social Integration
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive" onClick={onDelete}>
@@ -167,15 +151,9 @@ function ClientsPage() {
   const [editClientId, setEditClientId] = useState("");
   const [editName, setEditName] = useState("");
 
-  const [editingPlatforms, setEditingPlatforms] = useState<Client | null>(null);
-  const [platformSelection, setPlatformSelection] = useState<Platform[]>([]);
-
   const [viewing, setViewing] = useState<Client | null>(null);
 
   const [deleting, setDeleting] = useState<Client | null>(null);
-
-  const [socialIntegration, setSocialIntegration] = useState<Client | null>(null);
-  const [socialSelection, setSocialSelection] = useState<Partial<Record<SocialPlatform, SocialConnection>>>({});
 
   const filtered = useMemo(() => {
     let list = clients;
@@ -203,10 +181,6 @@ function ClientsPage() {
     setEditing(null);
     setEditClientId("");
     setEditName("");
-    setEditingPlatforms(null);
-    setPlatformSelection([]);
-    setSocialIntegration(null);
-    setSocialSelection({});
     setViewing(null);
     setDeleting(null);
   };
@@ -321,22 +295,6 @@ function ClientsPage() {
                             >
                               <Pencil className="mr-2 size-4" /> Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditingPlatforms(c);
-                                setPlatformSelection([...c.platforms]);
-                              }}
-                            >
-                              <Share2 className="mr-2 size-4" /> Manage Platforms
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSocialIntegration(c);
-                                setSocialSelection({ ...c.socialIntegrations });
-                              }}
-                            >
-                              <Link2 className="mr-2 size-4" /> Social Integration
-                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"
@@ -363,14 +321,6 @@ function ClientsPage() {
                     setEditing(c);
                     setEditClientId(c.id);
                     setEditName(c.name);
-                  }}
-                  onEditPlatforms={() => {
-                    setEditingPlatforms(c);
-                    setPlatformSelection([...c.platforms]);
-                  }}
-                  onSocialIntegration={() => {
-                    setSocialIntegration(c);
-                    setSocialSelection({ ...c.socialIntegrations });
                   }}
                   onView={() => setViewing(c)}
                   onDelete={() => setDeleting(c)}
@@ -583,200 +533,6 @@ function ClientsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Dialog
-        open={!!editingPlatforms}
-        onOpenChange={(o) => {
-          if (!o) {
-            setEditingPlatforms(null);
-            setPlatformSelection([]);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Manage Platforms — {editingPlatforms?.name}</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Select which platforms this client uses for marketing content.
-          </p>
-          <div className="space-y-2 pt-2">
-            {PLATFORMS.map((p) => (
-              <label
-                key={p}
-                className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/40"
-              >
-                <Checkbox
-                  checked={platformSelection.includes(p)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setPlatformSelection([...platformSelection, p]);
-                    } else {
-                      setPlatformSelection(platformSelection.filter((x) => x !== p));
-                    }
-                  }}
-                />
-                <span className="text-sm font-medium">{p}</span>
-              </label>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEditingPlatforms(null);
-                setPlatformSelection([]);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (editingPlatforms) {
-                  actions.updateClient(editingPlatforms.id, {
-                    platforms: platformSelection,
-                  });
-                  toast.success("Platforms updated");
-                  setEditingPlatforms(null);
-                  setPlatformSelection([]);
-                }
-              }}
-            >
-              Save Platforms
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {socialIntegration && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border bg-card shadow-overlay">
-            <div className="flex items-center justify-between border-b px-6 py-4">
-              <div>
-                <h2 className="text-lg font-semibold">Social Integration</h2>
-                <p className="text-sm text-muted-foreground">{socialIntegration.name}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setSocialIntegration(null);
-                  setSocialSelection({});
-                }}
-              >
-                ✕
-              </Button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              <p className="mb-4 text-sm text-muted-foreground">
-                Connect this client's social media accounts to enable direct posting and analytics.
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {SOCIAL_PLATFORMS.map((p) => {
-                  const conn = socialSelection[p];
-                  const isConnected = conn?.connected === true;
-                  return (
-                    <div
-                      key={p}
-                      className={`rounded-xl border p-4 transition-colors ${isConnected ? "border-success/30 bg-success/5" : "bg-card"}`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`flex size-10 items-center justify-center rounded-xl ${isConnected ? "bg-success/12" : "bg-muted"}`}>
-                            {isConnected ? (
-                              <Check className="size-5 text-success" strokeWidth={2} />
-                            ) : (
-                              <Link2 className="size-5 text-muted-foreground" strokeWidth={1.75} />
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold">{p}</p>
-                            {isConnected ? (
-                              <p className="text-xs text-muted-foreground">
-                                {conn.accountName}
-                              </p>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">Not connected</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        {isConnected ? (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {conn.connectedAt ? `Connected ${conn.connectedAt}` : "Connected"}
-                            </span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSocialSelection({
-                                  ...socialSelection,
-                                  [p]: { connected: false },
-                                });
-                                toast.success(`${p} disconnected`);
-                              }}
-                            >
-                              Disconnect
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            className="w-full"
-                            onClick={() => {
-                              setSocialSelection({
-                                ...socialSelection,
-                                [p]: {
-                                  connected: true,
-                                  accountName: `${socialIntegration.name} ${p}`,
-                                  accountId: `${Date.now()}`,
-                                  connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-                                },
-                              });
-                              toast.success(`${p} connected`);
-                            }}
-                          >
-                            Connect
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSocialIntegration(null);
-                  setSocialSelection({});
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  if (socialIntegration) {
-                    actions.updateClient(socialIntegration.id, {
-                      socialIntegrations: socialSelection,
-                    });
-                    toast.success("Social integrations saved");
-                    setSocialIntegration(null);
-                    setSocialSelection({});
-                  }
-                }}
-              >
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <Dialog
         open={!!viewing}
