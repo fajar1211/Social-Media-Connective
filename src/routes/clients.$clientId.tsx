@@ -19,6 +19,9 @@ import {
   Clock,
   CalendarClock,
   Sparkles,
+  Image,
+  Film,
+  SquareCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -479,7 +482,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
   );
 }
 
-type Tab = "content" | "published" | "ai-content" | "settings";
+type Tab = "content" | "published" | "ai-content" | "media" | "settings";
 
 function PublishedTab({ client }: { client: { id: string; name: string } }) {
   const { content, clients } = useStore();
@@ -704,6 +707,206 @@ function PublishedTab({ client }: { client: { id: string; name: string } }) {
   );
 }
 
+function MediaTab({ client }: { client: { id: string; name: string } }) {
+  const { content } = useStore();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [filter, setFilter] = useState<"all" | "images" | "videos">("all");
+
+  const allMedia = content
+    .filter((c) => c.client === client.name && c.media && c.media.length > 0)
+    .flatMap((c) =>
+      (c.media || []).map((url) => ({
+        id: `${c.id}-${url}`,
+        url,
+        title: c.title,
+        type: url.match(/\.(mp4|mov|avi|webm)$/i) ? "video" : "image",
+      }))
+    );
+
+  const filteredMedia = allMedia.filter((m) => {
+    if (filter === "images") return m.type === "image";
+    if (filter === "videos") return m.type === "video";
+    return true;
+  });
+
+  const images = filteredMedia.filter((m) => m.type === "image");
+  const videos = filteredMedia.filter((m) => m.type === "video");
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredMedia.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredMedia.map((m) => m.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const deleteSelected = () => {
+    toast.success(`${selectedIds.length} media deleted`);
+    setSelectedIds([]);
+  };
+
+  const handleAddImages = (files: FileList | null) => {
+    const fileList = Array.from(files || []);
+    const validFiles = fileList.filter((f) => /\.(jpg|jpeg|png|gif|webp|mp4|mov|avi)$/i.test(f.name));
+    if (validFiles.length > 0) {
+      toast.success(`${validFiles.length} files added`);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border bg-card p-6 shadow-soft">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold">Media Library</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              All media files for {client.name}.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              className="hidden"
+              multiple
+              accept="image/*,video/*"
+              onChange={(e) => handleAddImages(e.target.files)}
+            />
+            <Button size="sm" onClick={() => inputRef.current?.click()}>
+              <PlusCircle className="mr-1.5 size-3.5" />
+              Add Images
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex gap-1 rounded-lg border bg-muted p-1">
+            <button
+              onClick={() => setFilter("all")}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                filter === "all"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All ({allMedia.length})
+            </button>
+            <button
+              onClick={() => setFilter("images")}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                filter === "images"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Image className="mr-1 inline size-3" />
+              Images ({images.length})
+            </button>
+            <button
+              onClick={() => setFilter("videos")}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                filter === "videos"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Film className="mr-1 inline size-3" />
+              Videos ({videos.length})
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === filteredMedia.length && filteredMedia.length > 0}
+                onChange={toggleSelectAll}
+                className="size-4 rounded border-gray-300"
+              />
+              Select All
+            </label>
+            {selectedIds.length > 0 && (
+              <Button variant="destructive" size="sm" onClick={deleteSelected}>
+                <Trash2 className="mr-1.5 size-3.5" />
+                Delete ({selectedIds.length})
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {filteredMedia.length > 0 ? (
+          <div className="mt-6 grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+            {filteredMedia.map((media) => (
+              <div
+                key={media.id}
+                className={`group relative cursor-pointer overflow-hidden rounded-lg border-2 transition-all ${
+                  selectedIds.includes(media.id)
+                    ? "border-primary ring-2 ring-primary/20"
+                    : "border-transparent hover:border-border"
+                }`}
+                onClick={() => toggleSelect(media.id)}
+              >
+                <div className="aspect-square bg-muted">
+                  {media.type === "image" ? (
+                    <img
+                      src={media.url}
+                      alt={media.title}
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-full items-center justify-center">
+                      <Film className="size-8 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <div className="absolute inset-0 flex items-start justify-end p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div
+                    className={`flex size-6 items-center justify-center rounded-full ${
+                      selectedIds.includes(media.id)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background/80 text-foreground"
+                    }`}
+                  >
+                    {selectedIds.includes(media.id) && <Check className="size-4" />}
+                  </div>
+                </div>
+                {media.type === "video" && (
+                  <div className="absolute bottom-2 left-2">
+                    <span className="flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">
+                      <Film className="size-3" /> Video
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center">
+            <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-muted">
+              <Image className="size-6 text-muted-foreground" strokeWidth={1.5} />
+            </div>
+            <h3 className="text-base font-semibold">No Media Yet</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Add images or videos for {client.name}.
+            </p>
+            <Button variant="outline" className="mt-4" onClick={() => inputRef.current?.click()}>
+              <PlusCircle className="mr-1.5 size-3.5" />
+              Add Media
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AIContentTab({ client }: { client: { id: string; name: string } }) {
   const { content } = useStore();
   const navigate = useNavigate();
@@ -918,6 +1121,17 @@ function ClientDetailPage() {
           AI Content
         </button>
         <button
+          onClick={() => setTab("media")}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "media"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Image className="size-4" />
+          Media
+        </button>
+        <button
           onClick={() => setTab("settings")}
           className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             tab === "settings"
@@ -971,6 +1185,8 @@ function ClientDetailPage() {
       {tab === "published" && <PublishedTab client={client} />}
 
       {tab === "ai-content" && <AIContentTab client={client} />}
+
+      {tab === "media" && <MediaTab client={client} />}
     </>
   );
 }
