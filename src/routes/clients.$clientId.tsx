@@ -1088,13 +1088,19 @@ function MediaTab({ client }: { client: { id: string; name: string } }) {
 function AIContentTab({ client }: { client: { id: string; name: string; socialIntegrations?: Record<string, { connected?: boolean }> } }) {
   const { content, clients } = useStore();
   const navigate = useNavigate();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const campaignImageRef = useRef<HTMLInputElement>(null);
+  const referenceDocRef = useRef<HTMLInputElement>(null);
+  const [postsAbout, setPostsAbout] = useState("");
   const [campaignImage, setCampaignImage] = useState<string | null>(null);
+  const [referenceDocument, setReferenceDocument] = useState<File | null>(null);
+  const [referenceUrl, setReferenceUrl] = useState("");
   const [knowledgeNotes, setKnowledgeNotes] = useState("");
-  const [knowledgeFiles, setKnowledgeFiles] = useState("");
+  const [knowledgeFiles, setKnowledgeFiles] = useState<string[]>([]);
   const [postsPerPlatform, setPostsPerPlatform] = useState<Record<string, number>>({});
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const knowledgeOptions = ["BKB", "BE", "Persona 1", "Persona 2", "Persona 3"];
 
   const clientData = clients.find((c) => c.id === client.id);
   const connectedPlatforms = SOCIAL_PLATFORMS.filter(
@@ -1110,6 +1116,19 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       toast.success("Campaign image added");
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleReferenceDoc = (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setReferenceDocument(file);
+    toast.success("Reference document added");
+  };
+
+  const toggleKnowledgeFiles = (value: string) => {
+    setKnowledgeFiles((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
   };
 
   const handleGenerate = () => {
@@ -1134,19 +1153,32 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
 
         <div className="mt-6 space-y-6">
           <div className="rounded-lg border p-4">
+            <h3 className="text-sm font-semibold">What should the posts be about?</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Describe the topic or theme for your content.
+            </p>
+            <textarea
+              value={postsAbout}
+              onChange={(e) => setPostsAbout(e.target.value)}
+              placeholder="Enter the main topic or theme for your posts..."
+              className="mt-3 w-full rounded-lg border px-3 py-2 text-sm min-h-[100px]"
+            />
+          </div>
+
+          <div className="rounded-lg border p-4">
             <h3 className="text-sm font-semibold">Campaign Image (Optional)</h3>
             <p className="mt-1 text-xs text-muted-foreground">
               Upload an image or use GBP images for your campaign.
             </p>
             <div className="mt-3 flex items-center gap-3">
               <input
-                ref={inputRef}
+                ref={campaignImageRef}
                 type="file"
                 className="hidden"
                 accept="image/*"
                 onChange={(e) => handleCampaignImage(e.target.files)}
               />
-              <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
+              <Button variant="outline" size="sm" onClick={() => campaignImageRef.current?.click()}>
                 <PlusCircle className="mr-1.5 size-3.5" />
                 Add Image
               </Button>
@@ -1170,6 +1202,45 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
             )}
           </div>
 
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border p-4">
+              <h3 className="text-sm font-semibold">Reference Document (Optional)</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Upload a reference document for content generation.
+              </p>
+              <div className="mt-3">
+                <input
+                  ref={referenceDocRef}
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={(e) => handleReferenceDoc(e.target.files)}
+                />
+                <Button variant="outline" size="sm" onClick={() => referenceDocRef.current?.click()}>
+                  <FileSpreadsheet className="mr-1.5 size-3.5" />
+                  Choose File
+                </Button>
+                {referenceDocument && (
+                  <p className="mt-2 text-xs text-muted-foreground">{referenceDocument.name}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <h3 className="text-sm font-semibold">Reference URL (Optional)</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Add a reference URL for content generation.
+              </p>
+              <input
+                type="url"
+                value={referenceUrl}
+                onChange={(e) => setReferenceUrl(e.target.value)}
+                placeholder="https://example.com"
+                className="mt-3 w-full rounded-lg border px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
           <div className="rounded-lg border p-4">
             <h3 className="text-sm font-semibold">Include Knowledge Notes</h3>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -1186,14 +1257,24 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
           <div className="rounded-lg border p-4">
             <h3 className="text-sm font-semibold">Include Knowledge Files</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Add knowledge files to include in content generation.
+              Select knowledge files to include in content generation.
             </p>
-            <textarea
-              value={knowledgeFiles}
-              onChange={(e) => setKnowledgeFiles(e.target.value)}
-              placeholder="Enter knowledge files description here..."
-              className="mt-3 w-full rounded-lg border px-3 py-2 text-sm min-h-[100px]"
-            />
+            <div className="mt-3 flex flex-wrap gap-2">
+              {knowledgeOptions.map((option) => (
+                <label
+                  key={`files-${option}`}
+                  className="flex items-center gap-2 rounded-lg border px-3 py-2 transition-colors hover:bg-accent/40"
+                >
+                  <input
+                    type="checkbox"
+                    checked={knowledgeFiles.includes(option)}
+                    onChange={() => toggleKnowledgeFiles(option)}
+                    className="size-4 rounded border-gray-300"
+                  />
+                  <span className="text-sm">{option}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-lg border p-4">
