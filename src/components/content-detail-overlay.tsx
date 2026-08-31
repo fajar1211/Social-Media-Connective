@@ -306,33 +306,6 @@ export function ContentDetailOverlay({
 
             <div className="space-y-4">
               <div>
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Caption</Label>
-                {editing ? (
-                  <Textarea
-                    className="mt-1.5"
-                    rows={3}
-                    value={draft.caption}
-                    onChange={(e) => setDraft({ ...draft, caption: e.target.value })}
-                  />
-                ) : (
-                  <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap">{item.caption}</p>
-                )}
-              </div>
-              <div>
-                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Hashtags</Label>
-                {editing ? (
-                  <Input
-                    className="mt-1.5"
-                    value={draft.hashtags.join(" ")}
-                    onChange={(e) => setDraft({ ...draft, hashtags: e.target.value.split(/\s+/).filter(Boolean) })}
-                  />
-                ) : (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {item.hashtags.length ? item.hashtags.join(" ") : "—"}
-                  </p>
-                )}
-              </div>
-              <div>
                 <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">CTA</Label>
                 {editing ? (
                   <Input
