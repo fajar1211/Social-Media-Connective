@@ -1011,19 +1011,11 @@ export function SocialMediaPreviewCard({
             label="Comment"
             onClick={onComment}
           />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onShare?.();
-            }}
-            className={cn(
-              "flex flex-1 items-center justify-center overflow-hidden rounded px-1.5 py-1.5 min-w-0",
-              "text-muted-foreground transition-colors duration-150",
-              "hover:bg-accent active:scale-[0.97]",
-            )}
-          >
-            <Share2 className="h-4 w-4" />
-          </button>
+          <ActionButton
+            icon={<Share2 className="h-4 w-4" />}
+            label="Share"
+            onClick={onShare}
+          />
         </div>
       </article>
 
@@ -1126,8 +1118,8 @@ function ActionButton({
         onClick?.();
       }}
       className={cn(
-        "flex flex-1 items-center justify-center gap-1 overflow-hidden rounded px-1.5 py-1.5 min-w-0",
-        "text-[11px] sm:text-[12px] font-medium text-muted-foreground transition-colors duration-150",
+        "flex flex-1 items-center justify-center gap-1.5 overflow-hidden rounded px-2 py-1.5 min-w-0",
+        "text-xs font-medium text-foreground transition-colors duration-150",
         "hover:bg-accent",
         "active:scale-[0.97]",
         isActive && "text-[#1877F2]",
