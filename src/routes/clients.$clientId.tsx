@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/table";
 import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from "@/components/badges";
 import { ContentList } from "@/components/content-list";
-import { counts, useStore, actions, SOCIAL_PLATFORMS, formatDate, type SocialPlatform, type ContentItem } from "@/lib/content-store";
+import { counts, useStore, actions, SOCIAL_PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem } from "@/lib/content-store";
 
 export const Route = createFileRoute("/clients/$clientId")({
   head: () => ({
@@ -176,47 +176,6 @@ const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.React
   },
 };
 
-const sample: Omit<ContentItem, "id">[] = [
-  {
-    title: "Hydrafacial: What to Expect",
-    client: "Divine Medical Spa",
-    platform: "Instagram",
-    type: "Image",
-    status: "Additional",
-    date: new Date().toISOString().slice(0, 10),
-    caption: "A quick walkthrough of your first Hydrafacial appointment.",
-    hashtags: ["#Hydrafacial", "#SkinCare"],
-    cta: "Book your session.",
-    media: [
-      "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&w=1200&q=70",
-    ],
-  },
-  {
-    title: "3 Signs You Need a Dental Check-Up",
-    client: "Northline Dental",
-    platform: "Facebook",
-    type: "Text Post",
-    status: "Additional",
-    date: new Date().toISOString().slice(0, 10),
-    caption: "Sensitivity, bleeding gums and jaw pain shouldn't be ignored.",
-    body: "Sensitivity, bleeding gums and jaw pain shouldn't be ignored. Here's why an early visit saves time and money.",
-    hashtags: ["#DentalHealth", "#Northline"],
-    cta: "Schedule a check-up.",
-  },
-  {
-    title: "Why Recovery Days Matter",
-    client: "Harbor Fitness Co.",
-    platform: "LinkedIn",
-    type: "Blog Article",
-    status: "Additional",
-    date: new Date().toISOString().slice(0, 10),
-    caption: "Training hard is only half the equation.",
-    body: "Training hard is only half the equation. Recovery is where adaptation happens…",
-    hashtags: ["#Fitness", "#Recovery"],
-    cta: "Read the full article.",
-  },
-];
-
 function ImportSection({ clientName }: { clientName: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -224,33 +183,48 @@ function ImportSection({ clientName }: { clientName: string }) {
   const [rows, setRows] = useState<Omit<ContentItem, "id">[] | null>(null);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const handleFiles = (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const ok = /\.(docx|pdf|md)$/i.test(file.name);
+    const ok = /\.(docx|pdf|md|txt)$/i.test(file.name);
     if (!ok) {
-      toast.error("Unsupported file. Use .docx, .pdf, or .md");
+      toast.error("Unsupported file. Use .docx, .pdf, .md, or .txt");
       return;
     }
     setFileName(file.name);
     setRows(null);
     setUploadProgress(0);
-    let p = 0;
-    const t = setInterval(() => {
-      p += 20;
-      setUploadProgress(p);
-      if (p >= 100) {
-        clearInterval(t);
-        const imported = sample.map((s) => ({ ...s, client: clientName }));
-        setRows(imported);
-        toast.success(`${file.name} uploaded`);
-      }
-    }, 160);
+    setSelected(new Set());
+
+    const isText = /\.(md|txt)$/i.test(file.name);
+    if (isText) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const parsed = parseImportFile(text, clientName);
+        setRows(parsed);
+        setUploadProgress(100);
+        toast.success(`${file.name} parsed — ${parsed.length} posts found`);
+      };
+      reader.readAsText(file);
+    } else {
+      let p = 0;
+      const t = setInterval(() => {
+        p += 20;
+        setUploadProgress(p);
+        if (p >= 100) {
+          clearInterval(t);
+          setRows([]);
+          toast.success(`${file.name} uploaded — 0 posts found`);
+        }
+      }, 160);
+    }
   };
 
   const confirmImport = () => {
-    if (!rows) return;
+    if (!rows || rows.length === 0) return;
     setImporting(true);
     setImportProgress(0);
     let p = 0;
@@ -265,8 +239,29 @@ function ImportSection({ clientName }: { clientName: string }) {
         setRows(null);
         setFileName(null);
         setUploadProgress(0);
+        setSelected(new Set());
       }
     }, 180);
+  };
+
+  const toggleSelect = (i: number) => {
+    const next = new Set(selected);
+    if (next.has(i)) next.delete(i); else next.add(i);
+    setSelected(next);
+  };
+
+  const toggleAll = () => {
+    if (!rows) return;
+    if (selected.size === rows.length) setSelected(new Set());
+    else setSelected(new Set(rows.map((_, i) => i)));
+  };
+
+  const deleteSelected = () => {
+    if (!rows) return;
+    const count = selected.size;
+    setRows(rows.filter((_, i) => !selected.has(i)));
+    setSelected(new Set());
+    toast.success(`${count} posts removed`);
   };
 
   return (
@@ -283,12 +278,12 @@ function ImportSection({ clientName }: { clientName: string }) {
             ref={inputRef}
             type="file"
             className="hidden"
-            accept=".docx,.pdf,.md"
+            accept=".docx,.pdf,.md,.txt"
             onChange={(e) => handleFiles(e.target.files)}
           />
           <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
             <UploadCloud className="mr-1.5 size-3.5" />
-            Import Posts (.docx, .pdf, .md)
+            Import Posts (.md, .txt)
           </Button>
         </div>
       </div>
@@ -306,11 +301,29 @@ function ImportSection({ clientName }: { clientName: string }) {
 
       {rows && (
         <section className="mt-4">
-          <h3 className="mb-3 text-sm font-semibold">Import Preview</h3>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Import Preview ({rows.length} posts)</h3>
+            <div className="flex items-center gap-2">
+              {selected.size > 0 && (
+                <Button variant="destructive" size="sm" onClick={deleteSelected}>
+                  <Trash2 className="mr-1 size-3" />
+                  Delete Selected ({selected.size})
+                </Button>
+              )}
+            </div>
+          </div>
           <div className="overflow-x-auto rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-10">
+                    <input
+                      type="checkbox"
+                      className="size-4 rounded border-muted-foreground/25"
+                      checked={rows.length > 0 && selected.size === rows.length}
+                      onChange={toggleAll}
+                    />
+                  </TableHead>
                   <TableHead>Content</TableHead>
                   <TableHead>Platform</TableHead>
                   <TableHead>Type</TableHead>
@@ -320,6 +333,14 @@ function ImportSection({ clientName }: { clientName: string }) {
               <TableBody>
                 {rows.map((r, i) => (
                   <TableRow key={i}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        className="size-4 rounded border-muted-foreground/25"
+                        checked={selected.has(i)}
+                        onChange={() => toggleSelect(i)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{r.title}</TableCell>
                     <TableCell>
                       <PlatformBadge platform={r.platform} />
@@ -346,12 +367,13 @@ function ImportSection({ clientName }: { clientName: string }) {
                 setRows(null);
                 setFileName(null);
                 setUploadProgress(0);
+                setSelected(new Set());
               }}
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={confirmImport} disabled={importing}>
-              {importing ? "Importing…" : "Import Content"}
+            <Button size="sm" onClick={confirmImport} disabled={importing || rows.length === 0}>
+              {importing ? "Importing…" : `Import ${rows.length} Posts`}
             </Button>
           </div>
         </section>
