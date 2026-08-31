@@ -297,6 +297,18 @@ export function ContentDetailOverlay({
                   gbpIsVerified={true}
                 />
               </div>
+              {editing && (
+                <div className="mt-3">
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Edit Body</Label>
+                  <Textarea
+                    className="mt-1.5"
+                    rows={5}
+                    value={draft.caption}
+                    onChange={(e) => setDraft({ ...draft, caption: e.target.value })}
+                    placeholder="Write your post content including hashtags..."
+                  />
+                </div>
+              )}
             </div>
 
             {/* Replace Media - only in edit mode */}
