@@ -200,9 +200,11 @@ export function parseImportFile(content: string, defaultClient: string): Omit<Co
       if (match) {
         meta[match[1]] = match[2].trim();
         bodyStart = i + 1;
-      } else if (line.trim() === "" && Object.keys(meta).length > 0) {
-        bodyStart = i + 1;
+      } else if (line.trim() !== "") {
+        bodyStart = i;
         break;
+      } else {
+        bodyStart = i + 1;
       }
     }
 
@@ -230,14 +232,6 @@ export function parseImportFile(content: string, defaultClient: string): Omit<Co
       "Short Video": "Short Video",
       "Text Post": "Text Post",
       "Blog Article": "Blog Article",
-    };
-
-    const goalMap: Record<string, string> = {
-      "Education": "Education",
-      "Promotion": "Promotion",
-      "Engagement": "Engagement",
-      "Awareness": "Awareness",
-      "Announcement": "Announcement",
     };
 
     const platform = platformMap[meta.platform] || "Facebook";

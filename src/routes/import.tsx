@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { UploadCloud, FileSpreadsheet } from "lucide-react";
+import { UploadCloud, FileSpreadsheet, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -88,6 +88,7 @@ function ImportPage() {
   const [rows, setRows] = useState<Omit<ContentItem, "id">[] | null>(null);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const clients = useStore((s) => s.clients);
   const [selectedClientId, setSelectedClientId] = useState(clientId || clients[0]?.id || "");
@@ -217,11 +218,43 @@ function ImportPage() {
 
       {rows && (
         <section className="mt-8">
-          <h2 className="mb-4 text-base font-semibold">Import Preview</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold">Import Preview ({rows.length} posts)</h2>
+            <div className="flex items-center gap-2">
+              {selected.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setRows(rows.filter((_, i) => !selected.has(i)));
+                    setSelected(new Set());
+                    toast.success(`${selected.size} posts removed`);
+                  }}
+                >
+                  <Trash2 className="mr-1 size-3" />
+                  Delete Selected ({selected.size})
+                </Button>
+              )}
+            </div>
+          </div>
           <div className="overflow-x-auto rounded-xl border bg-card shadow-soft">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-10">
+                    <input
+                      type="checkbox"
+                      className="size-4 rounded border-muted-foreground/25"
+                      checked={rows.length > 0 && selected.size === rows.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelected(new Set(rows.map((_, i) => i)));
+                        } else {
+                          setSelected(new Set());
+                        }
+                      }}
+                    />
+                  </TableHead>
                   <TableHead>Content</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Platform</TableHead>
@@ -230,8 +263,24 @@ function ImportPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.title}>
+                {rows.map((r, i) => (
+                  <TableRow key={`${r.title}-${i}`}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        className="size-4 rounded border-muted-foreground/25"
+                        checked={selected.has(i)}
+                        onChange={(e) => {
+                          const next = new Set(selected);
+                          if (e.target.checked) {
+                            next.add(i);
+                          } else {
+                            next.delete(i);
+                          }
+                          setSelected(next);
+                        }}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{r.title}</TableCell>
                     <TableCell className="text-muted-foreground">{r.client}</TableCell>
                     <TableCell>
@@ -258,12 +307,13 @@ function ImportPage() {
                 setRows(null);
                 setFileName(null);
                 setUploadProgress(0);
+                setSelected(new Set());
               }}
             >
               Cancel
             </Button>
-            <Button onClick={confirmImport} disabled={importing}>
-              {importing ? "Importing…" : "Import Content"}
+            <Button onClick={confirmImport} disabled={importing || rows.length === 0}>
+              {importing ? "Importing…" : `Import ${rows.length} Posts`}
             </Button>
           </div>
         </section>
