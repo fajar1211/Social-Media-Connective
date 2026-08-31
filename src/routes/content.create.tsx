@@ -173,6 +173,16 @@ function CreateContent() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
 
+  // GBP fields
+  const [gbpType, setGbpType] = useState<"Call to Action" | "Event" | "Offer" | "">("");
+  const [gbpButtonLabel, setGbpButtonLabel] = useState("");
+  const [gbpStartDate, setGbpStartDate] = useState("");
+  const [gbpEndDate, setGbpEndDate] = useState("");
+  const [gbpTitle, setGbpTitle] = useState("");
+  const [gbpCouponCode, setGbpCouponCode] = useState("");
+  const [gbpRedeemLink, setGbpRedeemLink] = useState("");
+  const [gbpTerms, setGbpTerms] = useState("");
+
   const client = clients.find((c) => c.id === selectedClientId);
   const fbConnection = client?.socialIntegrations?.Facebook;
   const pages: FacebookPage[] = fbConnection?.pages || [];
@@ -512,6 +522,21 @@ function CreateContent() {
             />
           </Row>
 
+          {isGBP && (
+            <Row label="Type *">
+              <Select value={gbpType} onValueChange={(v) => setGbpType(v as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Call to Action">Call to Action</SelectItem>
+                  <SelectItem value="Event">Event</SelectItem>
+                  <SelectItem value="Offer">Offer</SelectItem>
+                </SelectContent>
+              </Select>
+            </Row>
+          )}
+
           {isFacebook && canPublish && (
             <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -532,6 +557,90 @@ function CreateContent() {
                   </SelectContent>
                 </Select>
               </Row>
+            </div>
+          )}
+
+          {isGBP && (
+            <div className="rounded-lg border bg-muted/50 p-4 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <svg className="size-4" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#4285F4"/>
+                </svg>
+                Google Business Profile Options
+              </div>
+
+              {/* Call to Action fields */}
+              {gbpType === "Call to Action" && (
+                <Row label="Select button label">
+                  <Select value={gbpButtonLabel} onValueChange={setGbpButtonLabel}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a label" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["None", "Book", "Order", "Shop", "Learn More", "Sign Up", "Call"].map((l) => (
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Row>
+              )}
+
+              {/* Event fields */}
+              {gbpType === "Event" && (
+                <>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Row label="Start date">
+                      <Input type="datetime-local" value={gbpStartDate} onChange={(e) => setGbpStartDate(e.target.value)} />
+                    </Row>
+                    <Row label="End date">
+                      <Input type="datetime-local" value={gbpEndDate} onChange={(e) => setGbpEndDate(e.target.value)} />
+                    </Row>
+                  </div>
+                  <Row label="Title *">
+                    <Input value={gbpTitle} onChange={(e) => setGbpTitle(e.target.value)} placeholder="(eg) Summer sale 25%" />
+                  </Row>
+                  <Row label="Select button label">
+                    <Select value={gbpButtonLabel} onValueChange={setGbpButtonLabel}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a label" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["None", "Book", "Order", "Shop", "Learn More", "Sign Up", "Call"].map((l) => (
+                          <SelectItem key={l} value={l}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Row>
+                </>
+              )}
+
+              {/* Offer fields */}
+              {gbpType === "Offer" && (
+                <>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Row label="Start date *">
+                      <Input type="datetime-local" value={gbpStartDate} onChange={(e) => setGbpStartDate(e.target.value)} required />
+                    </Row>
+                    <Row label="End date *">
+                      <Input type="datetime-local" value={gbpEndDate} onChange={(e) => setGbpEndDate(e.target.value)} required />
+                    </Row>
+                  </div>
+                  <Row label="Title *">
+                    <Input value={gbpTitle} onChange={(e) => setGbpTitle(e.target.value)} placeholder="(eg) Summer sale 25%" required />
+                  </Row>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Row label="Coupon Code *">
+                      <Input value={gbpCouponCode} onChange={(e) => setGbpCouponCode(e.target.value)} placeholder="(eg) SALE25" required />
+                    </Row>
+                    <Row label="Redeem Link *">
+                      <Input type="url" value={gbpRedeemLink} onChange={(e) => setGbpRedeemLink(e.target.value)} placeholder="https://www..." required />
+                    </Row>
+                  </div>
+                  <Row label="Terms">
+                    <Textarea rows={3} value={gbpTerms} onChange={(e) => setGbpTerms(e.target.value)} placeholder="Terms and conditions..." />
+                  </Row>
+                </>
+              )}
             </div>
           )}
 
