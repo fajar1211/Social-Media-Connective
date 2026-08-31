@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Trash2, Image, Film, Upload } from "lucide-react";
-import { actions, formatDate, type ContentItem } from "@/lib/content-store";
+import { actions, formatDate, useStore, type ContentItem, type FacebookPage } from "@/lib/content-store";
 import { ContentTypeBadge, PlatformBadge, StatusBadge } from "@/components/badges";
 import { SocialMediaPreviewCard } from "@/components/social-media-preview-card";
 
@@ -223,9 +223,11 @@ export function ContentDetailOverlay({
   item: ContentItem | null;
   onClose: () => void;
 }) {
+  const { clients } = useStore();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<ContentItem | null>(item);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
 
   useEffect(() => {
     setDraft(item);
@@ -233,6 +235,90 @@ export function ContentDetailOverlay({
   }, [item]);
 
   if (!item || !draft) return null;
+
+  const handleApprove = async () => {
+    const client = clients.find((c) => c.name === item.client);
+    const fbConnection = client?.socialIntegrations?.Facebook;
+    const pages: FacebookPage[] = fbConnection?.pages || [];
+    const isFacebook = item.platform === "Facebook";
+    const canPublish = isFacebook && fbConnection?.connected && fbConnection?.accessToken && pages.length > 0;
+
+    if (canPublish && item.scheduledDate && item.scheduledTime) {
+      const scheduledDateTime = new Date(`${item.scheduledDate}T${item.scheduledTime}:00`);
+      if (scheduledDateTime <= new Date()) {
+        toast.error("Schedule time must be in the future.");
+        return;
+      }
+
+      const page = pages[0];
+      const unixTimestamp = Math.floor(scheduledDateTime.getTime() / 1000);
+      const message = (item.body || item.caption || "").trim();
+
+      setScheduling(true);
+      try {
+        const response = await fetch("/api/facebook/schedule", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pageId: page.id,
+            pageAccessToken: page.access_token,
+            message,
+            scheduledPublishTime: unixTimestamp,
+          }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Approved",
+            notes: `Scheduled for ${scheduledDateTime.toLocaleString()} on ${page.name} (Post ID: ${data.postId})`,
+          });
+          toast.success(`Scheduled on ${page.name}!`);
+          onClose();
+        } else {
+          toast.error(`Failed to schedule: ${data.error}`);
+        }
+      } catch {
+        toast.error("Failed to schedule. Please try again.");
+      } finally {
+        setScheduling(false);
+      }
+    } else if (canPublish) {
+      const page = pages[0];
+      const message = (item.body || item.caption || "").trim();
+
+      setScheduling(true);
+      try {
+        const response = await fetch("/api/facebook/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pageId: page.id,
+            pageAccessToken: page.access_token,
+            message,
+          }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Approved",
+            notes: `Published to ${page.name} (Post ID: ${data.postId})`,
+          });
+          toast.success(`Published to ${page.name}!`);
+          onClose();
+        } else {
+          toast.error(`Failed to publish: ${data.error}`);
+        }
+      } catch {
+        toast.error("Failed to publish. Please try again.");
+      } finally {
+        setScheduling(false);
+      }
+    } else {
+      actions.update(item.id, { status: "Approved" });
+      toast.success("Content approved");
+      onClose();
+    }
+  };
 
   const save = () => {
     actions.update(item.id, {
@@ -277,7 +363,7 @@ export function ContentDetailOverlay({
               <Field label="Client">{item.client}</Field>
               <Field label="Platform">{item.platform}</Field>
               <Field label="Content Type">{draft.type}</Field>
-              <Field label="Created">{formatDate(item.date)}</Field>
+              <Field label="Scheduled">{item.scheduledDate ? `${item.scheduledDate} ${item.scheduledTime || ""}` : formatDate(item.date)}</Field>
             </div>
 
             {/* Platform-specific Preview */}
@@ -392,13 +478,10 @@ export function ContentDetailOverlay({
                     )}
                     {item.status !== "Approved" && (
                       <Button
-                        onClick={() => {
-                          actions.setStatus(item.id, "Approved");
-                          toast.success("Content approved");
-                          onClose();
-                        }}
+                        onClick={handleApprove}
+                        disabled={scheduling}
                       >
-                        Approve
+                        {scheduling ? "Processing..." : item.scheduledDate ? "Schedule & Approve" : "Approve"}
                       </Button>
                     )}
                     <Button variant="destructive" onClick={() => setConfirmDelete(true)}>

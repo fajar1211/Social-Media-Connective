@@ -1282,6 +1282,22 @@ function ClientDetailPage() {
   const { clients, content } = useStore();
   const client = clients.find((c) => c.id === clientId);
   const [tab, setTab] = useState<Tab>("content");
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
+
+  const clientContent = content.filter((c) => c.client === client?.name);
+
+  // Auto-update scheduled content status based on date
+  const now = new Date();
+  clientContent.forEach((item) => {
+    if (item.scheduledDate && item.scheduledTime) {
+      const scheduledDateTime = new Date(`${item.scheduledDate}T${item.scheduledTime}`);
+      if (item.status === "Suggested" && scheduledDateTime <= now) {
+        actions.update(item.id, { status: "Additional" });
+      } else if (item.status === "Additional" && scheduledDateTime > now) {
+        actions.update(item.id, { status: "Suggested" });
+      }
+    }
+  });
 
   if (!client) {
     return (
@@ -1299,7 +1315,6 @@ function ClientDetailPage() {
     );
   }
 
-  const clientContent = content.filter((c) => c.client === client.name);
   const c = counts(clientContent);
 
   return (
@@ -1397,9 +1412,12 @@ function ClientDetailPage() {
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {statusCards.map((card) => (
-              <div
+              <button
                 key={card.key}
-                className="rounded-xl border bg-card p-4 shadow-soft"
+                onClick={() => setSelectedStatusFilter(selectedStatusFilter === card.key ? null : card.key)}
+                className={`rounded-xl border bg-card p-4 shadow-soft text-left transition-all ${
+                  selectedStatusFilter === card.key ? "ring-2 ring-primary/50" : "hover:shadow-md"
+                }`}
               >
                 <div className="flex items-start justify-between">
                   <span className="text-2xl font-semibold tabular-nums">{c[card.key]}</span>
@@ -1414,7 +1432,7 @@ function ClientDetailPage() {
                     }}
                   />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -1423,8 +1441,24 @@ function ClientDetailPage() {
           </div>
 
           <section className="mt-10">
-            <h2 className="mb-4 text-base font-semibold">All Content</h2>
-            <ContentList clientFilter={client.name} showClientFilter={false} emptyMessage={`No content for ${client.name} yet.`} />
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold">
+                {selectedStatusFilter ? `${selectedStatusFilter} Posts` : "All Content"}
+              </h2>
+              {selectedStatusFilter && (
+                <Button variant="ghost" size="sm" onClick={() => setSelectedStatusFilter(null)}>
+                  Show All
+                </Button>
+              )}
+            </div>
+            <ContentList
+              clientFilter={client.name}
+              status={selectedStatusFilter as any}
+              showClientFilter={false}
+              showStatusFilter={!selectedStatusFilter}
+              dateLabel="Scheduled"
+              emptyMessage={`No content for ${client.name} yet.`}
+            />
           </section>
         </>
       )}
