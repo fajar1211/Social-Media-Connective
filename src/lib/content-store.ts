@@ -187,12 +187,14 @@ export function formatDate(iso: string) {
 
 export function parseImportFile(content: string, defaultClient: string): Omit<ContentItem, "id">[] {
   const posts: Omit<ContentItem, "id">[] = [];
-  const blocks = content.split(/(?=^date:\s)/m).filter((b) => b.trim());
+  const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const blocks = normalized.split(/(?=^date:\s)/m).filter((b) => b.trim());
 
   for (const block of blocks) {
     const lines = block.split("\n");
     const meta: Record<string, string> = {};
     let bodyStart = 0;
+    let foundNonMeta = false;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -200,13 +202,17 @@ export function parseImportFile(content: string, defaultClient: string): Omit<Co
       if (match) {
         meta[match[1]] = match[2].trim();
         bodyStart = i + 1;
-      } else if (line.trim() !== "") {
-        bodyStart = i;
-        break;
-      } else {
-        bodyStart = i + 1;
+      } else if (!foundNonMeta) {
+        if (line.trim() !== "") {
+          foundNonMeta = true;
+          bodyStart = i;
+        } else {
+          bodyStart = i + 1;
+        }
       }
     }
+
+    if (!meta.title && !meta.date) continue;
 
     const bodyLines = lines.slice(bodyStart);
     const body = bodyLines.join("\n").trim();

@@ -113,6 +113,7 @@ function ImportPage() {
         const text = e.target?.result as string;
         const client = clients.find((c) => c.id === selectedClientId);
         const parsed = parseImportFile(text, client?.name || "Unknown Client");
+        console.log(`[Import] File length: ${text.length}, Blocks found: ${text.split(/(?=^date:\s)/m).filter(b => b.trim()).length}, Parsed: ${parsed.length}`);
         setRows(parsed);
         setUploadProgress(100);
         toast.success(`${file.name} parsed — ${parsed.length} posts found`);
@@ -150,11 +151,13 @@ function ImportPage() {
     }, 180);
   };
 
+  const selectedClient = clients.find((c) => c.id === selectedClientId);
+
   return (
     <>
       <PageHeader
         title="Import Content"
-        subtitle="Import existing marketing content into Social Media Connective."
+        subtitle={`Import existing marketing content for ${selectedClient?.name || "Client"}.`}
       />
 
       <div
