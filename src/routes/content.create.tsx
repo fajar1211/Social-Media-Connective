@@ -6,6 +6,7 @@ import {
   Send,
   CalendarClock,
   Image,
+  Film,
   Trash2,
   Video,
   X,
