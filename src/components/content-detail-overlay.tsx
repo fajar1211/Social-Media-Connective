@@ -214,25 +214,6 @@ function ReplaceMediaSection({
         </div>
       )}
 
-      {/* Current media preview */}
-      {draft.media && draft.media.length > 0 && (
-        <div className="relative">
-          {mediaType === "video" ? (
-            <div className="flex aspect-video items-center justify-center rounded-lg border bg-muted">
-              <Film className="size-8 text-muted-foreground/40" />
-            </div>
-          ) : (
-            <img src={draft.media[0]} alt="" className="w-full rounded-lg border object-cover" />
-          )}
-          <button
-            type="button"
-            onClick={() => setDraft({ ...draft, media: [] })}
-            className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        </div>
-      )}
     </div>
   );
 }
