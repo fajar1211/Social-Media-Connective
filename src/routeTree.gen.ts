@@ -16,6 +16,7 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as DeletedRouteImport } from './routes/deleted'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as PlatformsRouteImport } from './routes/platforms'
+import { Route as PreviewDemoRouteImport } from './routes/preview-demo'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubmittedRouteImport } from './routes/submitted'
 import { Route as SuggestedRouteImport } from './routes/suggested'
@@ -65,6 +66,11 @@ const ImportRoute = ImportRouteImport.update({
 const PlatformsRoute = PlatformsRouteImport.update({
   id: '/platforms',
   path: '/platforms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewDemoRoute = PreviewDemoRouteImport.update({
+  id: '/preview-demo',
+  path: '/preview-demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/deleted': typeof DeletedRoute
   '/import': typeof ImportRoute
   '/platforms': typeof PlatformsRoute
+  '/preview-demo': typeof PreviewDemoRoute
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/deleted': typeof DeletedRoute
   '/import': typeof ImportRoute
   '/platforms': typeof PlatformsRoute
+  '/preview-demo': typeof PreviewDemoRoute
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/deleted': typeof DeletedRoute
   '/import': typeof ImportRoute
   '/platforms': typeof PlatformsRoute
+  '/preview-demo': typeof PreviewDemoRoute
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/deleted'
     | '/import'
     | '/platforms'
+    | '/preview-demo'
     | '/settings'
     | '/submitted'
     | '/suggested'
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/deleted'
     | '/import'
     | '/platforms'
+    | '/preview-demo'
     | '/settings'
     | '/submitted'
     | '/suggested'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/deleted'
     | '/import'
     | '/platforms'
+    | '/preview-demo'
     | '/settings'
     | '/submitted'
     | '/suggested'
@@ -300,6 +312,7 @@ export interface RootRouteChildren {
   DeletedRoute: typeof DeletedRoute
   ImportRoute: typeof ImportRoute
   PlatformsRoute: typeof PlatformsRoute
+  PreviewDemoRoute: typeof PreviewDemoRoute
   SettingsRoute: typeof SettingsRoute
   SubmittedRoute: typeof SubmittedRoute
   SuggestedRoute: typeof SuggestedRoute
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       path: '/platforms'
       fullPath: '/platforms'
       preLoaderRoute: typeof PlatformsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview-demo': {
+      id: '/preview-demo'
+      path: '/preview-demo'
+      fullPath: '/preview-demo'
+      preLoaderRoute: typeof PreviewDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -515,6 +535,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeletedRoute: DeletedRoute,
   ImportRoute: ImportRoute,
   PlatformsRoute: PlatformsRoute,
+  PreviewDemoRoute: PreviewDemoRoute,
   SettingsRoute: SettingsRoute,
   SubmittedRoute: SubmittedRoute,
   SuggestedRoute: SuggestedRoute,

@@ -4,8 +4,6 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Send,
-  Clock,
-  Save,
   CalendarClock,
   Image,
   Trash2,
@@ -32,6 +30,7 @@ import {
   type SocialPlatform,
   type FacebookPage,
 } from "@/lib/content-store";
+import { SocialMediaPreviewCard } from "@/components/social-media-preview-card";
 
 export const Route = createFileRoute("/content/create")({
   head: () => ({
@@ -168,7 +167,7 @@ function CreateContent() {
   const [loading, setLoading] = useState(false);
   const [selectedPage, setSelectedPage] = useState<string>("");
   const [publishing, setPublishing] = useState(false);
-  const [scheduleDateTime, setScheduleDateTime] = useState("");
+
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
   const [publishMode, setPublishMode] = useState<"now" | "later" | null>(null);
@@ -304,68 +303,6 @@ function CreateContent() {
       }
     } catch {
       toast.error("Failed to publish. Please try again.");
-    } finally {
-      setPublishing(false);
-    }
-  };
-
-  const schedulePost = async () => {
-    if (!canPublish || !selectedPage || !scheduleDateTime || !client) {
-      toast.error("Please select a page and schedule time.");
-      return;
-    }
-
-    const page = pages.find((p) => p.id === selectedPage);
-    if (!page) {
-      toast.error("Selected page not found.");
-      return;
-    }
-
-    const scheduledDate = new Date(scheduleDateTime);
-    if (scheduledDate <= new Date()) {
-      toast.error("Schedule time must be in the future.");
-      return;
-    }
-
-    setPublishing(true);
-    try {
-      const message = `${topic}\n\n${body}`;
-
-      const response = await fetch("/api/facebook/schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pageId: page.id,
-          pageAccessToken: page.access_token,
-          message,
-          scheduledPublishTime: scheduledDate.toISOString(),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        actions.addContent({
-          title: topic.trim(),
-          client: client.name,
-          platform: (platform || "Facebook") as any,
-          type: (type || "Carousel") as ContentType,
-          status: "Submitted",
-          date: scheduledDate.toISOString().slice(0, 10),
-          caption: topic.trim(),
-          body: body,
-          hashtags: [],
-          cta: "",
-          notes: `Scheduled for ${scheduledDate.toLocaleString()} on ${page.name} (Post ID: ${data.postId})`,
-          media: mediaPreview ? [mediaPreview] : [],
-        });
-        toast.success(`Scheduled for ${scheduledDate.toLocaleString()}!`);
-        navigate({ to: "/submitted" });
-      } else {
-        toast.error(`Failed to schedule: ${data.error}`);
-      }
-    } catch {
-      toast.error("Failed to schedule. Please try again.");
     } finally {
       setPublishing(false);
     }
@@ -538,41 +475,21 @@ function CreateContent() {
                       </SelectContent>
                     </Select>
                   </Row>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={publishNow}
-                      disabled={publishing || !selectedPage}
-                      className="flex-1"
-                    >
-                      {publishing ? (
-                        "Publishing…"
-                      ) : (
-                        <>
-                          <Send className="mr-1.5 size-3.5" />
-                          Publish Now
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={schedulePost}
-                      disabled={publishing || !selectedPage || !scheduleDateTime}
-                      className="flex-1"
-                    >
-                      <CalendarClock className="mr-1.5 size-3.5" />
-                      Schedule
-                    </Button>
-                  </div>
-                  <Row label="Schedule Time (optional)">
-                    <Input
-                      type="datetime-local"
-                      value={scheduleDateTime}
-                      onChange={(e) => setScheduleDateTime(e.target.value)}
-                      min={new Date().toISOString().slice(0, 16)}
-                    />
-                  </Row>
+                  <Button
+                    size="sm"
+                    onClick={publishNow}
+                    disabled={publishing || !selectedPage}
+                    className="w-full"
+                  >
+                    {publishing ? (
+                      "Publishing…"
+                    ) : (
+                      <>
+                        <Send className="mr-1.5 size-3.5" />
+                        Publish Now
+                      </>
+                    )}
+                  </Button>
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">
@@ -699,81 +616,63 @@ function CreateContent() {
         </div>
 
         <div className="space-y-5 rounded-xl border bg-card p-6 shadow-soft">
-          <h2 className="text-base font-semibold">Media Preview</h2>
+          <h2 className="text-base font-semibold">Post Preview</h2>
           <p className="text-xs text-muted-foreground">
-            Upload an image or video to preview your content.
+            This is how your post will appear on the platform.
           </p>
 
-          <input
-            ref={imageInputRef}
-            type="file"
-            className="hidden"
-            accept="image/*"
-            onChange={(e) => handleImageUpload(e.target.files)}
-          />
-          <input
-            ref={videoInputRef}
-            type="file"
-            className="hidden"
-            accept="video/*"
-            onChange={(e) => handleVideoUpload(e.target.files)}
+          <SocialMediaPreviewCard
+            profileName={client?.name || "Your Business"}
+            timestamp={new Date()}
+            content={topic ? `${topic}${body ? `\n\n${body}` : ""}` : "Your post content will appear here..."}
+            images={mediaPreview ? [{ src: mediaPreview, alt: "Uploaded media" }] : []}
+            likes={0}
+            comments={0}
+            shares={0}
           />
 
-          {mediaPreview ? (
-            <div className="relative">
-              {mediaType === "image" ? (
-                <img
-                  src={mediaPreview}
-                  alt="Preview"
-                  className="w-full rounded-lg border object-cover"
-                />
-              ) : (
-                <video
-                  src={mediaPreview}
-                  controls
-                  className="w-full rounded-lg border"
-                />
-              )}
+          <div className="flex flex-col gap-2 pt-2">
+            <input
+              ref={imageInputRef}
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={(e) => handleImageUpload(e.target.files)}
+            />
+            <input
+              ref={videoInputRef}
+              type="file"
+              className="hidden"
+              accept="video/*"
+              onChange={(e) => handleVideoUpload(e.target.files)}
+            />
+            <Button
+              variant="outline"
+              onClick={() => imageInputRef.current?.click()}
+              className="w-full"
+            >
+              <Image className="mr-2 size-4" />
+              Add Image
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => videoInputRef.current?.click()}
+              className="w-full"
+            >
+              <Video className="mr-2 size-4" />
+              Add Video
+            </Button>
+            {mediaPreview && (
               <Button
                 variant="destructive"
-                size="icon"
-                className="absolute right-2 top-2 size-8"
                 onClick={removeMedia}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <Button
-                variant="outline"
-                onClick={() => imageInputRef.current?.click()}
                 className="w-full"
               >
-                <Image className="mr-2 size-4" />
-                Add Image
+                <Trash2 className="mr-2 size-4" />
+                Remove Media
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => videoInputRef.current?.click()}
-                className="w-full"
-              >
-                <Video className="mr-2 size-4" />
-                Add Video
-              </Button>
-            </div>
-          )}
-
-          {topic && (
-            <div className="mt-4 rounded-lg border p-4">
-              <h3 className="text-sm font-semibold">Preview</h3>
-              <p className="mt-2 text-sm font-medium">{topic}</p>
-              {body && (
-                <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">{body}</p>
-              )}
-            </div>
-          )}
-
+            )}
+          </div>
         </div>
       </div>
     </>
