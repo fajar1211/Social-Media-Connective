@@ -219,7 +219,7 @@ export function parseImportFile(content: string, defaultClient: string): Omit<Co
     const body = bodyLines.join("\n").trim();
     const allHashtags = body.match(/#[\w\u00C0-\u024F]+/g) || [];
     const hashtags = [...new Set(allHashtags)];
-    const captionBody = body.replace(/#[\w\u00C0-\u024F]+/g, "").replace(/\n{3,}/g, "\n\n").trim();
+    const captionBody = body;
 
     const platformMap: Record<string, Platform> = {
       "Google Business Profile": "Facebook",
