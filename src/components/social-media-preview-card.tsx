@@ -1001,11 +1001,19 @@ export function SocialMediaPreviewCard({
             label="Comment"
             onClick={onComment}
           />
-          <ActionButton
-            icon={<Share2 className="h-4 w-4" />}
-            label="Share"
-            onClick={onShare}
-          />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onShare?.();
+            }}
+            className={cn(
+              "flex flex-1 items-center justify-center overflow-hidden rounded px-1.5 py-1.5 min-w-0",
+              "text-muted-foreground transition-colors duration-150",
+              "hover:bg-accent active:scale-[0.97]",
+            )}
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
         </div>
       </article>
 
