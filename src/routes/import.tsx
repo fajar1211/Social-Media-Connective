@@ -25,7 +25,7 @@ import { actions, parseImportFile, useStore, type ContentItem } from "@/lib/cont
 
 export const Route = createFileRoute("/import")({
   validateSearch: (search: Record<string, unknown>) => ({
-    clientId: (search.clientId as string) || "",
+    clientId: (search["clientId"] as string) || "",
   }),
   head: () => ({
     meta: [
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/import")({
 
 function ImportPage() {
   const { clientId } = Route.useSearch();
-  const clients = useStore((s) => s.clients);
+  const { clients } = useStore();
   const [selectedClientId, setSelectedClientId] = useState(clientId || "");
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +52,7 @@ function ImportPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [viewingIndex, setViewingIndex] = useState<number | null>(null);
 
-  const selectedClient = clients.find((c) => c.id === selectedClientId);
+  const selectedClient = clients.find((c: any) => c.id === selectedClientId);
 
   const resetAll = () => {
     setRows(null);
@@ -144,7 +144,7 @@ function ImportPage() {
           className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
         >
           <option value="">— Choose a client —</option>
-          {clients.map((c) => (
+          {clients.map((c: any) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>

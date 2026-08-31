@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Search, Send, CalendarClock, ExternalLink, Trash2 } from "lucide-react";
+import { Search, Send, CalendarClock, ExternalLink, Trash2, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -300,14 +300,85 @@ export function ContentTable({
   showStatus?: boolean;
   dateLabel?: string;
 }) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const allSelected = items.length > 0 && selectedIds.size === items.length;
+  const someSelected = selectedIds.size > 0;
+
+  const toggleAll = () => {
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(items.map((i) => i.id)));
+  };
+
+  const toggleOne = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const approveSelected = () => {
+    let count = 0;
+    selectedIds.forEach((id) => {
+      const item = items.find((i) => i.id === id);
+      if (item && item.status !== "Approved" && item.status !== "Deleted") {
+        actions.update(id, { status: "Approved" });
+        count++;
+      }
+    });
+    setSelectedIds(new Set());
+    if (count > 0) toast.success(`${count} posts approved`);
+  };
+
+  const deleteSelected = () => {
+    let count = 0;
+    selectedIds.forEach((id) => {
+      const item = items.find((i) => i.id === id);
+      if (item && item.status !== "Deleted") {
+        actions.update(id, { status: "Deleted" });
+        count++;
+      }
+    });
+    setSelectedIds(new Set());
+    if (count > 0) toast.success(`${count} posts deleted`);
+  };
+
+  const firstImage = (item: ContentItem): string | null => {
+    if (item.media && item.media.length > 0) return item.media[0] as string;
+    return null;
+  };
+
   return (
     <>
+      {someSelected && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border bg-accent/50 px-4 py-2">
+          <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="outline" onClick={approveSelected}>
+              <CheckCircle2 className="mr-1 size-3.5" />
+              Approve
+            </Button>
+            <Button size="sm" variant="destructive" onClick={deleteSelected}>
+              <Trash2 className="mr-1 size-3.5" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="hidden overflow-hidden rounded-xl border bg-card shadow-soft md:block">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
+              <TableHead className="w-10">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border-muted-foreground/25"
+                  checked={allSelected}
+                  onChange={toggleAll}
+                />
+              </TableHead>
+              <TableHead className="w-12"></TableHead>
               <TableHead>Content</TableHead>
-              <TableHead>Client</TableHead>
               <TableHead>Platform</TableHead>
               <TableHead>Type</TableHead>
               {showStatus && <TableHead>Status</TableHead>}
@@ -316,38 +387,58 @@ export function ContentTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
-              <TableRow
-                key={item.id}
-                onClick={() => onSelect(item)}
-                className="cursor-pointer"
-              >
-                <TableCell className="max-w-[280px] font-medium">{item.title}</TableCell>
-                <TableCell className="text-muted-foreground">{item.client}</TableCell>
-                <TableCell>
-                  <PlatformBadge platform={item.platform} />
-                </TableCell>
-                <TableCell>
-                  <ContentTypeBadge type={item.type} />
-                </TableCell>
-                {showStatus && (
+            {items.map((item) => {
+              const img = firstImage(item);
+              return (
+                <TableRow
+                  key={item.id}
+                  onClick={() => onSelect(item)}
+                  className="cursor-pointer"
+                >
                   <TableCell>
-                    <StatusBadge status={item.status} />
+                    <input
+                      type="checkbox"
+                      className="size-4 rounded border-muted-foreground/25"
+                      checked={selectedIds.has(item.id)}
+                      onChange={() => toggleOne(item.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
                   </TableCell>
-                )}
-                <TableCell className="whitespace-nowrap text-muted-foreground">
-                  {formatDate(item.date)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <ContentActions item={item} />
-                    <Button variant="ghost" size="sm" className="text-xs">
-                      View
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                  <TableCell>
+                    {img ? (
+                      <img src={img} alt="" className="h-10 w-10 rounded object-cover" />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs text-muted-foreground">
+                        {item.type === "Image" ? "IMG" : item.type === "Short Video" ? "VID" : item.type === "Carousel" ? "CAR" : "TXT"}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-[280px] font-medium">{item.title}</TableCell>
+                  <TableCell>
+                    <PlatformBadge platform={item.platform} />
+                  </TableCell>
+                  <TableCell>
+                    <ContentTypeBadge type={item.type} />
+                  </TableCell>
+                  {showStatus && (
+                    <TableCell>
+                      <StatusBadge status={item.status} />
+                    </TableCell>
+                  )}
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                    {formatDate(item.date)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <ContentActions item={item} />
+                      <Button variant="ghost" size="sm" className="text-xs">
+                        View
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

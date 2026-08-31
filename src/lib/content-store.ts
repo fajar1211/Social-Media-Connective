@@ -197,10 +197,11 @@ export function parseImportFile(content: string, defaultClient: string): Omit<Co
     let foundNonMeta = false;
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+      const line = lines[i] as string;
       const match = line.match(/^(date|platform|title|content_type|goal|image):\s*(.*)/);
       if (match) {
-        meta[match[1]] = match[2].trim();
+        const key = match[1] as string;
+        meta[key] = (match[2] as string).trim();
         bodyStart = i + 1;
       } else if (!foundNonMeta) {
         if (line.trim() !== "") {
@@ -212,7 +213,7 @@ export function parseImportFile(content: string, defaultClient: string): Omit<Co
       }
     }
 
-    if (!meta.title && !meta.date) continue;
+    if (!meta["title"] && !meta["date"]) continue;
 
     const bodyLines = lines.slice(bodyStart);
     const body = bodyLines.join("\n").trim();
@@ -240,23 +241,28 @@ export function parseImportFile(content: string, defaultClient: string): Omit<Co
       "Blog Article": "Blog Article",
     };
 
-    const platform = platformMap[meta.platform] || "Facebook";
-    const contentType = typeMap[meta.content_type] || "Image";
+    const platform = platformMap[meta["platform"] as string] || "Facebook";
+    const contentType = typeMap[meta["content_type"] as string] || "Image";
+    const imagePrompt = meta["image"] as string | undefined;
 
-    posts.push({
-      title: meta.title || "Untitled",
+    const item: Omit<ContentItem, "id"> = {
+      title: (meta["title"] as string) || "Untitled",
       client: defaultClient,
       platform,
       type: contentType,
       status: "Additional",
-      date: meta.date || new Date().toISOString().slice(0, 10),
+      date: (meta["date"] as string) || new Date().toISOString().slice(0, 10),
       caption: captionBody,
       body: captionBody,
       hashtags,
       cta: "",
-      media: meta.image ? [] : undefined,
-      notes: meta.image ? `AI Image Prompt: ${meta.image}` : undefined,
-    });
+    };
+    if (imagePrompt) {
+      item.media = [];
+      item.notes = `AI Image Prompt: ${imagePrompt}`;
+    }
+
+    posts.push(item);
   }
 
   return posts;
