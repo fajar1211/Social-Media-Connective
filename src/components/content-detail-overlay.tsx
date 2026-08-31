@@ -42,10 +42,10 @@ function ReplaceMediaSection({
   setDraft: (d: ContentItem) => void;
 }) {
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [mediaType, setMediaType] = useState<"image" | "video" | null>(
-    draft.type === "Short Video" ? "video" : draft.type === "Image" || draft.type === "Carousel" ? "image" : null
-  );
   const [showAiGen, setShowAiGen] = useState(false);
+  const [aiMediaType, setAiMediaType] = useState<"image" | "video">(
+    draft.type === "Short Video" ? "video" : "image"
+  );
   const [aiPrompt, setAiPrompt] = useState("");
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [gbpImageUrl, setGbpImageUrl] = useState("");
@@ -56,8 +56,6 @@ function ReplaceMediaSection({
     const reader = new FileReader();
     reader.onload = (e) => {
       const url = e.target?.result as string;
-      const isVideo = file.type.startsWith("video/");
-      setMediaType(isVideo ? "video" : "image");
       setDraft({ ...draft, media: [url] });
     };
     reader.readAsDataURL(file);
@@ -65,92 +63,20 @@ function ReplaceMediaSection({
 
   return (
     <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
-      <Label className="text-xs font-medium">Replace Image/Video</Label>
+      <Label className="text-xs font-medium">Replace Image</Label>
 
-      {/* Media Type Tabs */}
-      <div className="flex gap-1 rounded-md border bg-background p-0.5">
-        <button
-          type="button"
-          onClick={() => { setMediaType("image"); if (draft.type === "Short Video") setDraft({ ...draft, type: "Image" }); }}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-            mediaType === "image" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Image className="size-3.5" />
-          Image
-        </button>
-        <button
-          type="button"
-          onClick={() => { setMediaType("video"); if (draft.type !== "Short Video") setDraft({ ...draft, type: "Short Video" }); }}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-            mediaType === "video" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Film className="size-3.5" />
-          Video
-        </button>
-      </div>
+      <input
+        ref={imageInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*,video/*"
+        onChange={(e) => handleUpload(e.target.files)}
+      />
 
-      {/* Image Type Options */}
-      {mediaType === "image" && (
-        <div className="flex gap-1 rounded-md border bg-background p-0.5">
-          <button
-            type="button"
-            onClick={() => setDraft({ ...draft, type: "Image" })}
-            className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-              draft.type === "Image" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Single Image
-          </button>
-          <button
-            type="button"
-            onClick={() => setDraft({ ...draft, type: "Carousel" })}
-            className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-              draft.type === "Carousel" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Carousel
-          </button>
-        </div>
-      )}
-
-      {/* Video Orientation Options */}
-      {mediaType === "video" && (
-        <div className="flex gap-1 rounded-md border bg-background p-0.5">
-          <button
-            type="button"
-            onClick={() => setDraft({ ...draft, notes: "orientation:vertical" })}
-            className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-              draft.notes !== "orientation:horizontal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Vertical
-          </button>
-          <button
-            type="button"
-            onClick={() => setDraft({ ...draft, notes: "orientation:horizontal" })}
-            className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-              draft.notes === "orientation:horizontal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Horizontal
-          </button>
-        </div>
-      )}
-
-      {/* Upload or AI Generate */}
       <div className="space-y-2">
-        <input
-          ref={imageInputRef}
-          type="file"
-          className="hidden"
-          accept="image/*,video/*"
-          onChange={(e) => handleUpload(e.target.files)}
-        />
         <Button variant="outline" size="sm" className="w-full" onClick={() => imageInputRef.current?.click()}>
           <Upload className="mr-1.5 size-3.5" />
-          Upload {mediaType === "video" ? "Video" : "Image"}
+          Upload Image
         </Button>
         <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAiGen((p) => !p)}>
           <svg className="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -158,13 +84,85 @@ function ReplaceMediaSection({
             <path d="M2 17l10 5 10-5"/>
             <path d="M2 12l10 5 10-5"/>
           </svg>
-          AI Generate {mediaType === "video" ? "Video" : "Image"}
+          AI Generate Image
         </Button>
       </div>
 
       {/* AI Generation Panel */}
       {showAiGen && (
-        <div className="space-y-2 rounded-lg border bg-background p-3">
+        <div className="space-y-3 rounded-lg border bg-background p-3">
+          {/* Media Type Tabs */}
+          <div className="flex gap-1 rounded-md border bg-muted/30 p-0.5">
+            <button
+              type="button"
+              onClick={() => { setAiMediaType("image"); if (draft.type === "Short Video") setDraft({ ...draft, type: "Image" }); }}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                aiMediaType === "image" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Image className="size-3.5" />
+              Image
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAiMediaType("video"); if (draft.type !== "Short Video") setDraft({ ...draft, type: "Short Video" }); }}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                aiMediaType === "video" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Film className="size-3.5" />
+              Video
+            </button>
+          </div>
+
+          {/* Image Type Options */}
+          {aiMediaType === "image" && (
+            <div className="flex gap-1 rounded-md border bg-muted/30 p-0.5">
+              <button
+                type="button"
+                onClick={() => setDraft({ ...draft, type: "Image" })}
+                className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                  draft.type === "Image" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Single Image
+              </button>
+              <button
+                type="button"
+                onClick={() => setDraft({ ...draft, type: "Carousel" })}
+                className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                  draft.type === "Carousel" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Carousel
+              </button>
+            </div>
+          )}
+
+          {/* Video Orientation Options */}
+          {aiMediaType === "video" && (
+            <div className="flex gap-1 rounded-md border bg-muted/30 p-0.5">
+              <button
+                type="button"
+                onClick={() => setDraft({ ...draft, notes: "orientation:vertical" })}
+                className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                  draft.notes !== "orientation:horizontal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Vertical
+              </button>
+              <button
+                type="button"
+                onClick={() => setDraft({ ...draft, notes: "orientation:horizontal" })}
+                className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                  draft.notes === "orientation:horizontal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Horizontal
+              </button>
+            </div>
+          )}
+
           <Label className="text-xs text-muted-foreground">Reference Image (optional) OR Url GBP</Label>
           <div
             className="flex items-center gap-2 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-2 cursor-pointer hover:bg-muted/50 transition-colors"
@@ -205,7 +203,7 @@ function ReplaceMediaSection({
             rows={2}
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
-            placeholder="Image/Video prompt (used to generate)..."
+            placeholder={`${aiMediaType === "video" ? "Video" : "Image"} prompt (used to generate)...`}
             className="text-xs"
           />
           <Button size="sm" className="w-full" onClick={() => toast.success("AI generation started...")}>
