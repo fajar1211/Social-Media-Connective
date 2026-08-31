@@ -402,28 +402,12 @@ function GBPPreviewCard({
               <AvatarFallback className="bg-muted text-[10px] font-semibold">{initials}</AvatarFallback>
             </Avatar>
             <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center rounded-full bg-white shadow-sm">
-              <svg className="h-3.5 w-3.5" viewBox="0 0 48 48">
-                <path d="M24 4C18.48 4 14 8.48 14 14v2H12c-2.21 0-4 1.79-4 4v18c0 2.21 1.79 4 4 4h24c2.21 0 4-1.79 4-4V20c0-2.21-1.79-4-4-4h-2v-2c0-5.52-4.48-10-10-10zm0 4c3.31 0 6 2.69 6 6v2H18v-2c0-3.31 2.69-6 6-6z" fill="#4285F4"/>
-                <path d="M8 22h32v18c0 2.21-1.79 4-4 4H12c-2.21 0-4-1.79-4-4V22z" fill="#4285F4"/>
-                <path d="M12 22h24v4H12v-4z" fill="#7BAAF7"/>
-                <path d="M12 22L8 20v2h4z" fill="#AECBFA"/>
-                <path d="M36 22l4-2v2h-4z" fill="#AECBFA"/>
-                <text x="24" y="37" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold" fontFamily="Arial">G</text>
-              </svg>
+              <GBPIcon className="h-4 w-4" />
             </span>
           </div>
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <p className="truncate text-sm font-bold leading-tight">{profileName}</p>
-            {gbpIsVerified && (
-              <svg className="h-4 w-4 shrink-0" viewBox="0 0 48 48">
-                <path d="M24 4C18.48 4 14 8.48 14 14v2H12c-2.21 0-4 1.79-4 4v18c0 2.21 1.79 4 4 4h24c2.21 0 4-1.79 4-4V20c0-2.21-1.79-4-4-4h-2v-2c0-5.52-4.48-10-10-10zm0 4c3.31 0 6 2.69 6 6v2H18v-2c0-3.31 2.69-6 6-6z" fill="#4285F4"/>
-                <path d="M8 22h32v18c0 2.21-1.79 4-4 4H12c-2.21 0-4-1.79-4-4V22z" fill="#4285F4"/>
-                <path d="M12 22h24v4H12v-4z" fill="#7BAAF7"/>
-                <path d="M12 22L8 20v2h4z" fill="#AECBFA"/>
-                <path d="M36 22l4-2v2h-4z" fill="#AECBFA"/>
-                <text x="24" y="37" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold" fontFamily="Arial">G</text>
-              </svg>
-            )}
+            {gbpIsVerified && <GBPIcon className="h-4 w-4 shrink-0" />}
           </div>
           <button className="rounded-full p-1 text-muted-foreground" aria-label="More options">
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -830,6 +814,36 @@ function InstagramGallery({
         </>
       )}
     </div>
+  );
+}
+
+// ─── GBP Icon Component ──────────────────────────────────────────────────────
+
+function GBPIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Shadow */}
+      <rect x="4" y="6" width="40" height="40" rx="6" fill="#B0C4DE" opacity="0.3"/>
+      {/* Main body */}
+      <rect x="2" y="2" width="40" height="40" rx="6" fill="#4285F4"/>
+      {/* Awning top bar */}
+      <rect x="2" y="2" width="40" height="14" rx="6" fill="#7BAAF7"/>
+      <rect x="2" y="10" width="40" height="6" fill="#7BAAF7"/>
+      {/* Awning scallops */}
+      <path d="M2 16 C2 16, 8 22, 14 16 C14 16, 20 22, 26 16 C26 16, 32 22, 38 16 C38 16, 42 22, 42 16" fill="#AECBFA"/>
+      <path d="M2 16 C2 16, 8 20, 14 16 C14 16, 20 20, 26 16 C26 16, 32 20, 38 16 C38 16, 42 20, 42 16" fill="#7BAAF7"/>
+      {/* Awning stripes */}
+      <path d="M6 2 L6 16" stroke="#1A5DC8" strokeWidth="2"/>
+      <path d="M14 2 L14 16" stroke="#1A5DC8" strokeWidth="2"/>
+      <path d="M22 2 L22 16" stroke="#1A5DC8" strokeWidth="2"/>
+      <path d="M30 2 L30 16" stroke="#1A5DC8" strokeWidth="2"/>
+      <path d="M38 2 L38 16" stroke="#1A5DC8" strokeWidth="2"/>
+      {/* Bottom section */}
+      <rect x="2" y="20" width="40" height="22" rx="0" fill="#4285F4"/>
+      <rect x="2" y="36" width="40" height="6" rx="0 0 6 6" fill="#3B78E7"/>
+      {/* White G */}
+      <text x="32" y="38" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="Arial, sans-serif">G</text>
+    </svg>
   );
 }
 
