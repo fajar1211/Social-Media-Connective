@@ -13,27 +13,26 @@ export interface GalleryImage {
 }
 
 export interface SocialMediaPreviewCardProps {
-  profileImage?: string;
+  profileImage?: string | undefined;
   profileName: string;
   timestamp: string | Date;
   content: string;
-  images?: GalleryImage[];
-  platform?: SocialPlatform;
-  likes?: number;
-  comments?: number;
-  shares?: number;
-  isLiked?: boolean;
-  onLike?: () => void;
-  onComment?: () => void;
-  onShare?: () => void;
-  onHashtagClick?: (tag: string) => void;
-  className?: string;
-  lazyLoad?: boolean;
-  // GBP-specific props
-  gbpTitle?: string;
-  gbpButtonLabel?: string;
-  gbpCtaLink?: string;
-  gbpIsVerified?: boolean;
+  images?: GalleryImage[] | undefined;
+  platform?: SocialPlatform | undefined;
+  likes?: number | undefined;
+  comments?: number | undefined;
+  shares?: number | undefined;
+  isLiked?: boolean | undefined;
+  onLike?: (() => void) | undefined;
+  onComment?: (() => void) | undefined;
+  onShare?: (() => void) | undefined;
+  onHashtagClick?: ((tag: string) => void) | undefined;
+  className?: string | undefined;
+  lazyLoad?: boolean | undefined;
+  gbpTitle?: string | undefined;
+  gbpButtonLabel?: string | undefined;
+  gbpCtaLink?: string | undefined;
+  gbpIsVerified?: boolean | undefined;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -836,6 +835,9 @@ export function SocialMediaPreviewCard({
   onHashtagClick,
   className,
   lazyLoad = true,
+  gbpTitle,
+  gbpButtonLabel,
+  gbpIsVerified,
 }: SocialMediaPreviewCardProps) {
   // Route to Instagram preview if platform is instagram
   if (platform === "instagram") {
