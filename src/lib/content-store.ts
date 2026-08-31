@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 export type Platform = "Facebook" | "Instagram" | "X / Twitter" | "LinkedIn" | "Blog";
-export type ContentType = "Text Post" | "Image" | "Carousel" | "Short Video" | "Blog Article";
+export type ContentType = "Text Post" | "Image" | "Carousel" | "Short Video" | "Long-form" | "Blog Article";
 export type Status = "Suggested" | "Additional" | "Submitted" | "Approved" | "Deleted";
 export type SocialPlatform = "Facebook" | "Instagram" | "YouTube" | "GBP" | "LinkedIn" | "Blog" | "TikTok" | "Xiaohongshu" | "Reddit" | "Threads" | "X (Twitter)";
 
@@ -12,6 +12,7 @@ export const CONTENT_TYPES: ContentType[] = [
   "Image",
   "Carousel",
   "Short Video",
+  "Long-form",
   "Blog Article",
 ];
 export const STATUSES: Status[] = ["Suggested", "Additional", "Submitted", "Approved", "Deleted"];

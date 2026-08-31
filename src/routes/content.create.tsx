@@ -171,6 +171,7 @@ function CreateContent() {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
   const [aiMediaType, setAiMediaType] = useState<"image" | "video">("image");
+  const [videoOrientation, setVideoOrientation] = useState<"vertical" | "horizontal">("vertical");
   const [aiImagePrompt, setAiImagePrompt] = useState("");
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [showAiGen, setShowAiGen] = useState(false);
@@ -974,18 +975,18 @@ function CreateContent() {
                   <div className="flex gap-1 rounded-md border bg-muted/30 p-0.5">
                     <button
                       type="button"
-                      onClick={() => setType("Short Video")}
+                      onClick={() => { setVideoOrientation("vertical"); setType("Short Video"); }}
                       className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                        type === "Short Video" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        videoOrientation === "vertical" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       Vertical
                     </button>
                     <button
                       type="button"
-                      onClick={() => setType("Short Video")}
+                      onClick={() => { setVideoOrientation("horizontal"); setType("Long-form"); }}
                       className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                        type === "Short Video" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        videoOrientation === "horizontal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       Horizontal
