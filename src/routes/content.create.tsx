@@ -919,9 +919,9 @@ function CreateContent() {
 
             {/* AI Generation Panel */}
             {showAiGen && (
-              <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+              <div className="space-y-3 rounded-lg border bg-background p-3">
                 {/* Media Type Tabs */}
-                <div className="flex gap-1 rounded-md border bg-background p-0.5">
+                <div className="flex gap-1 rounded-md border bg-muted/30 p-0.5">
                   <button
                     type="button"
                     onClick={() => { setAiMediaType("image"); if (type === "Short Video") setType("Image"); }}
@@ -946,7 +946,7 @@ function CreateContent() {
 
                 {/* Image Type Options */}
                 {aiMediaType === "image" && (
-                  <div className="flex gap-1 rounded-md border bg-background p-0.5">
+                  <div className="flex gap-1 rounded-md border bg-muted/30 p-0.5">
                     <button
                       type="button"
                       onClick={() => setType("Image")}
@@ -970,7 +970,7 @@ function CreateContent() {
 
                 {/* Video Orientation Options */}
                 {aiMediaType === "video" && (
-                  <div className="flex gap-1 rounded-md border bg-background p-0.5">
+                  <div className="flex gap-1 rounded-md border bg-muted/30 p-0.5">
                     <button
                       type="button"
                       onClick={() => setType("Short Video")}
@@ -992,75 +992,50 @@ function CreateContent() {
                   </div>
                 )}
 
-                {/* Reference Image OR GBP URL */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Reference Image (optional) OR Url GBP</Label>
-                  <div
-                    className="flex items-center gap-2 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-2 cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => {
-                      const input = document.createElement("input");
-                      input.type = "file";
-                      input.accept = "image/*";
-                      input.onchange = (e) => {
-                        const file = (e.target as HTMLInputElement).files?.[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = (ev) => setReferenceImage(ev.target?.result as string);
-                        reader.readAsDataURL(file);
-                      };
-                      input.click();
-                    }}
-                  >
-                    {referenceImage ? (
-                      <>
-                        <img src={referenceImage} alt="Reference" className="h-8 w-8 rounded object-cover shrink-0" />
-                        <span className="text-[10px] text-muted-foreground truncate flex-1">Reference uploaded</span>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setReferenceImage(null); }}
-                          className="shrink-0 text-muted-foreground hover:text-foreground"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Image className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                        <span className="text-[10px] text-muted-foreground">Click to upload reference image</span>
-                      </>
-                    )}
-                  </div>
-                  <Input
-                    type="url"
-                    value={gbpImageUrl}
-                    onChange={(e) => setGbpImageUrl(e.target.value)}
-                    placeholder="Or paste GBP image URL..."
-                    className="text-xs h-8"
-                  />
-                </div>
-
-                {/* Image Prompt */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">{aiMediaType === "video" ? "Video" : "Image"} prompt (used to generate)</Label>
-                  <Textarea
-                    rows={3}
-                    value={aiImagePrompt}
-                    onChange={(e) => setAiImagePrompt(e.target.value)}
-                    placeholder={`Describe the ${aiMediaType === "video" ? "video" : "image"} you want to generate...`}
-                    className="text-xs"
-                  />
-                </div>
-
-                {/* Run Button */}
-                <Button
-                  className="w-full"
+                <Label className="text-xs text-muted-foreground">Reference Image (optional) OR Url GBP</Label>
+                <div
+                  className="flex items-center gap-2 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-2 cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => {
-                    toast.success("AI generation started...");
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/*";
+                    input.onchange = (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setReferenceImage(ev.target?.result as string);
+                      reader.readAsDataURL(file);
+                    };
+                    input.click();
                   }}
                 >
-                  <svg className="mr-2 size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                  </svg>
+                  {referenceImage ? (
+                    <>
+                      <img src={referenceImage} alt="Reference" className="h-8 w-8 rounded object-cover shrink-0" />
+                      <span className="text-[10px] text-muted-foreground truncate flex-1">Reference uploaded</span>
+                    </>
+                  ) : (
+                    <>
+                      <Image className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                      <span className="text-[10px] text-muted-foreground">Click to upload reference image</span>
+                    </>
+                  )}
+                </div>
+                <Input
+                  type="url"
+                  value={gbpImageUrl}
+                  onChange={(e) => setGbpImageUrl(e.target.value)}
+                  placeholder="Or paste GBP image URL..."
+                  className="text-xs h-8"
+                />
+                <Textarea
+                  rows={2}
+                  value={aiImagePrompt}
+                  onChange={(e) => setAiImagePrompt(e.target.value)}
+                  placeholder={`${aiMediaType === "video" ? "Video" : "Image"} prompt (used to generate)...`}
+                  className="text-xs"
+                />
+                <Button size="sm" className="w-full" onClick={() => toast.success("AI generation started...")}>
                   Run
                 </Button>
               </div>
