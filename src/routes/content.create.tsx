@@ -668,15 +668,32 @@ function CreateContent() {
             This is how your post will appear on the platform.
           </p>
 
-          <SocialMediaPreviewCard
-            profileName={client?.name || "Your Business"}
-            timestamp={new Date()}
-            content={body || topic || "Your post content will appear here..."}
-            images={mediaPreview ? [{ src: mediaPreview, alt: "Uploaded media" }] : []}
-            likes={0}
-            comments={0}
-            shares={0}
-          />
+          {platform ? (
+            <SocialMediaPreviewCard
+              profileName={selectedPage ? (pages.find((p) => p.id === selectedPage)?.name || client?.name || "Your Business") : (client?.name || "Your Business")}
+              profileImage={selectedPage ? `https://graph.facebook.com/${selectedPage}/picture?height=80&width=80` : undefined}
+              timestamp={new Date()}
+              content={body || topic || "Your post content will appear here..."}
+              images={mediaPreview ? [{ src: mediaPreview, alt: "Uploaded media" }] : []}
+              platform={(() => {
+                const p = platform.toLowerCase();
+                if (p === "x (twitter)" || p === "x/twitter") return "twitter";
+                if (p === "youtube") return "youtube";
+                if (p === "tiktok") return "tiktok";
+                if (p === "threads") return "threads";
+                if (p === "reddit") return "reddit";
+                return p as any;
+              })()}
+              likes={0}
+              comments={0}
+              shares={0}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 py-12 text-center">
+              <Image className="mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">Select a platform to preview your post</p>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 pt-2">
             <input
