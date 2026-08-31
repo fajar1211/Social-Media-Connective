@@ -169,6 +169,7 @@ function CreateContent() {
 
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
+  const [aiMediaType, setAiMediaType] = useState<"image" | "video">("image");
   const [aiImagePrompt, setAiImagePrompt] = useState("");
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [showAiGen, setShowAiGen] = useState(false);
@@ -919,6 +920,78 @@ function CreateContent() {
             {/* AI Generation Panel */}
             {showAiGen && (
               <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                {/* Media Type Tabs */}
+                <div className="flex gap-1 rounded-md border bg-background p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => { setAiMediaType("image"); if (type === "Short Video") setType("Image"); }}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                      aiMediaType === "image" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Image className="size-3.5" />
+                    Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAiMediaType("video"); if (type !== "Short Video") setType("Short Video"); }}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                      aiMediaType === "video" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Film className="size-3.5" />
+                    Video
+                  </button>
+                </div>
+
+                {/* Image Type Options */}
+                {aiMediaType === "image" && (
+                  <div className="flex gap-1 rounded-md border bg-background p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setType("Image")}
+                      className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                        type === "Image" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Single Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setType("Carousel")}
+                      className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                        type === "Carousel" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Carousel
+                    </button>
+                  </div>
+                )}
+
+                {/* Video Orientation Options */}
+                {aiMediaType === "video" && (
+                  <div className="flex gap-1 rounded-md border bg-background p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setType("Short Video")}
+                      className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                        type === "Short Video" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Vertical
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setType("Short Video")}
+                      className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                        type === "Short Video" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Horizontal
+                    </button>
+                  </div>
+                )}
+
                 {/* Reference Image OR GBP URL */}
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Reference Image (optional) OR Url GBP</Label>
@@ -968,12 +1041,12 @@ function CreateContent() {
 
                 {/* Image Prompt */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Image prompt (used to generate this image)</Label>
+                  <Label className="text-xs text-muted-foreground">{aiMediaType === "video" ? "Video" : "Image"} prompt (used to generate)</Label>
                   <Textarea
                     rows={3}
                     value={aiImagePrompt}
                     onChange={(e) => setAiImagePrompt(e.target.value)}
-                    placeholder="Describe the image you want to generate..."
+                    placeholder={`Describe the ${aiMediaType === "video" ? "video" : "image"} you want to generate...`}
                     className="text-xs"
                   />
                 </div>
