@@ -901,7 +901,7 @@ function CreateContent() {
               className="w-full"
             >
               <Image className="mr-2 size-4" />
-              Add Image/Video
+              Upload Image/Video
             </Button>
             <Button
               variant="outline"
@@ -913,7 +913,7 @@ function CreateContent() {
                 <path d="M2 17l10 5 10-5"/>
                 <path d="M2 12l10 5 10-5"/>
               </svg>
-              Image/Video AI Generation
+              AI Generate Image/Video
             </Button>
 
             {/* AI Generation Panel */}
