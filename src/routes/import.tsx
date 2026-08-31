@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { UploadCloud, FileSpreadsheet, Trash2 } from "lucide-react";
@@ -13,8 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { ContentTypeBadge, PlatformBadge, StatusBadge } from "@/components/badges";
-import { actions, type ContentItem, parseImportFile, useStore } from "@/lib/content-store";
+import { actions, parseImportFile, useStore, type ContentItem } from "@/lib/content-store";
 
 export const Route = createFileRoute("/import")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -23,118 +30,68 @@ export const Route = createFileRoute("/import")({
   head: () => ({
     meta: [
       { title: "Import Content — Social Media Connective Admin" },
-      {
-        name: "description",
-        content: "Import existing marketing content into Social Media Connective.",
-      },
+      { name: "description", content: "Import existing marketing content into Social Media Connective." },
       { property: "og:title", content: "Import Content — Social Media Connective Admin" },
-      {
-        property: "og:description",
-        content: "Import existing marketing content into Social Media Connective.",
-      },
+      { property: "og:description", content: "Import existing marketing content into Social Media Connective." },
     ],
   }),
   component: ImportPage,
 });
 
-const sample: Omit<ContentItem, "id">[] = [
-  {
-    title: "Hydrafacial: What to Expect",
-    client: "Divine Medical Spa",
-    platform: "Instagram",
-    type: "Image",
-    status: "Additional",
-    date: new Date().toISOString().slice(0, 10),
-    caption: "A quick walkthrough of your first Hydrafacial appointment.",
-    hashtags: ["#Hydrafacial", "#SkinCare"],
-    cta: "Book your session.",
-    media: [
-      "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&w=1200&q=70",
-    ],
-  },
-  {
-    title: "3 Signs You Need a Dental Check-Up",
-    client: "Northline Dental",
-    platform: "Facebook",
-    type: "Text Post",
-    status: "Additional",
-    date: new Date().toISOString().slice(0, 10),
-    caption: "Sensitivity, bleeding gums and jaw pain shouldn't be ignored.",
-    body: "Sensitivity, bleeding gums and jaw pain shouldn't be ignored. Here's why an early visit saves time and money.",
-    hashtags: ["#DentalHealth", "#Northline"],
-    cta: "Schedule a check-up.",
-  },
-  {
-    title: "Why Recovery Days Matter",
-    client: "Harbor Fitness Co.",
-    platform: "LinkedIn",
-    type: "Blog Article",
-    status: "Additional",
-    date: new Date().toISOString().slice(0, 10),
-    caption: "Training hard is only half the equation.",
-    body: "Training hard is only half the equation. Recovery is where adaptation happens…",
-    hashtags: ["#Fitness", "#Recovery"],
-    cta: "Read the full article.",
-  },
-];
-
 function ImportPage() {
-  const navigate = useNavigate();
   const { clientId } = Route.useSearch();
+  const clients = useStore((s) => s.clients);
+  const [selectedClientId, setSelectedClientId] = useState(clientId || "");
+
   const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [rows, setRows] = useState<Omit<ContentItem, "id">[] | null>(null);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
 
-  const clients = useStore((s) => s.clients);
-  const [selectedClientId, setSelectedClientId] = useState(clientId || clients[0]?.id || "");
+  const selectedClient = clients.find((c) => c.id === selectedClientId);
+
+  const resetAll = () => {
+    setRows(null);
+    setFileName(null);
+    setUploadProgress(0);
+    setSelected(new Set());
+    setViewingIndex(null);
+  };
+
+  const handleClientChange = (id: string) => {
+    setSelectedClientId(id);
+    resetAll();
+  };
 
   const handleFiles = (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const ok = /\.(csv|xlsx?|json|md|txt|png|jpe?g|webp)$/i.test(file.name);
-    if (!ok) {
-      toast.error("Unsupported file. Use CSV, Excel, JSON, Markdown or images.");
+    if (!/\.(md|txt)$/i.test(file.name)) {
+      toast.error("Unsupported file. Use .md or .txt");
       return;
     }
     setFileName(file.name);
     setRows(null);
     setUploadProgress(0);
+    setSelected(new Set());
 
-    const isMarkdown = /\.(md|txt)$/i.test(file.name);
-
-    if (isMarkdown) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        const client = clients.find((c) => c.id === selectedClientId);
-        const parsed = parseImportFile(text, client?.name || "Unknown Client");
-        console.log(`[Import] File length: ${text.length}, Blocks found: ${text.split(/(?=^date:\s)/m).filter(b => b.trim()).length}, Parsed: ${parsed.length}`);
-        setRows(parsed);
-        setUploadProgress(100);
-        toast.success(`${file.name} parsed — ${parsed.length} posts found`);
-      };
-      reader.readAsText(file);
-    } else {
-      let p = 0;
-      const t = setInterval(() => {
-        p += 20;
-        setUploadProgress(p);
-        if (p >= 100) {
-          clearInterval(t);
-          setRows(sample);
-          toast.success(`${file.name} uploaded`);
-        }
-      }, 160);
-    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const parsed = parseImportFile(text, selectedClient?.name || "Unknown Client");
+      setRows(parsed);
+      setUploadProgress(100);
+      toast.success(`${file.name} parsed — ${parsed.length} posts found`);
+    };
+    reader.readAsText(file);
   };
 
   const confirmImport = () => {
-    if (!rows) return;
+    if (!rows || rows.length === 0) return;
     setImporting(true);
     setImportProgress(0);
     let p = 0;
@@ -145,182 +102,213 @@ function ImportPage() {
         clearInterval(t);
         actions.addMany(rows);
         setImporting(false);
-        toast.success(`${rows.length} items imported`);
-        navigate({ to: "/additional" });
+        toast.success(`${rows.length} posts imported for ${selectedClient?.name}`);
+        resetAll();
       }
     }, 180);
   };
 
-  const selectedClient = clients.find((c) => c.id === selectedClientId);
+  const toggleSelect = (i: number) => {
+    const next = new Set(selected);
+    if (next.has(i)) next.delete(i); else next.add(i);
+    setSelected(next);
+  };
+
+  const toggleAll = () => {
+    if (!rows) return;
+    if (selected.size === rows.length) setSelected(new Set());
+    else setSelected(new Set(rows.map((_, i) => i)));
+  };
+
+  const deleteSelected = () => {
+    if (!rows) return;
+    const count = selected.size;
+    setRows(rows.filter((_, i) => !selected.has(i)));
+    setSelected(new Set());
+    toast.success(`${count} posts removed`);
+  };
 
   return (
     <>
       <PageHeader
         title="Import Content"
-        subtitle={`Import existing marketing content for ${selectedClient?.name || "Client"}.`}
+        subtitle={selectedClient ? `Import existing marketing content for ${selectedClient.name}.` : "Select a client to import content."}
       />
 
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          handleFiles(e.dataTransfer.files);
-        }}
-        className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed bg-card px-6 py-16 text-center transition-colors ${
-          dragging ? "border-primary bg-accent/50" : "border-border"
-        }`}
-      >
-        <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-muted">
-          <UploadCloud className="size-5 text-muted-foreground" strokeWidth={1.75} />
-        </div>
-        <p className="text-sm font-medium">Drag &amp; drop your files here</p>
-        <p className="my-2 text-xs text-muted-foreground">or</p>
-        <Button variant="outline" onClick={() => inputRef.current?.click()}>
-          Browse Files
-        </Button>
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          accept=".csv,.xls,.xlsx,.json,.md,.txt,image/*"
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-        <p className="mt-4 text-xs text-muted-foreground">Supported: CSV, Excel, JSON, Markdown (.md), Images</p>
+      {/* Client Selector */}
+      <div className="rounded-xl border bg-card p-6 shadow-soft">
+        <label className="text-sm font-medium">Select Client</label>
+        <select
+          value={selectedClientId}
+          onChange={(e) => handleClientChange(e.target.value)}
+          className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+        >
+          <option value="">— Choose a client —</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
       </div>
 
-      {clients.length > 1 && (
-        <div className="mt-4 rounded-xl border bg-card p-4 shadow-soft">
-          <label className="text-sm font-medium">Import to Client</label>
-          <select
-            value={selectedClientId}
-            onChange={(e) => setSelectedClientId(e.target.value)}
-            className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-          >
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {fileName && (
-        <div className="mt-4 rounded-xl border bg-card p-4 shadow-soft">
-          <div className="flex items-center gap-3">
-            <FileSpreadsheet className="size-4 text-muted-foreground" strokeWidth={1.75} />
-            <span className="text-sm font-medium">{fileName}</span>
-            <span className="ml-auto text-xs text-muted-foreground">{uploadProgress}%</span>
-          </div>
-          <Progress value={uploadProgress} className="mt-3 h-1.5" />
-        </div>
-      )}
-
-      {rows && (
-        <section className="mt-8">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold">Import Preview ({rows.length} posts)</h2>
+      {/* Import Section — only show after client selected */}
+      {selectedClientId && selectedClient && (
+        <div className="mt-6 rounded-xl border bg-card p-6 shadow-soft">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold">Import Posts</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Import existing marketing content for {selectedClient.name}.
+              </p>
+            </div>
             <div className="flex items-center gap-2">
-              {selected.size > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    setRows(rows.filter((_, i) => !selected.has(i)));
-                    setSelected(new Set());
-                    toast.success(`${selected.size} posts removed`);
-                  }}
-                >
-                  <Trash2 className="mr-1 size-3" />
-                  Delete Selected ({selected.size})
-                </Button>
-              )}
+              <input
+                ref={inputRef}
+                type="file"
+                className="hidden"
+                accept=".md,.txt"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+              <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
+                <UploadCloud className="mr-1.5 size-3.5" />
+                Import Posts (.md, .txt)
+              </Button>
             </div>
           </div>
-          <div className="overflow-x-auto rounded-xl border bg-card shadow-soft">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-10">
-                    <input
-                      type="checkbox"
-                      className="size-4 rounded border-muted-foreground/25"
-                      checked={rows.length > 0 && selected.size === rows.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelected(new Set(rows.map((_, i) => i)));
-                        } else {
-                          setSelected(new Set());
-                        }
-                      }}
-                    />
-                  </TableHead>
-                  <TableHead>Content</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Platform</TableHead>
-                  <TableHead>Content Type</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r, i) => (
-                  <TableRow key={`${r.title}-${i}`}>
-                    <TableCell>
-                      <input
-                        type="checkbox"
-                        className="size-4 rounded border-muted-foreground/25"
-                        checked={selected.has(i)}
-                        onChange={(e) => {
-                          const next = new Set(selected);
-                          if (e.target.checked) {
-                            next.add(i);
-                          } else {
-                            next.delete(i);
-                          }
-                          setSelected(next);
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{r.title}</TableCell>
-                    <TableCell className="text-muted-foreground">{r.client}</TableCell>
-                    <TableCell>
-                      <PlatformBadge platform={r.platform} />
-                    </TableCell>
-                    <TableCell>
-                      <ContentTypeBadge type={r.type} />
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={r.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
 
-          {importing && <Progress value={importProgress} className="mt-4 h-1.5" />}
+          {fileName && (
+            <div className="mt-3 rounded-lg border p-3">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="size-4 text-muted-foreground" strokeWidth={1.75} />
+                <span className="text-sm font-medium">{fileName}</span>
+                <span className="ml-auto text-xs text-muted-foreground">{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className="mt-2 h-1.5" />
+            </div>
+          )}
 
-          <div className="mt-5 flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRows(null);
-                setFileName(null);
-                setUploadProgress(0);
-                setSelected(new Set());
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={confirmImport} disabled={importing || rows.length === 0}>
-              {importing ? "Importing…" : `Import ${rows.length} Posts`}
-            </Button>
-          </div>
-        </section>
+          {rows && (
+            <section className="mt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Import Preview ({rows.length} posts)</h3>
+                <div className="flex items-center gap-2">
+                  {selected.size > 0 && (
+                    <Button variant="destructive" size="sm" onClick={deleteSelected}>
+                      <Trash2 className="mr-1 size-3" />
+                      Delete Selected ({selected.size})
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-10">
+                        <input
+                          type="checkbox"
+                          className="size-4 rounded border-muted-foreground/25"
+                          checked={rows.length > 0 && selected.size === rows.length}
+                          onChange={toggleAll}
+                        />
+                      </TableHead>
+                      <TableHead>Content</TableHead>
+                      <TableHead>Platform</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-16">View</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r, i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            className="size-4 rounded border-muted-foreground/25"
+                            checked={selected.has(i)}
+                            onChange={() => toggleSelect(i)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{r.title}</TableCell>
+                        <TableCell>
+                          <PlatformBadge platform={r.platform} />
+                        </TableCell>
+                        <TableCell>
+                          <ContentTypeBadge type={r.type} />
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={r.status} />
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setViewingIndex(i)}>
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {importing && <Progress value={importProgress} className="mt-3 h-1.5" />}
+
+              <div className="mt-4 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetAll}
+                >
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={confirmImport} disabled={importing || rows.length === 0}>
+                  {importing ? "Importing…" : `Import ${rows.length} Posts`}
+                </Button>
+              </div>
+            </section>
+          )}
+        </div>
       )}
+
+      <Dialog open={viewingIndex !== null} onOpenChange={(open) => { if (!open) setViewingIndex(null); }}>
+        <DialogContent className="max-w-xl max-h-[80vh] overflow-y-auto">
+          {viewingIndex !== null && rows?.[viewingIndex] && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{rows[viewingIndex].title}</DialogTitle>
+                <DialogDescription>{rows[viewingIndex].date} — {rows[viewingIndex].platform}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 text-sm">
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground">Type:</span>
+                  <ContentTypeBadge type={rows[viewingIndex].type} />
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Caption:</span>
+                  <p className="mt-1 whitespace-pre-wrap">{rows[viewingIndex].caption}</p>
+                </div>
+                {rows[viewingIndex].body && rows[viewingIndex].body !== rows[viewingIndex].caption && (
+                  <div>
+                    <span className="text-muted-foreground">Body:</span>
+                    <p className="mt-1 whitespace-pre-wrap">{rows[viewingIndex].body}</p>
+                  </div>
+                )}
+                {rows[viewingIndex].hashtags.length > 0 && (
+                  <div>
+                    <span className="text-muted-foreground">Hashtags:</span>
+                    <p className="mt-1">{rows[viewingIndex].hashtags.join(" ")}</p>
+                  </div>
+                )}
+                {rows[viewingIndex].notes && (
+                  <div>
+                    <span className="text-muted-foreground">Notes:</span>
+                    <p className="mt-1 text-xs italic">{rows[viewingIndex].notes}</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
