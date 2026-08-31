@@ -195,7 +195,12 @@ function CreateContent() {
   const pages: FacebookPage[] = fbConnection?.pages || [];
   const isFacebook = platform === "Facebook";
   const isGBP = platform === "GBP";
+  const isBlog = platform === "Blog";
   const canPublish = isFacebook && fbConnection?.connected && fbConnection?.accessToken;
+
+  const availableContentTypes = isBlog
+    ? ["Blog Article" as const]
+    : CONTENT_TYPES.filter((t) => t !== "Blog Article");
 
   const connectedPlatforms = SOCIAL_PLATFORMS.filter(
     (p) => client?.socialIntegrations?.[p]?.connected === true
@@ -468,7 +473,15 @@ function CreateContent() {
               </Select>
             </Row>
             <Row label="Platform">
-              <Select value={platform} onValueChange={(v) => setPlatform(v as SocialPlatform)}>
+              <Select value={platform} onValueChange={(v) => {
+                const p = v as SocialPlatform;
+                setPlatform(p);
+                if (p === "Blog") {
+                  setType("Blog Article");
+                } else if (type === "Blog Article") {
+                  setType("" as ContentType);
+                }
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Platform" />
                 </SelectTrigger>
@@ -490,12 +503,12 @@ function CreateContent() {
               </Select>
             </Row>
             <Row label="Content Type">
-              <Select value={type} onValueChange={(v) => setType(v as ContentType)}>
+              <Select value={type} onValueChange={(v) => setType(v as ContentType)} disabled={isBlog}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CONTENT_TYPES.map((t) => (
+                  {availableContentTypes.map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}
                     </SelectItem>
