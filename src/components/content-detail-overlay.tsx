@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -20,9 +20,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, PlayCircle } from "lucide-react";
+import { Trash2, Image, Film, Upload } from "lucide-react";
 import { actions, formatDate, type ContentItem } from "@/lib/content-store";
 import { ContentTypeBadge, PlatformBadge, StatusBadge } from "@/components/badges";
+import { SocialMediaPreviewCard } from "@/components/social-media-preview-card";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -33,65 +34,205 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Preview({ item }: { item: ContentItem }) {
-  const [slide, setSlide] = useState(0);
-  const media = item.media ?? [];
+function ReplaceMediaSection({
+  draft,
+  setDraft,
+}: {
+  draft: ContentItem;
+  setDraft: (d: ContentItem) => void;
+}) {
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [mediaType, setMediaType] = useState<"image" | "video" | null>(
+    draft.type === "Short Video" ? "video" : draft.type === "Image" || draft.type === "Carousel" ? "image" : null
+  );
+  const [showAiGen, setShowAiGen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [gbpImageUrl, setGbpImageUrl] = useState("");
 
-  if (item.type === "Carousel" && media.length) {
-    return (
-      <div className="relative overflow-hidden rounded-lg border bg-muted">
-        <img src={media[slide]} alt={`Slide ${slide + 1}`} className="aspect-[4/3] w-full object-cover" />
-        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/45 to-transparent p-3">
-          <Button
-            size="icon"
-            variant="secondary"
-            className="size-8"
-            onClick={() => setSlide((s) => (s - 1 + media.length) % media.length)}
-            aria-label="Previous slide"
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="rounded-full bg-card/90 px-2.5 py-0.5 text-xs font-medium">
-            {slide + 1} / {media.length}
-          </span>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="size-8"
-            onClick={() => setSlide((s) => (s + 1) % media.length)}
-            aria-label="Next slide"
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (item.type === "Image") {
-    return media[0] ? (
-      <img src={media[0]} alt={item.title} className="aspect-[4/3] w-full rounded-lg border object-cover" />
-    ) : (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-lg border bg-muted text-sm text-muted-foreground">
-        No image attached
-      </div>
-    );
-  }
-
-  if (item.type === "Short Video") {
-    return (
-      <div className="flex aspect-video items-center justify-center rounded-lg border bg-muted">
-        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-          <PlayCircle className="size-8" strokeWidth={1.5} />
-          <span className="text-xs">Video preview</span>
-        </div>
-      </div>
-    );
-  }
+  const handleUpload = (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const url = e.target?.result as string;
+      const isVideo = file.type.startsWith("video/");
+      setMediaType(isVideo ? "video" : "image");
+      setDraft({ ...draft, media: [url] });
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
-    <div className="rounded-lg border bg-muted/50 p-4 text-sm leading-relaxed whitespace-pre-line">
-      {item.body || item.caption}
+    <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+      <Label className="text-xs font-medium">Replace Image/Video</Label>
+
+      {/* Media Type Tabs */}
+      <div className="flex gap-1 rounded-md border bg-background p-0.5">
+        <button
+          type="button"
+          onClick={() => { setMediaType("image"); if (draft.type === "Short Video") setDraft({ ...draft, type: "Image" }); }}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+            mediaType === "image" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Image className="size-3.5" />
+          Image
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMediaType("video"); if (draft.type !== "Short Video") setDraft({ ...draft, type: "Short Video" }); }}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+            mediaType === "video" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Film className="size-3.5" />
+          Video
+        </button>
+      </div>
+
+      {/* Image Type Options */}
+      {mediaType === "image" && (
+        <div className="flex gap-1 rounded-md border bg-background p-0.5">
+          <button
+            type="button"
+            onClick={() => setDraft({ ...draft, type: "Image" })}
+            className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+              draft.type === "Image" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Single Image
+          </button>
+          <button
+            type="button"
+            onClick={() => setDraft({ ...draft, type: "Carousel" })}
+            className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+              draft.type === "Carousel" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Carousel
+          </button>
+        </div>
+      )}
+
+      {/* Video Orientation Options */}
+      {mediaType === "video" && (
+        <div className="flex gap-1 rounded-md border bg-background p-0.5">
+          <button
+            type="button"
+            onClick={() => setDraft({ ...draft, notes: "orientation:vertical" })}
+            className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+              draft.notes !== "orientation:horizontal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Vertical
+          </button>
+          <button
+            type="button"
+            onClick={() => setDraft({ ...draft, notes: "orientation:horizontal" })}
+            className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+              draft.notes === "orientation:horizontal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Horizontal
+          </button>
+        </div>
+      )}
+
+      {/* Upload or AI Generate */}
+      <div className="space-y-2">
+        <input
+          ref={imageInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*,video/*"
+          onChange={(e) => handleUpload(e.target.files)}
+        />
+        <Button variant="outline" size="sm" className="w-full" onClick={() => imageInputRef.current?.click()}>
+          <Upload className="mr-1.5 size-3.5" />
+          Upload {mediaType === "video" ? "Video" : "Image"}
+        </Button>
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAiGen((p) => !p)}>
+          <svg className="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+          AI Generate {mediaType === "video" ? "Video" : "Image"}
+        </Button>
+      </div>
+
+      {/* AI Generation Panel */}
+      {showAiGen && (
+        <div className="space-y-2 rounded-lg border bg-background p-3">
+          <Label className="text-xs text-muted-foreground">Reference Image (optional) OR Url GBP</Label>
+          <div
+            className="flex items-center gap-2 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-2 cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "image/*";
+              input.onchange = (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => setReferenceImage(ev.target?.result as string);
+                reader.readAsDataURL(file);
+              };
+              input.click();
+            }}
+          >
+            {referenceImage ? (
+              <>
+                <img src={referenceImage} alt="Reference" className="h-8 w-8 rounded object-cover shrink-0" />
+                <span className="text-[10px] text-muted-foreground truncate flex-1">Reference uploaded</span>
+              </>
+            ) : (
+              <>
+                <Image className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                <span className="text-[10px] text-muted-foreground">Click to upload reference image</span>
+              </>
+            )}
+          </div>
+          <Input
+            type="url"
+            value={gbpImageUrl}
+            onChange={(e) => setGbpImageUrl(e.target.value)}
+            placeholder="Or paste GBP image URL..."
+            className="text-xs h-8"
+          />
+          <Textarea
+            rows={2}
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder="Image/Video prompt (used to generate)..."
+            className="text-xs"
+          />
+          <Button size="sm" className="w-full" onClick={() => toast.success("AI generation started...")}>
+            Run
+          </Button>
+        </div>
+      )}
+
+      {/* Current media preview */}
+      {draft.media && draft.media.length > 0 && (
+        <div className="relative">
+          {mediaType === "video" ? (
+            <div className="flex aspect-video items-center justify-center rounded-lg border bg-muted">
+              <Film className="size-8 text-muted-foreground/40" />
+            </div>
+          ) : (
+            <img src={draft.media[0]} alt="" className="w-full rounded-lg border object-cover" />
+          )}
+          <button
+            type="button"
+            onClick={() => setDraft({ ...draft, media: [] })}
+            className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -119,13 +260,17 @@ export function ContentDetailOverlay({
       title: draft.title,
       caption: draft.caption,
       ...(draft.body !== undefined ? { body: draft.body } : {}),
+      type: draft.type,
       hashtags: draft.hashtags,
       cta: draft.cta,
+      media: draft.media,
       ...(draft.notes !== undefined ? { notes: draft.notes } : {}),
     });
     setEditing(false);
     toast.success("Content updated");
   };
+
+  const platformKey = item.platform.toLowerCase().replace(" / ", "").replace(" ", "").replace("(twitter)", "") as "facebook" | "instagram" | "gbp";
 
   return (
     <>
@@ -144,7 +289,7 @@ export function ContentDetailOverlay({
               )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <PlatformBadge platform={item.platform} />
-                <ContentTypeBadge type={item.type} />
+                <ContentTypeBadge type={draft.type} />
                 <StatusBadge status={item.status} />
               </div>
             </div>
@@ -152,14 +297,31 @@ export function ContentDetailOverlay({
             <div className="grid grid-cols-2 gap-4 rounded-lg border bg-card p-4 sm:grid-cols-4">
               <Field label="Client">{item.client}</Field>
               <Field label="Platform">{item.platform}</Field>
-              <Field label="Content Type">{item.type}</Field>
+              <Field label="Content Type">{draft.type}</Field>
               <Field label="Created">{formatDate(item.date)}</Field>
             </div>
 
+            {/* Platform-specific Preview */}
             <div>
-              <p className="mb-2 text-sm font-medium">Content Preview</p>
-              <Preview item={item} />
+              <p className="mb-2 text-sm font-medium">Post Preview</p>
+              <div className="rounded-xl border bg-card p-4 shadow-soft">
+                <SocialMediaPreviewCard
+                  profileName={item.client}
+                  timestamp={formatDate(item.date)}
+                  content={editing ? draft.caption : item.caption}
+                  images={draft.media || []}
+                  platform={platformKey === "gbp" ? "gbp" : platformKey === "instagram" ? "instagram" : "facebook"}
+                  gbpTitle={item.client}
+                  gbpButtonLabel="Learn More"
+                  gbpIsVerified={true}
+                />
+              </div>
             </div>
+
+            {/* Replace Media - only in edit mode */}
+            {editing && (
+              <ReplaceMediaSection draft={draft} setDraft={setDraft} />
+            )}
 
             <div className="space-y-4">
               <div>
@@ -172,7 +334,7 @@ export function ContentDetailOverlay({
                     onChange={(e) => setDraft({ ...draft, caption: e.target.value })}
                   />
                 ) : (
-                  <p className="mt-1 text-sm leading-relaxed">{item.caption}</p>
+                  <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap">{item.caption}</p>
                 )}
               </div>
               <div>
