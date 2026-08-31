@@ -52,59 +52,63 @@ function parseContent(
   text: string,
   onTag: ((tag: string) => void) | undefined,
 ): React.ReactNode[] {
-  // Match hashtags and URLs
+  if (!text) return [];
+
   const regex = /(#\w+|(https?:\/\/[^\s]+))/g;
-  const parts = text.split(regex);
+  const result: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
 
-  return parts.map((part, i) => {
-    if (!part) return null;
-
-    // Hashtag
-    if (part.startsWith("#")) {
-      const tag = part.slice(1);
-      return (
-        <span
-          key={i}
-          role={onTag ? "button" : undefined}
-          tabIndex={onTag ? 0 : undefined}
-          onClick={(e) => {
-            e.stopPropagation();
-            onTag?.(tag);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.stopPropagation();
-              onTag?.(tag);
-            }
-          }}
-          className={cn(
-            "font-semibold text-[#1877F2] transition-colors",
-            onTag && "cursor-pointer hover:underline",
-          )}
-        >
-          {part}
-        </span>
-      );
+  while ((match = regex.exec(text)) !== null) {
+    // Add text before match
+    if (match.index > lastIndex) {
+      result.push(<span key={`t${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>);
     }
 
-    // URL
-    if (part.match(/^https?:\/\//)) {
-      return (
+    const part = match[0];
+
+    if (part.startsWith("#")) {
+      const tag = part.slice(1);
+      result.push(
+        <span
+          key={`h${match.index}`}
+          role={onTag ? "button" : undefined}
+          tabIndex={onTag ? 0 : undefined}
+          onClick={(e) => { e.stopPropagation(); onTag?.(tag); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onTag?.(tag); }
+          }}
+          className={cn("font-semibold text-[#00376b] transition-colors", onTag && "cursor-pointer hover:underline")}
+        >
+          {part}
+        </span>,
+      );
+    } else if (part.match(/^https?:\/\//)) {
+      result.push(
         <a
-          key={i}
+          key={`u${match.index}`}
           href={part}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#1877F2] hover:underline break-all"
+          className="text-[#00376b] hover:underline break-all"
           onClick={(e) => e.stopPropagation()}
         >
           {part}
-        </a>
+        </a>,
       );
+    } else {
+      result.push(<span key={`p${match.index}`}>{part}</span>);
     }
 
-    return <span key={i}>{part}</span>;
-  });
+    lastIndex = match.index + part.length;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    result.push(<span key={`t${lastIndex}`}>{text.slice(lastIndex)}</span>);
+  }
+
+  return result;
 }
 
 // ─── LazyImage ───────────────────────────────────────────────────────────────
@@ -352,6 +356,8 @@ function InstagramPreviewCard({
   onHashtagClick,
   className,
 }: SocialMediaPreviewCardProps) {
+  const [liked, setLiked] = useState(true);
+  const [likeCount, setLikeCount] = useState(1);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
 
@@ -424,10 +430,23 @@ function InstagramPreviewCard({
         {/* ── Action Bar ─────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center gap-4">
-            <button className="text-[#ED4956]" aria-label="Like">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
+            <button
+              className={cn("transition-colors", liked ? "text-[#ED4956]" : "text-foreground")}
+              aria-label="Like"
+              onClick={() => {
+                setLiked((p) => !p);
+                setLikeCount((p) => (liked ? p - 1 : p + 1));
+              }}
+            >
+              {liked ? (
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
+              )}
             </button>
             <button className="text-foreground" aria-label="Comment">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -446,6 +465,13 @@ function InstagramPreviewCard({
             </svg>
           </button>
         </div>
+
+        {/* ── Like Count ──────────────────────────────────────────────── */}
+        {likeCount > 0 && (
+          <div className="px-3 pb-1">
+            <span className="text-[13px] font-semibold">{likeCount} like{likeCount !== 1 ? "s" : ""}</span>
+          </div>
+        )}
 
         {/* ── Caption ─────────────────────────────────────────────────── */}
         <div className="px-3 pb-1">
