@@ -183,6 +183,7 @@ function CreateContent() {
   const [gbpCouponCode, setGbpCouponCode] = useState("");
   const [gbpRedeemLink, setGbpRedeemLink] = useState("");
   const [gbpTerms, setGbpTerms] = useState("");
+  const [gbpUrl, setGbpUrl] = useState("");
 
   const client = clients.find((c) => c.id === selectedClientId);
   const fbConnection = client?.socialIntegrations?.Facebook;
@@ -584,6 +585,11 @@ function CreateContent() {
                           </SelectContent>
                         </Select>
                       </Row>
+                      {gbpButtonLabel && gbpButtonLabel !== "None" && gbpButtonLabel !== "Call" && (
+                        <Row label="URL *">
+                          <Input type="url" value={gbpUrl} onChange={(e) => setGbpUrl(e.target.value)} placeholder="https://www..." required />
+                        </Row>
+                      )}
                     </div>
                   )}
 
@@ -627,6 +633,11 @@ function CreateContent() {
                           </Select>
                         </Row>
                       </div>
+                      {gbpButtonLabel && gbpButtonLabel !== "None" && gbpButtonLabel !== "Call" && (
+                        <Row label="URL *">
+                          <Input type="url" value={gbpUrl} onChange={(e) => setGbpUrl(e.target.value)} placeholder="https://www..." required />
+                        </Row>
+                      )}
                     </>
                   )}
 
