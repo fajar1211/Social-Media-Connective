@@ -14,9 +14,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ContentTypeBadge, PlatformBadge, StatusBadge } from "@/components/badges";
-import { actions, type ContentItem } from "@/lib/content-store";
+import { actions, type ContentItem, parseImportFile, useStore } from "@/lib/content-store";
 
 export const Route = createFileRoute("/import")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    clientId: (search.clientId as string) || "",
+  }),
   head: () => ({
     meta: [
       { title: "Import Content — Social Media Connective Admin" },
@@ -77,6 +80,7 @@ const sample: Omit<ContentItem, "id">[] = [
 
 function ImportPage() {
   const navigate = useNavigate();
+  const { clientId } = Route.useSearch();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -85,27 +89,46 @@ function ImportPage() {
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
 
+  const clients = useStore((s) => s.clients);
+  const [selectedClientId, setSelectedClientId] = useState(clientId || clients[0]?.id || "");
+
   const handleFiles = (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const ok = /\.(csv|xlsx?|json|png|jpe?g|webp)$/i.test(file.name);
+    const ok = /\.(csv|xlsx?|json|md|txt|png|jpe?g|webp)$/i.test(file.name);
     if (!ok) {
-      toast.error("Unsupported file. Use CSV, Excel, JSON or images.");
+      toast.error("Unsupported file. Use CSV, Excel, JSON, Markdown or images.");
       return;
     }
     setFileName(file.name);
     setRows(null);
     setUploadProgress(0);
-    let p = 0;
-    const t = setInterval(() => {
-      p += 20;
-      setUploadProgress(p);
-      if (p >= 100) {
-        clearInterval(t);
-        setRows(sample);
-        toast.success(`${file.name} uploaded`);
-      }
-    }, 160);
+
+    const isMarkdown = /\.(md|txt)$/i.test(file.name);
+
+    if (isMarkdown) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const client = clients.find((c) => c.id === selectedClientId);
+        const parsed = parseImportFile(text, client?.name || "Unknown Client");
+        setRows(parsed);
+        setUploadProgress(100);
+        toast.success(`${file.name} parsed — ${parsed.length} posts found`);
+      };
+      reader.readAsText(file);
+    } else {
+      let p = 0;
+      const t = setInterval(() => {
+        p += 20;
+        setUploadProgress(p);
+        if (p >= 100) {
+          clearInterval(t);
+          setRows(sample);
+          toast.success(`${file.name} uploaded`);
+        }
+      }, 160);
+    }
   };
 
   const confirmImport = () => {
@@ -160,11 +183,26 @@ function ImportPage() {
           ref={inputRef}
           type="file"
           className="hidden"
-          accept=".csv,.xls,.xlsx,.json,image/*"
+          accept=".csv,.xls,.xlsx,.json,.md,.txt,image/*"
           onChange={(e) => handleFiles(e.target.files)}
         />
-        <p className="mt-4 text-xs text-muted-foreground">Supported: CSV, Excel, JSON, Images</p>
+        <p className="mt-4 text-xs text-muted-foreground">Supported: CSV, Excel, JSON, Markdown (.md), Images</p>
       </div>
+
+      {clients.length > 1 && (
+        <div className="mt-4 rounded-xl border bg-card p-4 shadow-soft">
+          <label className="text-sm font-medium">Import to Client</label>
+          <select
+            value={selectedClientId}
+            onChange={(e) => setSelectedClientId(e.target.value)}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+          >
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {fileName && (
         <div className="mt-4 rounded-xl border bg-card p-4 shadow-soft">

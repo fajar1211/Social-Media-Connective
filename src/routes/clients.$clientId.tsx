@@ -1254,6 +1254,9 @@ function ClientDetailPage() {
           <Button asChild variant="outline" size="sm">
             <Link to="/content/create" search={{ clientId: client.id, clientName: client.name }}>Create Content</Link>
           </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/import" search={{ clientId: client.id }}>Import Posts</Link>
+          </Button>
         </div>
       </div>
 

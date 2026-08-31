@@ -184,3 +184,80 @@ export function formatDate(iso: string) {
   const d = new Date(iso + (iso.length === 10 ? "T00:00:00" : ""));
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
+
+export function parseImportFile(content: string, defaultClient: string): Omit<ContentItem, "id">[] {
+  const posts: Omit<ContentItem, "id">[] = [];
+  const blocks = content.split(/(?=^date:\s)/m).filter((b) => b.trim());
+
+  for (const block of blocks) {
+    const lines = block.split("\n");
+    const meta: Record<string, string> = {};
+    let bodyStart = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const match = line.match(/^(date|platform|title|content_type|goal|image):\s*(.*)/);
+      if (match) {
+        meta[match[1]] = match[2].trim();
+        bodyStart = i + 1;
+      } else if (line.trim() === "" && Object.keys(meta).length > 0) {
+        bodyStart = i + 1;
+        break;
+      }
+    }
+
+    const bodyLines = lines.slice(bodyStart);
+    const body = bodyLines.join("\n").trim();
+    const hashtagMatch = body.match(/(#[\w\u00C0-\u024F]+\s*)+$/);
+    const hashtags = hashtagMatch
+      ? hashtagMatch[0].trim().split(/\s+/).filter((h) => h.startsWith("#"))
+      : [];
+    const captionBody = hashtagMatch ? body.replace(hashtagMatch[0], "").trim() : body;
+
+    const platformMap: Record<string, Platform> = {
+      "Google Business Profile": "Facebook",
+      "Facebook": "Facebook",
+      "Instagram": "Instagram",
+      "LinkedIn": "LinkedIn",
+      "Blog": "Blog",
+      "X / Twitter": "X / Twitter",
+      "X (Twitter)": "X / Twitter",
+    };
+
+    const typeMap: Record<string, ContentType> = {
+      "Image": "Image",
+      "Carousel": "Carousel",
+      "Short Video": "Short Video",
+      "Text Post": "Text Post",
+      "Blog Article": "Blog Article",
+    };
+
+    const goalMap: Record<string, string> = {
+      "Education": "Education",
+      "Promotion": "Promotion",
+      "Engagement": "Engagement",
+      "Awareness": "Awareness",
+      "Announcement": "Announcement",
+    };
+
+    const platform = platformMap[meta.platform] || "Facebook";
+    const contentType = typeMap[meta.content_type] || "Image";
+
+    posts.push({
+      title: meta.title || "Untitled",
+      client: defaultClient,
+      platform,
+      type: contentType,
+      status: "Additional",
+      date: meta.date || new Date().toISOString().slice(0, 10),
+      caption: captionBody,
+      body: captionBody,
+      hashtags,
+      cta: "",
+      media: meta.image ? [] : undefined,
+      notes: meta.image ? `AI Image Prompt: ${meta.image}` : undefined,
+    });
+  }
+
+  return posts;
+}
