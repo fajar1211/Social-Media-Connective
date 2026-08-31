@@ -406,10 +406,10 @@ export function SocialMediaPreviewCard({
           </Avatar>
 
           <div className="flex-1 min-w-0">
-            <p className="truncate text-[15px] font-bold leading-tight">{profileName}</p>
+            <p className="truncate text-[13px] font-bold leading-tight">{profileName}</p>
             <time
               dateTime={typeof timestamp === "string" ? timestamp : timestamp.toISOString()}
-              className="text-xs text-muted-foreground"
+              className="text-[11px] text-muted-foreground"
             >
               {formatDate(timestamp)}
             </time>
@@ -425,8 +425,8 @@ export function SocialMediaPreviewCard({
 
         {/* ── Content ────────────────────────────────────────────────── */}
         {content && (
-          <div className="px-4 py-3">
-            <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{parsedContent}</p>
+          <div className="px-4 py-2.5">
+            <p className="whitespace-pre-wrap text-[13px] leading-relaxed">{parsedContent}</p>
           </div>
         )}
 
@@ -460,20 +460,23 @@ export function SocialMediaPreviewCard({
         <div className="mx-4 border-t border-border" />
 
         {/* ── Footer Actions ─────────────────────────────────────────── */}
-        <div className="flex items-center px-2 py-1">
+        <div className="flex items-center px-1.5 py-0.5">
           <ActionButton
-            icon={<ThumbsUp className={cn("h-5 w-5", liked && "fill-[#1877F2] text-[#1877F2]")} />}
+            icon={<ThumbsUp className={cn("h-4 w-4", liked && "fill-[#1877F2] text-[#1877F2]")} />}
+            platformIcon={<FacebookIcon className="h-2.5 w-2.5" />}
             label="Like"
             isActive={liked}
             onClick={handleLike}
           />
           <ActionButton
-            icon={<MessageCircle className="h-5 w-5" />}
+            icon={<MessageCircle className="h-4 w-4" />}
+            platformIcon={<FacebookIcon className="h-2.5 w-2.5" />}
             label="Comment"
             onClick={onComment}
           />
           <ActionButton
-            icon={<Share2 className="h-5 w-5" />}
+            icon={<Share2 className="h-4 w-4" />}
+            platformIcon={<FacebookIcon className="h-2.5 w-2.5" />}
             label="Share"
             onClick={onShare}
           />
@@ -492,13 +495,23 @@ export function SocialMediaPreviewCard({
 
 // ─── Action Button ───────────────────────────────────────────────────────────
 
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="#1877F2">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    </svg>
+  );
+}
+
 function ActionButton({
   icon,
+  platformIcon,
   label,
   isActive,
   onClick,
 }: {
   icon: React.ReactNode;
+  platformIcon?: React.ReactNode;
   label: string;
   isActive?: boolean;
   onClick?: (() => void) | undefined;
@@ -510,14 +523,21 @@ function ActionButton({
         onClick?.();
       }}
       className={cn(
-        "flex flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-md px-2 py-2 min-w-0",
-        "text-[13px] sm:text-[15px] font-medium text-muted-foreground transition-colors duration-150",
+        "flex flex-1 items-center justify-center gap-1 overflow-hidden rounded px-1.5 py-1.5 min-w-0",
+        "text-[11px] sm:text-[12px] font-medium text-muted-foreground transition-colors duration-150",
         "hover:bg-accent",
         "active:scale-[0.97]",
         isActive && "text-[#1877F2]",
       )}
     >
-      <span className="shrink-0">{icon}</span>
+      <span className="relative shrink-0">
+        {icon}
+        {platformIcon && (
+          <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center rounded-full bg-white shadow-sm">
+            {platformIcon}
+          </span>
+        )}
+      </span>
       <span className="truncate">{label}</span>
     </button>
   );
