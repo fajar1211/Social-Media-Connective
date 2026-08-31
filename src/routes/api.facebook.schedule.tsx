@@ -15,7 +15,12 @@ export const Route = createFileRoute("/api/facebook/schedule")({
             );
           }
 
-          const scheduledTime = Math.floor(new Date(scheduledPublishTime).getTime() / 1000);
+          let scheduledTime: number;
+          if (typeof scheduledPublishTime === "number") {
+            scheduledTime = Math.floor(scheduledPublishTime);
+          } else {
+            scheduledTime = Math.floor(new Date(scheduledPublishTime).getTime() / 1000);
+          }
           const now = Math.floor(Date.now() / 1000);
 
           if (scheduledTime <= now) {
