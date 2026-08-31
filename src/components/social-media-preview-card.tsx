@@ -48,16 +48,19 @@ function formatDate(date: string | Date): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function parseHashtags(
+function parseContent(
   text: string,
   onTag: ((tag: string) => void) | undefined,
 ): React.ReactNode[] {
-  const regex = /(#\w+)/g;
+  // Match hashtags and URLs
+  const regex = /(#\w+|(https?:\/\/[^\s]+))/g;
   const parts = text.split(regex);
 
   return parts.map((part, i) => {
-    if (regex.test(part)) {
-      regex.lastIndex = 0;
+    if (!part) return null;
+
+    // Hashtag
+    if (part.startsWith("#")) {
       const tag = part.slice(1);
       return (
         <span
@@ -83,6 +86,23 @@ function parseHashtags(
         </span>
       );
     }
+
+    // URL
+    if (part.match(/^https?:\/\//)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#1877F2] hover:underline break-all"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+
     return <span key={i}>{part}</span>;
   });
 }
@@ -356,7 +376,7 @@ export function SocialMediaPreviewCard({
   }, []);
 
   const parsedContent = useMemo(
-    () => parseHashtags(content, onHashtagClick),
+    () => parseContent(content, onHashtagClick),
     [content, onHashtagClick],
   );
 
@@ -490,15 +510,15 @@ function ActionButton({
         onClick?.();
       }}
       className={cn(
-        "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2",
-        "text-[15px] font-medium text-muted-foreground transition-colors duration-150",
+        "flex flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-md px-2 py-2 min-w-0",
+        "text-[13px] sm:text-[15px] font-medium text-muted-foreground transition-colors duration-150",
         "hover:bg-accent",
         "active:scale-[0.97]",
         isActive && "text-[#1877F2]",
       )}
     >
-      {icon}
-      <span>{label}</span>
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
     </button>
   );
 }

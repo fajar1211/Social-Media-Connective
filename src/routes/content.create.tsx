@@ -308,6 +308,68 @@ function CreateContent() {
     }
   };
 
+  const scheduleFacebookPost = async () => {
+    if (!canPublish || !selectedPage || !client || !scheduleDate || !scheduleTime) {
+      toast.error("Please select a page and schedule time.");
+      return;
+    }
+
+    const page = pages.find((p) => p.id === selectedPage);
+    if (!page) {
+      toast.error("Selected page not found.");
+      return;
+    }
+
+    const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+    if (scheduledDateTime <= new Date()) {
+      toast.error("Schedule time must be in the future.");
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      const message = `${topic}\n\n${body}`;
+
+      const response = await fetch("/api/facebook/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageId: page.id,
+          pageAccessToken: page.access_token,
+          message,
+          scheduledPublishTime: scheduledDateTime.toISOString(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        actions.addContent({
+          title: topic.trim(),
+          client: client.name,
+          platform: (platform || "Facebook") as any,
+          type: (type || "Carousel") as ContentType,
+          status: "Submitted",
+          date: scheduleDate,
+          caption: topic.trim(),
+          body: body,
+          hashtags: [],
+          cta: "",
+          notes: `Scheduled for ${scheduledDateTime.toLocaleString()} on ${page.name} (Post ID: ${data.postId})`,
+          media: mediaPreview ? [mediaPreview] : [],
+        });
+        toast.success(`Scheduled for ${scheduledDateTime.toLocaleString()}!`);
+        navigate({ to: "/submitted" });
+      } else {
+        toast.error(`Failed to schedule: ${data.error}`);
+      }
+    } catch {
+      toast.error("Failed to schedule. Please try again.");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   return (
     <>
       <div className="mb-6">
@@ -453,49 +515,26 @@ function CreateContent() {
             </Row>
           </div>
 
-          {isFacebook && (
+          {isFacebook && canPublish && (
             <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Send className="size-4" />
                 Facebook Publishing
               </div>
-              {canPublish ? (
-                <>
-                  <Row label="Select Page">
-                    <Select value={selectedPage} onValueChange={setSelectedPage}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a Facebook page" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pages.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Row>
-                  <Button
-                    size="sm"
-                    onClick={publishNow}
-                    disabled={publishing || !selectedPage}
-                    className="w-full"
-                  >
-                    {publishing ? (
-                      "Publishing…"
-                    ) : (
-                      <>
-                        <Send className="mr-1.5 size-3.5" />
-                        Publish Now
-                      </>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Connect Facebook in client Settings to publish directly.
-                </p>
-              )}
+              <Row label="Select Page">
+                <Select value={selectedPage} onValueChange={setSelectedPage}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a Facebook page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pages.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Row>
             </div>
           )}
 
@@ -598,17 +637,25 @@ function CreateContent() {
                 </Button>
                 <Button
                   className="flex-1"
-                  disabled={loading || !platform || !type || !goal || (publishMode === "later" && (!scheduleDate || !scheduleTime))}
+                  disabled={!!(loading || !platform || !type || !goal || (publishMode === "later" && (!scheduleDate || !scheduleTime)) || (publishMode === "now" && isFacebook && canPublish && !selectedPage))}
                   onClick={() => {
                     if (publishMode === "now") {
-                      generate();
+                      if (isFacebook && canPublish) {
+                        publishNow();
+                      } else {
+                        generate();
+                      }
                     } else {
-                      toast.success(`Scheduled for ${scheduleDate} ${scheduleTime} (${timezone})`);
-                      navigate({ to: "/submitted" });
+                      if (isFacebook && canPublish && selectedPage) {
+                        scheduleFacebookPost();
+                      } else {
+                        toast.success(`Scheduled for ${scheduleDate} ${scheduleTime} (${timezone})`);
+                        navigate({ to: "/submitted" });
+                      }
                     }
                   }}
                 >
-                  {loading ? "Processing…" : publishMode === "now" ? "Publish Post" : "Schedule Post"}
+                  {loading || publishing ? "Processing…" : publishMode === "now" ? "Publish Post" : "Schedule Post"}
                 </Button>
               </div>
             )}
@@ -624,7 +671,7 @@ function CreateContent() {
           <SocialMediaPreviewCard
             profileName={client?.name || "Your Business"}
             timestamp={new Date()}
-            content={topic ? `${topic}${body ? `\n\n${body}` : ""}` : "Your post content will appear here..."}
+            content={body || topic || "Your post content will appear here..."}
             images={mediaPreview ? [{ src: mediaPreview, alt: "Uploaded media" }] : []}
             likes={0}
             comments={0}
