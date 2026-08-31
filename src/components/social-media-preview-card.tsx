@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type SocialPlatform = "facebook" | "instagram" | "twitter" | "linkedin" | "youtube" | "tiktok" | "threads" | "reddit";
+export type SocialPlatform = "facebook" | "instagram" | "twitter" | "linkedin" | "youtube" | "tiktok" | "threads" | "reddit" | "gbp";
 
 export interface GalleryImage {
   src: string;
