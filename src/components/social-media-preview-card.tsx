@@ -348,6 +348,7 @@ export function SocialMediaPreviewCard({
   timestamp,
   content,
   images = [],
+  platform,
   likes = 0,
   comments = 0,
   shares = 0,
