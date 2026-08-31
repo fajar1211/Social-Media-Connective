@@ -171,6 +171,8 @@ function CreateContent() {
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
   const [aiImagePrompt, setAiImagePrompt] = useState("");
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [showAiGen, setShowAiGen] = useState(false);
+  const [gbpImageUrl, setGbpImageUrl] = useState("");
   const [publishMode, setPublishMode] = useState<"now" | "later" | null>(null);
   const [timezone, setTimezone] = useState("Asia/Jakarta");
   const [scheduleDate, setScheduleDate] = useState("");
@@ -890,7 +892,7 @@ function CreateContent() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => imageInputRef.current?.click()}
+              onClick={() => setShowAiGen((p) => !p)}
               className="w-full"
             >
               <svg className="mr-2 size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -901,66 +903,104 @@ function CreateContent() {
               Image/Video AI Generation
             </Button>
 
-            {/* Reference Image Upload */}
-            <div className="space-y-2 pt-2 border-t">
-              <Label className="text-xs text-muted-foreground">Reference Image (optional)</Label>
-              <div
-                className="flex flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.accept = "image/*";
-                  input.onchange = (e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => setReferenceImage(ev.target?.result as string);
-                    reader.readAsDataURL(file);
-                  };
-                  input.click();
-                }}
-              >
-                {referenceImage ? (
-                  <div className="relative w-full">
-                    <img src={referenceImage} alt="Reference" className="w-full h-32 object-cover rounded" />
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setReferenceImage(null); }}
-                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+            {/* AI Generation Panel */}
+            {showAiGen && (
+              <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                {/* Reference Image OR GBP URL */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Reference Image (optional) OR Url GBP</Label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div
+                      className="flex flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-3 cursor-pointer hover:bg-muted/50 transition-colors min-h-[100px]"
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/*";
+                        input.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setReferenceImage(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        };
+                        input.click();
+                      }}
                     >
-                      <X className="h-3 w-3" />
-                    </button>
+                      {referenceImage ? (
+                        <div className="relative w-full">
+                          <img src={referenceImage} alt="Reference" className="w-full h-20 object-cover rounded" />
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setReferenceImage(null); }}
+                            className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <Image className="mb-1 size-5 text-muted-foreground/40" />
+                          <p className="text-[10px] text-muted-foreground text-center">Upload reference</p>
+                        </>
+                      )}
+                    </div>
+                    <Input
+                      type="url"
+                      value={gbpImageUrl}
+                      onChange={(e) => setGbpImageUrl(e.target.value)}
+                      placeholder="Or paste GBP image URL..."
+                      className="text-xs h-auto min-h-[100px] py-2"
+                    />
                   </div>
-                ) : (
-                  <>
-                    <Image className="mb-1 size-6 text-muted-foreground/40" />
-                    <p className="text-[11px] text-muted-foreground">Click to upload reference image</p>
-                  </>
-                )}
+                </div>
+
+                {/* Image Prompt */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Image prompt (used to generate this image)</Label>
+                  <Textarea
+                    rows={3}
+                    value={aiImagePrompt}
+                    onChange={(e) => setAiImagePrompt(e.target.value)}
+                    placeholder="Describe the image you want to generate..."
+                    className="text-xs"
+                  />
+                </div>
+
+                {/* Run Button */}
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    toast.success("AI generation started...");
+                  }}
+                >
+                  <svg className="mr-2 size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  Run
+                </Button>
               </div>
-            </div>
+            )}
 
-            {/* AI Image Prompt */}
-            <div className="space-y-1.5 pt-2 border-t">
-              <Label className="text-xs text-muted-foreground">Image prompt (used to generate this image)</Label>
-              <Textarea
-                rows={3}
-                value={aiImagePrompt}
-                onChange={(e) => setAiImagePrompt(e.target.value)}
-                placeholder="Describe the image you want to generate..."
-                className="text-xs"
-              />
-            </div>
-
+            {/* Replace Image - show when media is uploaded */}
             {mediaPreview && (
-              <Button
-                variant="destructive"
-                onClick={removeMedia}
-                className="w-full"
-              >
-                <Trash2 className="mr-2 size-4" />
-                Remove Media
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="w-full"
+                >
+                  <Image className="mr-2 size-4" />
+                  Replace Image
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={removeMedia}
+                  className="w-full"
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  Remove Media
+                </Button>
+              </div>
             )}
           </div>
         </div>
