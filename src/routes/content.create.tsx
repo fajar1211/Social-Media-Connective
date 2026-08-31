@@ -909,49 +909,48 @@ function CreateContent() {
                 {/* Reference Image OR GBP URL */}
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Reference Image (optional) OR Url GBP</Label>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div
-                      className="flex flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-3 cursor-pointer hover:bg-muted/50 transition-colors min-h-[100px]"
-                      onClick={() => {
-                        const input = document.createElement("input");
-                        input.type = "file";
-                        input.accept = "image/*";
-                        input.onchange = (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          if (!file) return;
-                          const reader = new FileReader();
-                          reader.onload = (ev) => setReferenceImage(ev.target?.result as string);
-                          reader.readAsDataURL(file);
-                        };
-                        input.click();
-                      }}
-                    >
-                      {referenceImage ? (
-                        <div className="relative w-full">
-                          <img src={referenceImage} alt="Reference" className="w-full h-20 object-cover rounded" />
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setReferenceImage(null); }}
-                            className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <Image className="mb-1 size-5 text-muted-foreground/40" />
-                          <p className="text-[10px] text-muted-foreground text-center">Upload reference</p>
-                        </>
-                      )}
-                    </div>
-                    <Input
-                      type="url"
-                      value={gbpImageUrl}
-                      onChange={(e) => setGbpImageUrl(e.target.value)}
-                      placeholder="Or paste GBP image URL..."
-                      className="text-xs h-auto min-h-[100px] py-2"
-                    />
+                  <div
+                    className="flex items-center gap-2 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file";
+                      input.accept = "image/*";
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => setReferenceImage(ev.target?.result as string);
+                        reader.readAsDataURL(file);
+                      };
+                      input.click();
+                    }}
+                  >
+                    {referenceImage ? (
+                      <>
+                        <img src={referenceImage} alt="Reference" className="h-8 w-8 rounded object-cover shrink-0" />
+                        <span className="text-[10px] text-muted-foreground truncate flex-1">Reference uploaded</span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setReferenceImage(null); }}
+                          className="shrink-0 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Image className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                        <span className="text-[10px] text-muted-foreground">Click to upload reference image</span>
+                      </>
+                    )}
                   </div>
+                  <Input
+                    type="url"
+                    value={gbpImageUrl}
+                    onChange={(e) => setGbpImageUrl(e.target.value)}
+                    placeholder="Or paste GBP image URL..."
+                    className="text-xs h-8"
+                  />
                 </div>
 
                 {/* Image Prompt */}
