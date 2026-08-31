@@ -162,8 +162,6 @@ function CreateContent() {
   const [platform, setPlatform] = useState<SocialPlatform | "">("");
   const [type, setType] = useState<ContentType | "">("");
   const [body, setBody] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedPage, setSelectedPage] = useState<string>("");
   const [publishing, setPublishing] = useState(false);
@@ -179,6 +177,7 @@ function CreateContent() {
   const fbConnection = client?.socialIntegrations?.Facebook;
   const pages: FacebookPage[] = fbConnection?.pages || [];
   const isFacebook = platform === "Facebook";
+  const isGBP = platform === "GBP";
   const canPublish = isFacebook && fbConnection?.connected && fbConnection?.accessToken;
 
   const connectedPlatforms = SOCIAL_PLATFORMS.filter(
@@ -489,6 +488,21 @@ function CreateContent() {
             </Row>
           </div>
 
+          {isGBP && (
+            <Row label="GBP Post Type">
+              <Select value={type} onValueChange={(v) => setType(v as ContentType)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select post type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="What's New">What's New</SelectItem>
+                  <SelectItem value="Event">Event</SelectItem>
+                  <SelectItem value="Offer">Offer</SelectItem>
+                </SelectContent>
+              </Select>
+            </Row>
+          )}
+
           <Row label="Body (Include Hashtag)">
             <Textarea
               rows={6}
@@ -497,23 +511,6 @@ function CreateContent() {
               placeholder="Write your content body including hashtags..."
             />
           </Row>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Row label="Start Date">
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </Row>
-            <Row label="End Date">
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </Row>
-          </div>
 
           {isFacebook && canPublish && (
             <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
