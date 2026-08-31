@@ -396,10 +396,17 @@ function GBPPreviewCard({
       >
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="flex items-center gap-3 mb-3">
-          <Avatar className="h-8 w-8 shrink-0">
-            {profileImage && <AvatarImage src={profileImage} alt={profileName} />}
-            <AvatarFallback className="bg-muted text-[10px] font-semibold">{initials}</AvatarFallback>
-          </Avatar>
+          <div className="relative shrink-0">
+            <Avatar className="h-8 w-8">
+              {profileImage && <AvatarImage src={profileImage} alt={profileName} />}
+              <AvatarFallback className="bg-muted text-[10px] font-semibold">{initials}</AvatarFallback>
+            </Avatar>
+            <span className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center rounded-full bg-white shadow-sm">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="#4285F4">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+            </span>
+          </div>
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <p className="truncate text-sm font-bold leading-tight">{profileName}</p>
             {gbpIsVerified && (
