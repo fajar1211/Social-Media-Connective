@@ -63,7 +63,7 @@ function ReplaceMediaSection({
 
   return (
     <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
-      <Label className="text-xs font-medium">Replace Image</Label>
+      <Label className="text-xs font-medium">Replace Image/Video</Label>
 
       <input
         ref={imageInputRef}
@@ -76,7 +76,7 @@ function ReplaceMediaSection({
       <div className="space-y-2">
         <Button variant="outline" size="sm" className="w-full" onClick={() => imageInputRef.current?.click()}>
           <Upload className="mr-1.5 size-3.5" />
-          Upload Image
+          Upload Image/Video
         </Button>
         <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAiGen((p) => !p)}>
           <svg className="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -84,7 +84,7 @@ function ReplaceMediaSection({
             <path d="M2 17l10 5 10-5"/>
             <path d="M2 12l10 5 10-5"/>
           </svg>
-          AI Generate Image
+          AI Generate Image/Video
         </Button>
       </div>
 
