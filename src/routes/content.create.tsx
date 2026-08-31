@@ -499,21 +499,6 @@ function CreateContent() {
             </Row>
           </div>
 
-          {isGBP && (
-            <Row label="GBP Post Type">
-              <Select value={type} onValueChange={(v) => setType(v as ContentType)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select post type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="What's New">What's New</SelectItem>
-                  <SelectItem value="Event">Event</SelectItem>
-                  <SelectItem value="Offer">Offer</SelectItem>
-                </SelectContent>
-              </Select>
-            </Row>
-          )}
-
           <Row label="Body (Include Hashtag)">
             <Textarea
               rows={6}
