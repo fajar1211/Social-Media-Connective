@@ -29,6 +29,11 @@ export interface SocialMediaPreviewCardProps {
   onHashtagClick?: (tag: string) => void;
   className?: string;
   lazyLoad?: boolean;
+  // GBP-specific props
+  gbpTitle?: string;
+  gbpButtonLabel?: string;
+  gbpCtaLink?: string;
+  gbpIsVerified?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -344,6 +349,210 @@ function ImagePreviewModal({
   );
 }
 
+// ─── GBP Preview Card ────────────────────────────────────────────────────────
+
+function GBPPreviewCard({
+  profileImage,
+  profileName,
+  timestamp,
+  content,
+  images = [],
+  gbpTitle,
+  gbpButtonLabel,
+  gbpIsVerified = true,
+  onHashtagClick,
+  className,
+}: SocialMediaPreviewCardProps) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  const handleImageClick = useCallback((index: number) => {
+    setPreviewIndex(index);
+    setPreviewOpen(true);
+  }, []);
+
+  const parsedContent = useMemo(
+    () => parseContent(content, onHashtagClick),
+    [content, onHashtagClick],
+  );
+
+  const initials = useMemo(() => {
+    return profileName
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }, [profileName]);
+
+  return (
+    <>
+      <article
+        className={cn(
+          "mx-auto w-full max-w-[440px] bg-white",
+          "rounded-xl border border-border shadow-[0_2px_8px_rgba(0,0,0,0.1)]",
+          "p-4",
+          className,
+        )}
+      >
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar className="h-8 w-8 shrink-0">
+            {profileImage && <AvatarImage src={profileImage} alt={profileName} />}
+            <AvatarFallback className="bg-muted text-[10px] font-semibold">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <p className="truncate text-sm font-bold leading-tight">{profileName}</p>
+            {gbpIsVerified && (
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="#1A73E8">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+              </svg>
+            )}
+          </div>
+          <button className="rounded-full p-1 text-muted-foreground" aria-label="More options">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="5" r="2"/>
+              <circle cx="12" cy="12" r="2"/>
+              <circle cx="12" cy="19" r="2"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* ── Gallery (GBP-style 5 photo grid) ────────────────────────── */}
+        {images.length > 0 && (
+          <GBPGallery images={images} onImageClick={handleImageClick} />
+        )}
+
+        {/* ── Caption ─────────────────────────────────────────────────── */}
+        {content && (
+          <div className="mb-3">
+            <p className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">{parsedContent}</p>
+          </div>
+        )}
+
+        {/* ── CTA Link ────────────────────────────────────────────────── */}
+        {gbpTitle && (
+          <div className="mb-3">
+            <span className="text-sm text-[#1A73E8] cursor-pointer hover:underline">{gbpTitle}</span>
+          </div>
+        )}
+
+        {/* ── Button ──────────────────────────────────────────────────── */}
+        {gbpButtonLabel && gbpButtonLabel !== "None" && (
+          <button className="w-full rounded border border-[#1A73E8] bg-transparent px-4 py-2 text-sm font-medium text-[#1A73E8] transition-colors hover:bg-[#1A73E8]/5">
+            {gbpButtonLabel}
+          </button>
+        )}
+      </article>
+
+      <ImagePreviewModal
+        images={images}
+        initialIndex={previewIndex}
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+      />
+    </>
+  );
+}
+
+// ─── GBP Gallery (asymmetric layout) ────────────────────────────────────────
+
+function GBPGallery({
+  images,
+  onImageClick,
+}: {
+  images: GalleryImage[];
+  onImageClick: (i: number) => void;
+}) {
+  const count = images.length;
+  if (count === 0) return null;
+
+  const renderImage = (img: GalleryImage | undefined, i: number, className?: string) => {
+    if (!img) return null;
+    return (
+      <div
+        key={i}
+        className={cn(
+          "relative cursor-pointer overflow-hidden bg-muted rounded-[4px]",
+          className,
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          onImageClick(i);
+        }}
+      >
+        <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
+      </div>
+    );
+  };
+
+  // 1 photo — full width
+  if (count === 1) {
+    return (
+      <div className="mb-3 overflow-hidden rounded-[4px]">
+        {renderImage(images[0], 0, "aspect-video w-full")}
+      </div>
+    );
+  }
+
+  // 2 photos — 50/50
+  if (count === 2) {
+    return (
+      <div className="mb-3 grid grid-cols-2 gap-[3px] overflow-hidden rounded-[4px]">
+        {renderImage(images[0], 0, "aspect-square")}
+        {renderImage(images[1], 1, "aspect-square")}
+      </div>
+    );
+  }
+
+  // 3 photos — left big, right 2 stacked
+  if (count === 3) {
+    return (
+      <div className="mb-3 grid grid-cols-2 gap-[3px] overflow-hidden rounded-[4px]">
+        {renderImage(images[0], 0, "row-span-2 aspect-auto h-full")}
+        {renderImage(images[1], 1, "aspect-square")}
+        {renderImage(images[2], 2, "aspect-square")}
+      </div>
+    );
+  }
+
+  // 4 photos — 2x2
+  if (count === 4) {
+    return (
+      <div className="mb-3 grid grid-cols-2 gap-[3px] overflow-hidden rounded-[4px]">
+        {renderImage(images[0], 0, "aspect-square")}
+        {renderImage(images[1], 1, "aspect-square")}
+        {renderImage(images[2], 2, "aspect-square")}
+        {renderImage(images[3], 3, "aspect-square")}
+      </div>
+    );
+  }
+
+  // 5+ photos — GBP asymmetric grid
+  return (
+    <div className="mb-3 grid grid-cols-5 gap-[3px] overflow-hidden rounded-[4px]">
+      {/* Left big photo spanning 3 cols and 2 rows */}
+      <div className="col-span-3 row-span-2">
+        {renderImage(images[0], 0, "h-full min-h-[140px]")}
+      </div>
+      {/* Right 2 stacked photos (2 cols each) */}
+      <div className="col-span-2">
+        {renderImage(images[1], 1, "h-[68px] w-full")}
+      </div>
+      <div className="col-span-2">
+        {renderImage(images[2], 2, "h-[68px] w-full")}
+      </div>
+      {/* Bottom row: 2 photos */}
+      <div className="col-span-3">
+        {renderImage(images[3] || images[0], 3, "h-[68px] w-full")}
+      </div>
+      <div className="col-span-2">
+        {renderImage(images[4] || images[1], 4, "h-[68px] w-full")}
+      </div>
+    </div>
+  );
+}
+
 // ─── Instagram Preview Card ──────────────────────────────────────────────────
 
 function InstagramPreviewCard({
@@ -638,6 +847,25 @@ export function SocialMediaPreviewCard({
         content={content}
         images={images}
         platform={platform}
+        onHashtagClick={onHashtagClick}
+        className={className}
+      />
+    );
+  }
+
+  // Route to GBP preview if platform is gbp
+  if (platform === "gbp") {
+    return (
+      <GBPPreviewCard
+        profileImage={profileImage}
+        profileName={profileName}
+        timestamp={timestamp}
+        content={content}
+        images={images}
+        platform={platform}
+        gbpTitle={gbpTitle}
+        gbpButtonLabel={gbpButtonLabel}
+        gbpIsVerified={gbpIsVerified}
         onHashtagClick={onHashtagClick}
         className={className}
       />

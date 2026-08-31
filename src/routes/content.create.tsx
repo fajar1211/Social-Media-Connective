@@ -839,6 +839,9 @@ function CreateContent() {
               likes={0}
               comments={0}
               shares={0}
+              gbpTitle={gbpTitle}
+              gbpButtonLabel={gbpButtonLabel}
+              gbpIsVerified={true}
             />
           ) : (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 py-12 text-center">
