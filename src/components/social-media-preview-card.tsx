@@ -340,6 +340,240 @@ function ImagePreviewModal({
   );
 }
 
+// ─── Instagram Preview Card ──────────────────────────────────────────────────
+
+function InstagramPreviewCard({
+  profileImage,
+  profileName,
+  timestamp,
+  content,
+  images = [],
+  onHashtagClick,
+  className,
+}: SocialMediaPreviewCardProps) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  const handleImageClick = useCallback((index: number) => {
+    setPreviewIndex(index);
+    setPreviewOpen(true);
+  }, []);
+
+  const parsedContent = useMemo(
+    () => parseContent(content, onHashtagClick),
+    [content, onHashtagClick],
+  );
+
+  const initials = useMemo(() => {
+    return profileName
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }, [profileName]);
+
+  const formatInstagramDate = (date: string | Date): string => {
+    const d = typeof date === "string" ? new Date(date) : date;
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHr = Math.floor(diffMs / 3600000);
+    if (diffMin < 1) return "JUST NOW";
+    if (diffMin < 60) return `${diffMin}H AGO`;
+    if (diffHr < 24) return `${diffHr}H AGO`;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase();
+  };
+
+  return (
+    <>
+      <article
+        className={cn(
+          "mx-auto w-full max-w-[470px] bg-white",
+          "border-0 rounded-none",
+          className,
+        )}
+      >
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-3 px-3 py-2.5">
+          <Avatar className="h-8 w-8 shrink-0">
+            {profileImage && <AvatarImage src={profileImage} alt={profileName} />}
+            <AvatarFallback className="bg-muted text-[10px] font-semibold">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-[13px] font-semibold leading-tight">{profileName}</p>
+          </div>
+          <button className="rounded-full p-1 text-muted-foreground" aria-label="More options">
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* ── Gallery (Instagram-style 5 photo grid) ────────────────── */}
+        {images.length > 0 && (
+          <InstagramGallery images={images} onImageClick={handleImageClick} />
+        )}
+
+        {/* ── Action Bar ─────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-3 py-2">
+          <div className="flex items-center gap-4">
+            <button className="text-foreground" aria-label="Like">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+              </svg>
+            </button>
+            <button className="text-foreground" aria-label="Comment">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
+              </svg>
+            </button>
+            <button className="text-foreground" aria-label="Share">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
+            </button>
+          </div>
+          <button className="text-foreground" aria-label="Save">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+            </svg>
+          </button>
+        </div>
+
+        {/* ── Caption ─────────────────────────────────────────────────── */}
+        <div className="px-3 pb-1">
+          <p className="text-[13px] leading-snug">
+            <span className="font-semibold">{profileName}</span>{" "}
+            <span className="text-foreground">{parsedContent}</span>
+          </p>
+        </div>
+
+        {/* ── Timestamp ──────────────────────────────────────────────── */}
+        <div className="px-3 pb-3">
+          <time
+            dateTime={typeof timestamp === "string" ? timestamp : timestamp.toISOString()}
+            className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+          >
+            {formatInstagramDate(timestamp)}
+          </time>
+        </div>
+      </article>
+
+      <ImagePreviewModal
+        images={images}
+        initialIndex={previewIndex}
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+      />
+    </>
+  );
+}
+
+// ─── Instagram Gallery (5-photo layout) ─────────────────────────────────────
+
+function InstagramGallery({
+  images,
+  onImageClick,
+}: {
+  images: GalleryImage[];
+  onImageClick: (i: number) => void;
+}) {
+  const count = images.length;
+  if (count === 0) return null;
+
+  const renderImage = (img: GalleryImage | undefined, i: number, className?: string) => {
+    if (!img) return null;
+    return (
+      <div
+        key={i}
+        className={cn(
+          "relative cursor-pointer overflow-hidden bg-muted",
+          className,
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          onImageClick(i);
+        }}
+      >
+        <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
+      </div>
+    );
+  };
+
+  // 1 photo — full width
+  if (count === 1) {
+    return (
+      <div className="overflow-hidden">
+        {renderImage(images[0], 0, "aspect-square w-full")}
+      </div>
+    );
+  }
+
+  // 2 photos — 50/50
+  if (count === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-[2px] overflow-hidden">
+        {renderImage(images[0], 0, "aspect-square")}
+        {renderImage(images[1], 1, "aspect-square")}
+      </div>
+    );
+  }
+
+  // 3 photos — first big left, 2 stacked right
+  if (count === 3) {
+    return (
+      <div className="grid grid-cols-2 gap-[2px] overflow-hidden">
+        {renderImage(images[0], 0, "row-span-2 aspect-auto h-full")}
+        {renderImage(images[1], 1, "aspect-square")}
+        {renderImage(images[2], 2, "aspect-square")}
+      </div>
+    );
+  }
+
+  // 4 photos — 2x2
+  if (count === 4) {
+    return (
+      <div className="grid grid-cols-2 gap-[2px] overflow-hidden">
+        {renderImage(images[0], 0, "aspect-square")}
+        {renderImage(images[1], 1, "aspect-square")}
+        {renderImage(images[2], 2, "aspect-square")}
+        {renderImage(images[3], 3, "aspect-square")}
+      </div>
+    );
+  }
+
+  // 5+ photos — Instagram-style grid
+  return (
+    <div className="grid grid-cols-2 gap-[2px] overflow-hidden">
+      {/* Row 1: left big, right 2 stacked */}
+      <div className="row-span-2">
+        {renderImage(images[0], 0, "h-full")}
+      </div>
+      <div className="h-1/2">
+        {renderImage(images[1], 1, "h-full")}
+      </div>
+      <div className="h-1/2">
+        {renderImage(images[2], 2, "h-full")}
+      </div>
+      {/* Row 2 continued: 2 more photos */}
+      {count > 3 && (
+        <>
+          <div>
+            {renderImage(images[3], 3, "aspect-square")}
+          </div>
+          <div className="relative">
+            {renderImage(images[4] || images[3], 4, "aspect-square")}
+            {count > 5 && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <span className="text-xl font-bold text-white">+{count - 5}</span>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function SocialMediaPreviewCard({
@@ -360,6 +594,21 @@ export function SocialMediaPreviewCard({
   className,
   lazyLoad = true,
 }: SocialMediaPreviewCardProps) {
+  // Route to Instagram preview if platform is instagram
+  if (platform === "instagram") {
+    return (
+      <InstagramPreviewCard
+        profileImage={profileImage}
+        profileName={profileName}
+        timestamp={timestamp}
+        content={content}
+        images={images}
+        onHashtagClick={onHashtagClick}
+        className={className}
+      />
+    );
+  }
+
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
   const [previewOpen, setPreviewOpen] = useState(false);
