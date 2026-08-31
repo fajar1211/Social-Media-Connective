@@ -32,6 +32,9 @@ export type ContentItem = {
   notes?: string;
   media?: string[];
   previousStatus?: Status;
+  timezone?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
 };
 
 export type FacebookPage = {

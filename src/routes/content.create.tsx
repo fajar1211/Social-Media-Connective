@@ -243,11 +243,27 @@ function CreateContent() {
       toast.error("Enter a topic first.");
       return;
     }
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      toast.success("Content generated");
-    }, 900);
+    if (!client) {
+      toast.error("Client not found.");
+      return;
+    }
+    actions.addContent({
+      title: topic.trim(),
+      client: client.name,
+      platform: (platform || "Facebook") as any,
+      type: (type || "Carousel") as ContentType,
+      status: "Suggested",
+      date: new Date().toISOString().slice(0, 10),
+      caption: topic.trim(),
+      body: body,
+      hashtags: [],
+      cta: "",
+      notes: "",
+      media: mediaPreview ? [mediaPreview] : [],
+      timezone,
+    });
+    toast.success("Content saved as draft");
+    navigate({ to: "/suggested" });
   };
 
   const save = (status: "Suggested" | "Submitted") => {
@@ -272,6 +288,7 @@ function CreateContent() {
       cta: "",
       notes: "",
       media: mediaPreview ? [mediaPreview] : [],
+      timezone,
     });
     toast.success(status === "Submitted" ? "Content submitted for review" : "Draft saved");
     navigate({ to: status === "Submitted" ? "/submitted" : "/suggested" });
@@ -291,7 +308,7 @@ function CreateContent() {
 
     setPublishing(true);
     try {
-      const message = `${topic}\n\n${body}`;
+      const message = body.trim();
 
       const response = await fetch("/api/facebook/post", {
         method: "POST",
@@ -319,6 +336,7 @@ function CreateContent() {
           cta: "",
           notes: `Published to Facebook: ${page.name} (Post ID: ${data.postId})`,
           media: mediaPreview ? [mediaPreview] : [],
+          timezone,
         });
         toast.success(`Published to ${page.name}!`);
         navigate({ to: "/approved" });
@@ -344,15 +362,17 @@ function CreateContent() {
       return;
     }
 
-    const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+    const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}:00`);
     if (scheduledDateTime <= new Date()) {
       toast.error("Schedule time must be in the future.");
       return;
     }
 
+    const unixTimestamp = Math.floor(scheduledDateTime.getTime() / 1000);
+
     setPublishing(true);
     try {
-      const message = `${topic}\n\n${body}`;
+      const message = body.trim();
 
       const response = await fetch("/api/facebook/schedule", {
         method: "POST",
@@ -361,7 +381,7 @@ function CreateContent() {
           pageId: page.id,
           pageAccessToken: page.access_token,
           message,
-          scheduledPublishTime: scheduledDateTime.toISOString(),
+          scheduledPublishTime: unixTimestamp,
         }),
       });
 
@@ -381,6 +401,9 @@ function CreateContent() {
           cta: "",
           notes: `Scheduled for ${scheduledDateTime.toLocaleString()} on ${page.name} (Post ID: ${data.postId})`,
           media: mediaPreview ? [mediaPreview] : [],
+          timezone,
+          scheduledDate: scheduleDate,
+          scheduledTime: scheduleTime,
         });
         toast.success(`Scheduled for ${scheduledDateTime.toLocaleString()}!`);
         navigate({ to: "/submitted" });
@@ -833,6 +856,27 @@ function CreateContent() {
                       if (isFacebook && canPublish && selectedPage) {
                         scheduleFacebookPost();
                       } else {
+                        if (!client) {
+                          toast.error("Client not found.");
+                          return;
+                        }
+                        actions.addContent({
+                          title: topic.trim(),
+                          client: client.name,
+                          platform: (platform || "Facebook") as any,
+                          type: (type || "Carousel") as ContentType,
+                          status: "Submitted",
+                          date: scheduleDate,
+                          caption: topic.trim(),
+                          body: body,
+                          hashtags: [],
+                          cta: "",
+                          notes: `Scheduled for ${scheduleDate} ${scheduleTime} (${timezone})`,
+                          media: mediaPreview ? [mediaPreview] : [],
+                          timezone,
+                          scheduledDate: scheduleDate,
+                          scheduledTime: scheduleTime,
+                        });
                         toast.success(`Scheduled for ${scheduleDate} ${scheduleTime} (${timezone})`);
                         navigate({ to: "/submitted" });
                       }
