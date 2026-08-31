@@ -232,7 +232,8 @@ function ImportSection({ clientName }: { clientName: string }) {
   };
 
   const confirmImport = () => {
-    if (!rows || rows.length === 0) return;
+    if (!rows || selected.size === 0) return;
+    const selectedRows = rows.filter((_, i) => selected.has(i));
     setImporting(true);
     setImportProgress(0);
     let p = 0;
@@ -241,9 +242,9 @@ function ImportSection({ clientName }: { clientName: string }) {
       setImportProgress(p);
       if (p >= 100) {
         clearInterval(t);
-        actions.addMany(rows);
+        actions.addMany(selectedRows);
         setImporting(false);
-        toast.success(`${rows.length} items imported for ${clientName}`);
+        toast.success(`${selectedRows.length} items imported for ${clientName}`);
         setRows(null);
         setFileName(null);
         setUploadProgress(0);
@@ -386,8 +387,8 @@ function ImportSection({ clientName }: { clientName: string }) {
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={confirmImport} disabled={importing || rows.length === 0}>
-              {importing ? "Importing…" : `Import ${rows.length} Posts`}
+            <Button size="sm" onClick={confirmImport} disabled={importing || selected.size === 0}>
+              {importing ? "Importing…" : `Import ${selected.size} Posts`}
             </Button>
           </div>
         </section>

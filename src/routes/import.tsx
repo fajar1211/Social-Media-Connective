@@ -91,7 +91,8 @@ function ImportPage() {
   };
 
   const confirmImport = () => {
-    if (!rows || rows.length === 0) return;
+    if (!rows || selected.size === 0) return;
+    const selectedRows = rows.filter((_, i) => selected.has(i));
     setImporting(true);
     setImportProgress(0);
     let p = 0;
@@ -100,9 +101,9 @@ function ImportPage() {
       setImportProgress(p);
       if (p >= 100) {
         clearInterval(t);
-        actions.addMany(rows);
+        actions.addMany(selectedRows);
         setImporting(false);
-        toast.success(`${rows.length} posts imported for ${selectedClient?.name}`);
+        toast.success(`${selectedRows.length} posts imported for ${selectedClient?.name}`);
         resetAll();
       }
     }, 180);
@@ -260,8 +261,8 @@ function ImportPage() {
                 >
                   Cancel
                 </Button>
-                <Button size="sm" onClick={confirmImport} disabled={importing || rows.length === 0}>
-                  {importing ? "Importing…" : `Import ${rows.length} Posts`}
+                <Button size="sm" onClick={confirmImport} disabled={importing || selected.size === 0}>
+                  {importing ? "Importing…" : `Import ${selected.size} Posts`}
                 </Button>
               </div>
             </section>
