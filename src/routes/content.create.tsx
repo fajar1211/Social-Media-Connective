@@ -8,6 +8,7 @@ import {
   Image,
   Trash2,
   Video,
+  X,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -168,6 +169,8 @@ function CreateContent() {
 
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
+  const [aiImagePrompt, setAiImagePrompt] = useState("");
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [publishMode, setPublishMode] = useState<"now" | "later" | null>(null);
   const [timezone, setTimezone] = useState("Asia/Jakarta");
   const [scheduleDate, setScheduleDate] = useState("");
@@ -866,15 +869,16 @@ function CreateContent() {
               ref={imageInputRef}
               type="file"
               className="hidden"
-              accept="image/*"
-              onChange={(e) => handleImageUpload(e.target.files)}
-            />
-            <input
-              ref={videoInputRef}
-              type="file"
-              className="hidden"
-              accept="video/*"
-              onChange={(e) => handleVideoUpload(e.target.files)}
+              accept="image/*,video/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.type.startsWith("video/")) {
+                  handleVideoUpload(e.target.files);
+                } else {
+                  handleImageUpload(e.target.files);
+                }
+              }}
             />
             <Button
               variant="outline"
@@ -882,16 +886,72 @@ function CreateContent() {
               className="w-full"
             >
               <Image className="mr-2 size-4" />
-              Add Image
+              Add Image/Video
             </Button>
             <Button
               variant="outline"
-              onClick={() => videoInputRef.current?.click()}
+              onClick={() => imageInputRef.current?.click()}
               className="w-full"
             >
-              <Video className="mr-2 size-4" />
-              Add Video
+              <svg className="mr-2 size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+              Image/Video AI Generation
             </Button>
+
+            {/* Reference Image Upload */}
+            <div className="space-y-2 pt-2 border-t">
+              <Label className="text-xs text-muted-foreground">Reference Image (optional)</Label>
+              <div
+                className="flex flex-col items-center justify-center rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = "image/*";
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => setReferenceImage(ev.target?.result as string);
+                    reader.readAsDataURL(file);
+                  };
+                  input.click();
+                }}
+              >
+                {referenceImage ? (
+                  <div className="relative w-full">
+                    <img src={referenceImage} alt="Reference" className="w-full h-32 object-cover rounded" />
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setReferenceImage(null); }}
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Image className="mb-1 size-6 text-muted-foreground/40" />
+                    <p className="text-[11px] text-muted-foreground">Click to upload reference image</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* AI Image Prompt */}
+            <div className="space-y-1.5 pt-2 border-t">
+              <Label className="text-xs text-muted-foreground">Image prompt (used to generate this image)</Label>
+              <Textarea
+                rows={3}
+                value={aiImagePrompt}
+                onChange={(e) => setAiImagePrompt(e.target.value)}
+                placeholder="Describe the image you want to generate..."
+                className="text-xs"
+              />
+            </div>
+
             {mediaPreview && (
               <Button
                 variant="destructive"
