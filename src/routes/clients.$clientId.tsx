@@ -39,6 +39,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from "@/components/badges";
 import { ContentList } from "@/components/content-list";
 import { counts, useStore, actions, SOCIAL_PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem } from "@/lib/content-store";
@@ -184,6 +191,7 @@ function ImportSection({ clientName }: { clientName: string }) {
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
 
   const handleFiles = (files: FileList | null) => {
     const file = files?.[0];
@@ -328,6 +336,7 @@ function ImportSection({ clientName }: { clientName: string }) {
                   <TableHead>Platform</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-16">View</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -350,6 +359,11 @@ function ImportSection({ clientName }: { clientName: string }) {
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={r.status} />
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setViewingIndex(i)}>
+                        View
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -378,6 +392,47 @@ function ImportSection({ clientName }: { clientName: string }) {
           </div>
         </section>
       )}
+
+      <Dialog open={viewingIndex !== null} onOpenChange={(open) => { if (!open) setViewingIndex(null); }}>
+        <DialogContent className="max-w-xl max-h-[80vh] overflow-y-auto">
+          {viewingIndex !== null && rows?.[viewingIndex] && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{rows[viewingIndex].title}</DialogTitle>
+                <DialogDescription>{rows[viewingIndex].date} — {rows[viewingIndex].platform}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 text-sm">
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground">Type:</span>
+                  <ContentTypeBadge type={rows[viewingIndex].type} />
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Caption:</span>
+                  <p className="mt-1 whitespace-pre-wrap">{rows[viewingIndex].caption}</p>
+                </div>
+                {rows[viewingIndex].body && rows[viewingIndex].body !== rows[viewingIndex].caption && (
+                  <div>
+                    <span className="text-muted-foreground">Body:</span>
+                    <p className="mt-1 whitespace-pre-wrap">{rows[viewingIndex].body}</p>
+                  </div>
+                )}
+                {rows[viewingIndex].hashtags.length > 0 && (
+                  <div>
+                    <span className="text-muted-foreground">Hashtags:</span>
+                    <p className="mt-1">{rows[viewingIndex].hashtags.join(" ")}</p>
+                  </div>
+                )}
+                {rows[viewingIndex].notes && (
+                  <div>
+                    <span className="text-muted-foreground">Notes:</span>
+                    <p className="mt-1 text-xs italic">{rows[viewingIndex].notes}</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1275,9 +1330,6 @@ function ClientDetailPage() {
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">
             <Link to="/content/create" search={{ clientId: client.id, clientName: client.name }}>Create Content</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/import" search={{ clientId: client.id }}>Import Posts</Link>
           </Button>
         </div>
       </div>
