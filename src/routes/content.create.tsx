@@ -174,6 +174,7 @@ function CreateContent() {
   const [scheduleTime, setScheduleTime] = useState("");
 
   // GBP fields
+  const [gbpExpanded, setGbpExpanded] = useState(true);
   const [gbpType, setGbpType] = useState<"Call to Action" | "Event" | "Offer" | "">("");
   const [gbpButtonLabel, setGbpButtonLabel] = useState("");
   const [gbpStartDate, setGbpStartDate] = useState("");
@@ -522,21 +523,6 @@ function CreateContent() {
             />
           </Row>
 
-          {isGBP && (
-            <Row label="Type *">
-              <Select value={gbpType} onValueChange={(v) => setGbpType(v as any)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Call to Action">Call to Action</SelectItem>
-                  <SelectItem value="Event">Event</SelectItem>
-                  <SelectItem value="Offer">Offer</SelectItem>
-                </SelectContent>
-              </Select>
-            </Row>
-          )}
-
           {isFacebook && canPublish && (
             <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -561,85 +547,160 @@ function CreateContent() {
           )}
 
           {isGBP && (
-            <div className="rounded-lg border bg-muted/50 p-4 space-y-4">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <svg className="size-4" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#4285F4"/>
+            <div className="rounded-lg border bg-card overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setGbpExpanded((p) => !p)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <svg className="size-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#4285F4"/>
+                  </svg>
+                  Google Business Profile Options
+                </div>
+                <svg
+                  className={`size-4 text-muted-foreground transition-transform duration-200 ${gbpExpanded ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
-                Google Business Profile Options
-              </div>
+              </button>
 
-              {/* Call to Action fields */}
-              {gbpType === "Call to Action" && (
-                <Row label="Select button label">
-                  <Select value={gbpButtonLabel} onValueChange={setGbpButtonLabel}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a label" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["None", "Book", "Order", "Shop", "Learn More", "Sign Up", "Call"].map((l) => (
-                        <SelectItem key={l} value={l}>{l}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Row>
-              )}
+              {gbpExpanded && (
+                <div className="border-t px-4 py-4 space-y-4">
+                  {/* Call to Action */}
+                  {gbpType === "Call to Action" && (
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <Row label="Type *">
+                        <Select value={gbpType} onValueChange={(v) => setGbpType(v as any)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Call to Action">Call to Action</SelectItem>
+                            <SelectItem value="Event">Event</SelectItem>
+                            <SelectItem value="Offer">Offer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Row>
+                      <Row label="Select button label">
+                        <Select value={gbpButtonLabel} onValueChange={setGbpButtonLabel}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a label" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["None", "Book", "Order", "Shop", "Learn More", "Sign Up", "Call"].map((l) => (
+                              <SelectItem key={l} value={l}>{l}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Row>
+                    </div>
+                  )}
 
-              {/* Event fields */}
-              {gbpType === "Event" && (
-                <>
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <Row label="Start date">
-                      <Input type="datetime-local" value={gbpStartDate} onChange={(e) => setGbpStartDate(e.target.value)} />
-                    </Row>
-                    <Row label="End date">
-                      <Input type="datetime-local" value={gbpEndDate} onChange={(e) => setGbpEndDate(e.target.value)} />
-                    </Row>
-                  </div>
-                  <Row label="Title *">
-                    <Input value={gbpTitle} onChange={(e) => setGbpTitle(e.target.value)} placeholder="(eg) Summer sale 25%" />
-                  </Row>
-                  <Row label="Select button label">
-                    <Select value={gbpButtonLabel} onValueChange={setGbpButtonLabel}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a label" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {["None", "Book", "Order", "Shop", "Learn More", "Sign Up", "Call"].map((l) => (
-                          <SelectItem key={l} value={l}>{l}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Row>
-                </>
-              )}
+                  {/* Event */}
+                  {gbpType === "Event" && (
+                    <>
+                      <div className="grid gap-5 sm:grid-cols-3">
+                        <Row label="Type *">
+                          <Select value={gbpType} onValueChange={(v) => setGbpType(v as any)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Call to Action">Call to Action</SelectItem>
+                              <SelectItem value="Event">Event</SelectItem>
+                              <SelectItem value="Offer">Offer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Row>
+                        <Row label="Start date *">
+                          <Input type="datetime-local" value={gbpStartDate} onChange={(e) => setGbpStartDate(e.target.value)} required />
+                        </Row>
+                        <Row label="End date *">
+                          <Input type="datetime-local" value={gbpEndDate} onChange={(e) => setGbpEndDate(e.target.value)} required />
+                        </Row>
+                      </div>
+                      <div className="grid gap-5 sm:grid-cols-2">
+                        <Row label="Title *">
+                          <Input value={gbpTitle} onChange={(e) => setGbpTitle(e.target.value)} placeholder="(eg) Summer sale 25%" required />
+                        </Row>
+                        <Row label="Select button label">
+                          <Select value={gbpButtonLabel} onValueChange={setGbpButtonLabel}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose a label" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {["None", "Book", "Order", "Shop", "Learn More", "Sign Up", "Call"].map((l) => (
+                                <SelectItem key={l} value={l}>{l}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Row>
+                      </div>
+                    </>
+                  )}
 
-              {/* Offer fields */}
-              {gbpType === "Offer" && (
-                <>
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <Row label="Start date *">
-                      <Input type="datetime-local" value={gbpStartDate} onChange={(e) => setGbpStartDate(e.target.value)} required />
+                  {/* Offer */}
+                  {gbpType === "Offer" && (
+                    <>
+                      <div className="grid gap-5 sm:grid-cols-3">
+                        <Row label="Type *">
+                          <Select value={gbpType} onValueChange={(v) => setGbpType(v as any)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Call to Action">Call to Action</SelectItem>
+                              <SelectItem value="Event">Event</SelectItem>
+                              <SelectItem value="Offer">Offer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Row>
+                        <Row label="Start date *">
+                          <Input type="datetime-local" value={gbpStartDate} onChange={(e) => setGbpStartDate(e.target.value)} required />
+                        </Row>
+                        <Row label="End date *">
+                          <Input type="datetime-local" value={gbpEndDate} onChange={(e) => setGbpEndDate(e.target.value)} required />
+                        </Row>
+                      </div>
+                      <Row label="Title *">
+                        <Input value={gbpTitle} onChange={(e) => setGbpTitle(e.target.value)} placeholder="(eg) Summer sale 25%" required />
+                      </Row>
+                      <div className="grid gap-5 sm:grid-cols-2">
+                        <Row label="Coupon Code *">
+                          <Input value={gbpCouponCode} onChange={(e) => setGbpCouponCode(e.target.value)} placeholder="(eg) SALE25" required />
+                        </Row>
+                        <Row label="Redeem Link *">
+                          <Input type="url" value={gbpRedeemLink} onChange={(e) => setGbpRedeemLink(e.target.value)} placeholder="https://www..." required />
+                        </Row>
+                      </div>
+                      <Row label="Terms">
+                        <Textarea rows={3} value={gbpTerms} onChange={(e) => setGbpTerms(e.target.value)} placeholder="Terms and conditions..." />
+                      </Row>
+                    </>
+                  )}
+
+                  {/* Default: no type selected */}
+                  {gbpType === "" && (
+                    <Row label="Type *">
+                      <Select value={gbpType} onValueChange={(v) => setGbpType(v as any)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Call to Action">Call to Action</SelectItem>
+                          <SelectItem value="Event">Event</SelectItem>
+                          <SelectItem value="Offer">Offer</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </Row>
-                    <Row label="End date *">
-                      <Input type="datetime-local" value={gbpEndDate} onChange={(e) => setGbpEndDate(e.target.value)} required />
-                    </Row>
-                  </div>
-                  <Row label="Title *">
-                    <Input value={gbpTitle} onChange={(e) => setGbpTitle(e.target.value)} placeholder="(eg) Summer sale 25%" required />
-                  </Row>
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <Row label="Coupon Code *">
-                      <Input value={gbpCouponCode} onChange={(e) => setGbpCouponCode(e.target.value)} placeholder="(eg) SALE25" required />
-                    </Row>
-                    <Row label="Redeem Link *">
-                      <Input type="url" value={gbpRedeemLink} onChange={(e) => setGbpRedeemLink(e.target.value)} placeholder="https://www..." required />
-                    </Row>
-                  </div>
-                  <Row label="Terms">
-                    <Textarea rows={3} value={gbpTerms} onChange={(e) => setGbpTerms(e.target.value)} placeholder="Terms and conditions..." />
-                  </Row>
-                </>
+                  )}
+                </div>
               )}
             </div>
           )}
