@@ -130,6 +130,7 @@ const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.React
       </svg>
     ),
     description: "Publish blog articles via WordPress.",
+    comingSoon: true,
   },
   TikTok: {
     color: "bg-[#000000]",
