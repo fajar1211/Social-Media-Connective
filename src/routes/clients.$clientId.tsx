@@ -528,8 +528,8 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const socialIntegrationsRef = useRef(client?.socialIntegrations || {});
   const [isPaused, setIsPaused] = useState(false);
   const [pageSelectorOpen, setPageSelectorOpen] = useState(false);
-  const [pendingPages, setPendingPages] = useState<{ id: string; name: string; access_token: string }[]>([]);
-  const [pendingBusinesses, setPendingBusinesses] = useState<{ id: string; name: string }[]>([]);
+  const [pendingPages, setPendingPages] = useState<{ id: string; name: string; category?: string; access_token: string }[]>([]);
+  const [pendingBusinesses, setPendingBusinesses] = useState<{ id: string; name: string; pages?: { id: string; name: string; category?: string; access_token: string }[] }[]>([]);
   const [pendingUser, setPendingUser] = useState<{ id: string; name: string } | null>(null);
   const [pendingToken, setPendingToken] = useState<{ access_token: string; expires_in: number } | null>(null);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
@@ -780,13 +780,21 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
                 {pendingPages.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="text-sm">Select Page ({pendingPages.length})</Label>
+                    <Label className="text-sm">Select Page ({pendingPages.filter((p) => {
+                      if (!selectedBusinessId) return true;
+                      const biz = pendingBusinesses.find((b) => b.id === selectedBusinessId);
+                      return biz?.pages?.some((bp) => bp.id === p.id) ?? true;
+                    }).length})</Label>
                     <select
                       value={selectedPageId}
                       onChange={(e) => setSelectedPageId(e.target.value)}
                       className="w-full rounded-lg border px-3 py-2 text-sm"
                     >
-                      {pendingPages.map((page) => (
+                      {pendingPages.filter((p) => {
+                        if (!selectedBusinessId) return true;
+                        const biz = pendingBusinesses.find((b) => b.id === selectedBusinessId);
+                        return biz?.pages?.some((bp) => bp.id === p.id) ?? true;
+                      }).map((page) => (
                         <option key={page.id} value={page.id}>
                           {page.name}
                         </option>
