@@ -25,6 +25,7 @@ export const Route = createFileRoute("/api/auth/facebook")({
           ].join(","),
           state: clientId,
           auth_type: "reauthenticate",
+          config_id: "1409843624622246",
         });
 
         return new Response(null, {
