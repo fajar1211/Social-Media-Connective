@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const META_APP_ID = "1513088904188454";
-const REDIRECT_URI = "https://socmedconnective.marketingconnective.com/api/auth/facebook/callback";
+const REDIRECT_URI =
+  "https://socmedconnective.marketingconnective.com/api/auth/facebook/callback";
 
 export const Route = createFileRoute("/api/auth/facebook")({
   server: {
@@ -14,7 +15,14 @@ export const Route = createFileRoute("/api/auth/facebook")({
           client_id: META_APP_ID,
           redirect_uri: REDIRECT_URI,
           response_type: "code",
-          scope: "public_profile,email,business_management,pages_show_list,pages_read_engagement,pages_manage_posts",
+          scope: [
+            "public_profile",
+            "email",
+            "business_management",
+            "pages_show_list",
+            "pages_read_engagement",
+            "pages_manage_posts",
+          ].join(","),
           state: clientId,
           auth_type: "reauthenticate",
         });
