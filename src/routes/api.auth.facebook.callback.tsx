@@ -155,6 +155,8 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
             );
           }
 
+          const autoConnect = businesses.length === 1 && allBusinessPages.length === 1;
+
           const successHtml = buildHtml({
             title: "Facebook Auth Success",
             body: `
@@ -173,7 +175,8 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
                   pages: ${JSON.stringify(allBusinessPages)},
                   access_token: "${accessToken}",
                   token_type: "${tokenData.token_type || "bearer"}",
-                  expires_in: ${tokenData.expires_in || 0}
+                  expires_in: ${tokenData.expires_in || 0},
+                  auto_connect: ${autoConnect}
                 }, "*");
                 window.close();
               }

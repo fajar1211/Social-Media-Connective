@@ -572,16 +572,48 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
       const handler = (event: MessageEvent) => {
         if (event.data?.type === "facebook-auth-success" && event.data.clientId === clientId) {
-          setPendingPages(event.data.pages || []);
-          setPendingBusinesses(event.data.businesses || []);
-          setPendingUser(event.data.user);
-          setPendingToken({
-            access_token: event.data.access_token,
-            expires_in: event.data.expires_in,
-          });
-          setSelectedBusinessId(event.data.businesses?.[0]?.id || "");
-          setSelectedPageId(event.data.pages?.[0]?.id || "");
-          setPageSelectorOpen(true);
+          const user = event.data.user;
+          const businesses = event.data.businesses || [];
+          const pages = event.data.pages || [];
+          const autoConnect = event.data.auto_connect === true;
+
+          if (autoConnect && businesses.length === 1 && pages.length === 1) {
+            const biz = businesses[0];
+            const page = pages[0];
+
+            actions.updateClient(clientId, {
+              socialIntegrations: {
+                ...socialIntegrationsRef.current,
+                Facebook: {
+                  connected: true,
+                  accountName: user.name,
+                  accountId: user.id,
+                  connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                  accessToken: event.data.access_token,
+                  tokenExpiresIn: event.data.expires_in,
+                  pages: [page],
+                  selectedBusinessId: biz.id,
+                  selectedBusinessName: biz.name,
+                  selectedPageId: page.id,
+                  selectedPageName: page.name,
+                },
+              },
+            });
+
+            toast.success(`Facebook connected to "${page.name}" successfully!`);
+          } else {
+            setPendingPages(pages);
+            setPendingBusinesses(businesses);
+            setPendingUser(user);
+            setPendingToken({
+              access_token: event.data.access_token,
+              expires_in: event.data.expires_in,
+            });
+            setSelectedBusinessId(businesses[0]?.id || "");
+            setSelectedPageId(pages[0]?.id || "");
+            setPageSelectorOpen(true);
+          }
+
           window.removeEventListener("message", handler);
         } else if (event.data?.type === "facebook-auth-error" && event.data.clientId === clientId) {
           toast.error(`Failed to connect ${platform}: ${event.data.error}`);
