@@ -69,49 +69,91 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
           const accessToken = tokenData.access_token;
 
           const userResponse = await fetch(
-            `https://graph.facebook.com/${GRAPH_API_VERSION}/me?fields=id,name,email&access_token=${accessToken}`
+            `https://graph.facebook.com/${GRAPH_API_VERSION}/me?fields=id,name,email,client_business_id&access_token=${accessToken}`
           );
           const userData = await userResponse.json();
 
-          const businessesResponse = await fetch(
-            `https://graph.facebook.com/${GRAPH_API_VERSION}/me/businesses?fields=id,name&access_token=${accessToken}`
-          );
-          const businessesData = await businessesResponse.json();
+          let businesses: Array<{
+            id: string;
+            name: string;
+            pages: Array<{
+              id: string;
+              name: string;
+              category: string;
+              access_token: string;
+            }>;
+          }> = [];
+          let allBusinessPages: Array<{
+            id: string;
+            name: string;
+            category: string;
+            access_token: string;
+          }> = [];
 
-          const businesses = (businessesData.data || []).map(
-            (biz: { id: string; name: string }) => ({
-              id: biz.id,
-              name: biz.name,
-              pages: [] as Array<{
-                id: string;
-                name: string;
-                category: string;
-                access_token: string;
-              }>,
-            })
-          );
+          if (userData.client_business_id) {
+            const bizId = userData.client_business_id;
 
-          for (const biz of businesses) {
+            const bizInfoResponse = await fetch(
+              `https://graph.facebook.com/${GRAPH_API_VERSION}/${bizId}?fields=id,name&access_token=${accessToken}`
+            );
+            const bizInfo = await bizInfoResponse.json();
+
             const bizPagesResponse = await fetch(
-              `https://graph.facebook.com/${GRAPH_API_VERSION}/${biz.id}/owned_pages?fields=id,name,category,access_token&access_token=${accessToken}`
+              `https://graph.facebook.com/${GRAPH_API_VERSION}/${bizId}/owned_pages?fields=id,name,category,access_token&access_token=${accessToken}`
             );
             const bizPagesData = await bizPagesResponse.json();
-            biz.pages = (bizPagesData.data || []).filter(
+            const bizPages = (bizPagesData.data || []).filter(
               (p: { category?: string }) =>
                 !p.category?.toLowerCase().includes("instagram")
             );
-          }
 
-          const allBusinessPages = businesses.flatMap(
-            (biz: {
-              pages: Array<{
-                id: string;
-                name: string;
-                category: string;
-                access_token: string;
-              }>;
-            }) => biz.pages
-          );
+            businesses = [{
+              id: bizId,
+              name: bizInfo.name || "Business Portfolio",
+              pages: bizPages,
+            }];
+            allBusinessPages = bizPages;
+          } else {
+            const businessesResponse = await fetch(
+              `https://graph.facebook.com/${GRAPH_API_VERSION}/me/businesses?fields=id,name&access_token=${accessToken}`
+            );
+            const businessesData = await businessesResponse.json();
+
+            businesses = (businessesData.data || []).map(
+              (biz: { id: string; name: string }) => ({
+                id: biz.id,
+                name: biz.name,
+                pages: [] as Array<{
+                  id: string;
+                  name: string;
+                  category: string;
+                  access_token: string;
+                }>,
+              })
+            );
+
+            for (const biz of businesses) {
+              const bizPagesResponse = await fetch(
+                `https://graph.facebook.com/${GRAPH_API_VERSION}/${biz.id}/owned_pages?fields=id,name,category,access_token&access_token=${accessToken}`
+              );
+              const bizPagesData = await bizPagesResponse.json();
+              biz.pages = (bizPagesData.data || []).filter(
+                (p: { category?: string }) =>
+                  !p.category?.toLowerCase().includes("instagram")
+              );
+            }
+
+            allBusinessPages = businesses.flatMap(
+              (biz: {
+                pages: Array<{
+                  id: string;
+                  name: string;
+                  category: string;
+                  access_token: string;
+                }>;
+              }) => biz.pages
+            );
+          }
 
           const successHtml = buildHtml({
             title: "Facebook Auth Success",
