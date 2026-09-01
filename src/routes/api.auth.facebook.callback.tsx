@@ -161,25 +161,39 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
             title: "Facebook Auth Success",
             body: `
               <h2>Facebook Authentication Successful!</h2>
-              <p><strong>User:</strong> ${escapeHtml(userData.name)} (${userData.id})</p>
-              <p><strong>Businesses:</strong> ${businesses.length} found</p>
-              <p><strong>Pages:</strong> ${allBusinessPages.length} found</p>
+              <p>User: ${escapeHtml(userData.name)} (${userData.id})</p>
+              <p>Businesses: ${businesses.length} found</p>
+              <p>Pages: ${allBusinessPages.length} found</p>
+              <p id="status" style="color:green;">Connecting...</p>
             `,
             script: `
-              if (window.opener) {
-                window.opener.postMessage({
-                  type: "facebook-auth-success",
-                  clientId: "${escapeJs(clientId)}",
-                  user: ${JSON.stringify(userData)},
-                  businesses: ${JSON.stringify(businesses)},
-                  pages: ${JSON.stringify(allBusinessPages)},
-                  access_token: "${accessToken}",
-                  token_type: "${tokenData.token_type || "bearer"}",
-                  expires_in: ${tokenData.expires_in || 0},
-                  auto_connect: ${autoConnect}
-                }, "*");
-                window.close();
-              }
+              (function() {
+                try {
+                  var data = {
+                    type: "facebook-auth-success",
+                    clientId: "${escapeJs(clientId)}",
+                    user: ${JSON.stringify(userData)},
+                    businesses: ${JSON.stringify(businesses)},
+                    pages: ${JSON.stringify(allBusinessPages)},
+                    access_token: "${accessToken}",
+                    token_type: "${tokenData.token_type || "bearer"}",
+                    expires_in: ${tokenData.expires_in || 0},
+                    auto_connect: ${autoConnect}
+                  };
+
+                  if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage(data, "*");
+                    setTimeout(function() {
+                      try { window.close(); } catch(e) {}
+                      document.getElementById("status").textContent = "Connected! You can close this tab.";
+                    }, 500);
+                  } else {
+                    document.getElementById("status").textContent = "Connected! Please close this tab.";
+                  }
+                } catch(e) {
+                  document.getElementById("status").textContent = "Connected! Please close this tab.";
+                }
+              })();
             `,
           });
 
@@ -195,9 +209,19 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
               title: "Facebook OAuth Error",
               body: `
                 <h2>Facebook OAuth Error</h2>
-                <p><strong>Error:</strong> ${escapeHtml(msg)}</p>
+                <p>Error: ${escapeHtml(msg)}</p>
+                <p>Please close this tab and try again.</p>
               `,
-              script: `window.opener.postMessage({ type: "facebook-auth-error", clientId: "${escapeJs(clientId)}", error: "${escapeJs(msg)}" }, "*"); window.close();`,
+              script: `
+                (function() {
+                  try {
+                    if (window.opener && !window.opener.closed) {
+                      window.opener.postMessage({ type: "facebook-auth-error", clientId: "${escapeJs(clientId)}", error: "${escapeJs(msg)}" }, "*");
+                      setTimeout(function() { try { window.close(); } catch(e) {} }, 500);
+                    }
+                  } catch(e) {}
+                })();
+              `,
             }),
             { status: 500, headers: { "Content-Type": "text/html" } }
           );
