@@ -83,6 +83,9 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
           );
           const pagesData = await pagesResponse.json();
 
+          // Auto-select only the first page
+          const selectedPage = pagesData.data?.[0] || null;
+
           return new Response(
             `<!DOCTYPE html>
 <html>
@@ -90,14 +93,14 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
 <body>
   <h2>Facebook Authentication Successful!</h2>
   <p><strong>User:</strong> ${userData.name} (${userData.id})</p>
-  <p><strong>Pages:</strong> ${pagesData.data?.length || 0} found</p>
+  <p><strong>Selected Page:</strong> ${selectedPage ? selectedPage.name : 'No pages found'}</p>
   <script>
     if (window.opener) {
       window.opener.postMessage({
         type: "facebook-auth-success",
         clientId: "${clientId}",
         user: ${JSON.stringify(userData)},
-        pages: ${JSON.stringify(pagesData.data || [])},
+        pages: ${JSON.stringify(selectedPage ? [selectedPage] : [])},
         access_token: "${tokenData.access_token}",
         token_type: "${tokenData.token_type}",
         expires_in: ${tokenData.expires_in || 0}

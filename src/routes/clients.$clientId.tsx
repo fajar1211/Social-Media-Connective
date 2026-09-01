@@ -88,6 +88,7 @@ const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.React
       </svg>
     ),
     description: "Connect Instagram Business to publish photos, stories, and reels.",
+    comingSoon: true,
   },
   YouTube: {
     color: "bg-[#FF0000]",
@@ -531,34 +532,28 @@ function SettingsTab({ clientId }: { clientId: string }) {
   if (!client) return null;
 
   const handleConnect = (platform: SocialPlatform) => {
-    if (platform === "Facebook" || platform === "Instagram") {
+    if (platform === "Facebook") {
       const width = 600;
       const height = 700;
       const left = (window.innerWidth - width) / 2;
       const top = (window.innerHeight - height) / 2;
 
-      const baseUrl = platform === "Facebook"
-        ? "/api/auth/facebook"
-        : "/api/auth/instagram";
-      const authUrl = `${baseUrl}?client_id=${clientId}`;
+      const authUrl = `/api/auth/facebook?client_id=${clientId}`;
 
       const popup = window.open(
         authUrl,
-        `${platform}_oauth_${clientId}`,
+        `facebook_oauth_${clientId}`,
         `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
       );
 
       const handler = (event: MessageEvent) => {
-        const expectedType = `${platform.toLowerCase()}-auth-success`;
-        const errorType = `${platform.toLowerCase()}-auth-error`;
-
-        if (event.data?.type === expectedType && event.data.clientId === clientId) {
+        if (event.data?.type === "facebook-auth-success" && event.data.clientId === clientId) {
           actions.updateClient(clientId, {
             socialIntegrations: {
               ...socialIntegrationsRef.current,
               [platform]: {
                 connected: true,
-                accountName: event.data.user?.name || `${client.name} ${platform}`,
+                accountName: event.data.user?.name || `${client.name} Facebook`,
                 accountId: event.data.user?.id,
                 connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
                 accessToken: event.data.access_token,
@@ -569,7 +564,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           });
           toast.success(`${platform} connected successfully!`);
           window.removeEventListener("message", handler);
-        } else if (event.data?.type === errorType && event.data.clientId === clientId) {
+        } else if (event.data?.type === "facebook-auth-error" && event.data.clientId === clientId) {
           toast.error(`Failed to connect ${platform}: ${event.data.error}`);
           window.removeEventListener("message", handler);
         }
@@ -586,18 +581,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
         }, 500);
       }
     } else {
-      actions.updateClient(clientId, {
-        socialIntegrations: {
-          ...socialIntegrationsRef.current,
-          [platform]: {
-            connected: true,
-            accountName: `${client.name} ${platform}`,
-            accountId: `${Date.now()}`,
-            connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-          },
-        },
-      });
-      toast.success(`${platform} connected!`);
+      toast.info(`${platform} is coming soon!`);
     }
   };
 

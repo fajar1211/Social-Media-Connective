@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/auth/facebook")({
           client_id: META_APP_ID,
           redirect_uri: REDIRECT_URI,
           response_type: "code",
-          scope: "public_profile,email,business_management,pages_show_list,pages_read_engagement,pages_manage_posts,pages_read_user_content,instagram_basic,instagram_content_publish",
+          scope: "public_profile,email,business_management,pages_show_list,pages_read_engagement,pages_manage_posts",
           state: clientId,
           auth_type: "reauthenticate",
         });
