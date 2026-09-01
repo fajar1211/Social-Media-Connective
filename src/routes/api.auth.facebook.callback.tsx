@@ -88,6 +88,11 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
           );
           const businessesData = await businessesResponse.json();
 
+          // Filter only Facebook Pages (exclude Instagram business accounts)
+          const facebookPages = (pagesData.data || []).filter(
+            (page: { instagram_business_account?: unknown }) => !page.instagram_business_account
+          );
+
           return new Response(
             `<!DOCTYPE html>
 <html>
@@ -96,7 +101,7 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
   <h2>Facebook Authentication Successful!</h2>
   <p><strong>User:</strong> ${userData.name} (${userData.id})</p>
   <p><strong>Businesses:</strong> ${businessesData.data?.length || 0} found</p>
-  <p><strong>Pages:</strong> ${pagesData.data?.length || 0} found</p>
+  <p><strong>Pages:</strong> ${facebookPages.length} found</p>
   <script>
     if (window.opener) {
       window.opener.postMessage({
@@ -104,7 +109,7 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
         clientId: "${clientId}",
         user: ${JSON.stringify(userData)},
         businesses: ${JSON.stringify(businessesData.data || [])},
-        pages: ${JSON.stringify(pagesData.data || [])},
+        pages: ${JSON.stringify(facebookPages)},
         access_token: "${tokenData.access_token}",
         token_type: "${tokenData.token_type}",
         expires_in: ${tokenData.expires_in || 0}
