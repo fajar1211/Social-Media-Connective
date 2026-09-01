@@ -444,12 +444,14 @@ function SocialIntegrationCard({
   platform,
   connected,
   accountName,
+  selectedPageName,
   onConnect,
   onDisconnect,
 }: {
   platform: SocialPlatform;
   connected: boolean;
   accountName?: string | undefined;
+  selectedPageName?: string | undefined;
   onConnect: () => void;
   onDisconnect: () => void;
 }) {
@@ -484,6 +486,9 @@ function SocialIntegrationCard({
             <div className="mt-2 rounded-lg bg-success/5 px-3 py-2">
               <p className="text-xs text-muted-foreground">Connected account</p>
               <p className="text-sm font-medium text-foreground">{accountName}</p>
+              {selectedPageName && (
+                <p className="mt-1 text-xs text-muted-foreground">Page: {selectedPageName}</p>
+              )}
             </div>
           )}
         </div>
@@ -517,6 +522,11 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const client = clients.find((c) => c.id === clientId);
   const socialIntegrationsRef = useRef(client?.socialIntegrations || {});
   const [isPaused, setIsPaused] = useState(false);
+  const [pageSelectorOpen, setPageSelectorOpen] = useState(false);
+  const [pendingPages, setPendingPages] = useState<{ id: string; name: string; access_token: string }[]>([]);
+  const [pendingUser, setPendingUser] = useState<{ id: string; name: string } | null>(null);
+  const [pendingToken, setPendingToken] = useState<{ access_token: string; expires_in: number } | null>(null);
+  const [selectedPageId, setSelectedPageId] = useState<string>("");
 
   const magicLinkUrl = `https://socmedconnective.marketingconnective.com/client/${clientId}`;
 
@@ -548,21 +558,15 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
       const handler = (event: MessageEvent) => {
         if (event.data?.type === "facebook-auth-success" && event.data.clientId === clientId) {
-          actions.updateClient(clientId, {
-            socialIntegrations: {
-              ...socialIntegrationsRef.current,
-              [platform]: {
-                connected: true,
-                accountName: event.data.user?.name || `${client.name} Facebook`,
-                accountId: event.data.user?.id,
-                connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-                accessToken: event.data.access_token,
-                tokenExpiresIn: event.data.expires_in,
-                pages: event.data.pages || [],
-              },
-            },
+          // Show page selector modal instead of auto-connecting
+          setPendingPages(event.data.pages || []);
+          setPendingUser(event.data.user);
+          setPendingToken({
+            access_token: event.data.access_token,
+            expires_in: event.data.expires_in,
           });
-          toast.success(`${platform} connected successfully!`);
+          setSelectedPageId(event.data.pages?.[0]?.id || "");
+          setPageSelectorOpen(true);
           window.removeEventListener("message", handler);
         } else if (event.data?.type === "facebook-auth-error" && event.data.clientId === clientId) {
           toast.error(`Failed to connect ${platform}: ${event.data.error}`);
@@ -583,6 +587,37 @@ function SettingsTab({ clientId }: { clientId: string }) {
     } else {
       toast.info(`${platform} is coming soon!`);
     }
+  };
+
+  const handleConfirmPageSelection = () => {
+    if (!selectedPageId || !pendingUser || !pendingToken) return;
+
+    const selectedPage = pendingPages.find((p) => p.id === selectedPageId);
+    if (!selectedPage) return;
+
+    actions.updateClient(clientId, {
+      socialIntegrations: {
+        ...socialIntegrationsRef.current,
+        Facebook: {
+          connected: true,
+          accountName: pendingUser.name,
+          accountId: pendingUser.id,
+          connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          accessToken: pendingToken.access_token,
+          tokenExpiresIn: pendingToken.expires_in,
+          pages: [selectedPage],
+          selectedPageId: selectedPage.id,
+          selectedPageName: selectedPage.name,
+        },
+      },
+    });
+
+    toast.success(`Facebook connected to "${selectedPage.name}" successfully!`);
+    setPageSelectorOpen(false);
+    setPendingPages([]);
+    setPendingUser(null);
+    setPendingToken(null);
+    setSelectedPageId("");
   };
 
   const handleDisconnect = (platform: SocialPlatform) => {
@@ -677,12 +712,86 @@ function SettingsTab({ clientId }: { clientId: string }) {
               platform={platform}
               connected={client.socialIntegrations[platform]?.connected === true}
               accountName={client.socialIntegrations[platform]?.accountName}
+              selectedPageName={client.socialIntegrations[platform]?.selectedPageName}
               onConnect={() => handleConnect(platform)}
               onDisconnect={() => handleDisconnect(platform)}
             />
           ))}
         </div>
       </div>
+
+      {/* Page Selector Modal */}
+      <Dialog open={pageSelectorOpen} onOpenChange={setPageSelectorOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Facebook Page</DialogTitle>
+            <DialogDescription>
+              Choose one Facebook Page to connect with {client.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {pendingPages.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No Facebook Pages found. Please create a Page first.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-sm">Available Pages ({pendingPages.length})</Label>
+                  <select
+                    value={selectedPageId}
+                    onChange={(e) => setSelectedPageId(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                  >
+                    {pendingPages.map((page) => (
+                      <option key={page.id} value={page.id}>
+                        {page.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedPageId && (
+                  <div className="rounded-lg border bg-muted/50 p-3">
+                    <p className="text-xs text-muted-foreground">Selected Page:</p>
+                    <p className="text-sm font-medium">
+                      {pendingPages.find((p) => p.id === selectedPageId)?.name}
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  Only 1 page can be connected. You can change this later by disconnecting and reconnecting.
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPageSelectorOpen(false);
+                setPendingPages([]);
+                setPendingUser(null);
+                setPendingToken(null);
+                setSelectedPageId("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmPageSelection}
+              disabled={!selectedPageId || pendingPages.length === 0}
+            >
+              Connect Page
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
