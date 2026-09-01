@@ -28,14 +28,12 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 
 export async function hasExistingProfiles(): Promise<boolean> {
   if (!supabaseConfigured) return false;
-  const { count, error } = await supabase
-    .from("profiles")
-    .select("*", { count: "exact", head: true });
+  const { data, error } = await supabase.rpc("get_profile_count");
   if (error) {
     console.error("Error checking profiles:", error);
     return true;
   }
-  return (count ?? 0) > 0;
+  return (data ?? 0) > 0;
 }
 
 export async function createProfile(
