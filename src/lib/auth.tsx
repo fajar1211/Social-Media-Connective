@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (supabaseConfigured) {
       await supabase.auth.signOut();
     }
-    window.location.href = "/auth";
+    window.location.href = "/home";
   };
 
   return (
