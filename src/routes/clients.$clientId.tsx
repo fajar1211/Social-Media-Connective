@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/select";
 import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from "@/components/badges";
 import { ContentList } from "@/components/content-list";
-import { counts, useStore, actions, SOCIAL_PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem } from "@/lib/content-store";
+import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem } from "@/lib/content-store";
 
 export const Route = createFileRoute("/clients/$clientId")({
   head: () => ({
@@ -579,9 +579,13 @@ function SettingsTab({ clientId }: { clientId: string }) {
           const biz = businesses[0];
           const page = pages[0];
 
+          const currentClients = getStoreState().clients;
+          const currentClient = currentClients.find((c) => c.id === clientId);
+          const currentIntegrations = currentClient?.socialIntegrations || {};
+
           actions.updateClient(clientId, {
             socialIntegrations: {
-              ...socialIntegrationsRef.current,
+              ...currentIntegrations,
               Facebook: {
                 connected: true,
                 accountName: user.name,
@@ -685,9 +689,13 @@ function SettingsTab({ clientId }: { clientId: string }) {
           const page = pages.find((p) => p.instagram_business_account);
           const igAccount = page?.instagram_business_account;
 
+          const currentClients = getStoreState().clients;
+          const currentClient = currentClients.find((c) => c.id === clientId);
+          const currentIntegrations = currentClient?.socialIntegrations || {};
+
           actions.updateClient(clientId, {
             socialIntegrations: {
-              ...socialIntegrationsRef.current,
+              ...currentIntegrations,
               Instagram: {
                 connected: true,
                 accountName: igAccount?.name || account.name,
@@ -767,9 +775,13 @@ function SettingsTab({ clientId }: { clientId: string }) {
     const selectedBusiness = pendingBusinesses.find((b) => b.id === selectedBusinessId);
     if (!selectedPage) return;
 
+    const currentClients = getStoreState().clients;
+    const currentClient = currentClients.find((c) => c.id === clientId);
+    const currentIntegrations = currentClient?.socialIntegrations || {};
+
     actions.updateClient(clientId, {
       socialIntegrations: {
-        ...socialIntegrationsRef.current,
+        ...currentIntegrations,
         Facebook: {
           connected: true,
           accountName: pendingUser.name,

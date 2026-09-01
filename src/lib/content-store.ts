@@ -153,6 +153,7 @@ function subscribe(l: () => void) {
   return () => listeners.delete(l);
 }
 const getSnapshot = () => state;
+export const getStoreState = () => state;
 
 export function useStore(): State {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
