@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, Lock, User, ArrowRight, Share2 } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Share2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -22,6 +23,9 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
@@ -31,16 +35,62 @@ function AuthPage() {
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Backend auth
-    window.location.href = "/";
+    setLoading(true);
+    setError(null);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: signInEmail,
+      password: signInPassword,
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      window.location.href = "/";
+    }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Backend auth
-    window.location.href = "/";
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    if (signUpPassword !== signUpConfirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email: signUpEmail,
+      password: signUpPassword,
+      options: {
+        data: {
+          full_name: signUpName,
+        },
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      setSuccess("Check your email for the confirmation link!");
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
   };
 
   return (
@@ -87,6 +137,17 @@ function AuthPage() {
           </CardHeader>
 
           <CardContent>
+            {error && (
+              <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="mb-4 rounded-lg bg-green-500/10 p-3 text-sm text-green-600">
+                {success}
+              </div>
+            )}
+
             {activeTab === "signin" ? (
               <form onSubmit={handleSignIn} className="space-y-4">
                 <CardTitle className="text-lg">Welcome back</CardTitle>
@@ -134,9 +195,18 @@ function AuthPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Sign In
-                  <ArrowRight className="ml-2 size-4" />
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      Sign In
+                      <ArrowRight className="ml-2 size-4" />
+                    </>
+                  )}
                 </Button>
 
                 <div className="relative my-4">
@@ -150,9 +220,8 @@ function AuthPage() {
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => {
-                    // TODO: Google OAuth
-                  }}
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
                 >
                   <svg className="mr-2 size-4" viewBox="0 0 24 24">
                     <path
@@ -246,9 +315,18 @@ function AuthPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Create Account
-                  <ArrowRight className="ml-2 size-4" />
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    <>
+                      Create Account
+                      <ArrowRight className="ml-2 size-4" />
+                    </>
+                  )}
                 </Button>
 
                 <div className="relative my-4">
@@ -262,9 +340,8 @@ function AuthPage() {
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => {
-                    // TODO: Google OAuth
-                  }}
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
                 >
                   <svg className="mr-2 size-4" viewBox="0 0 24 24">
                     <path
