@@ -1,21 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lightbulb, PlusCircle, Send, CheckCircle2, Trash2 } from "lucide-react";
+import { Lightbulb, PlusCircle, Send, CheckCircle2, Trash2, Users, Shield } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { ContentTable } from "@/components/content-list";
 import { ContentDetailOverlay } from "@/components/content-detail-overlay";
 import { EmptyState } from "@/components/empty-state";
 import { counts, useStore, type ContentItem } from "@/lib/content-store";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Social Media Connective Admin" },
+      { title: "Dashboard — Social Media Connective" },
       {
         name: "description",
         content:
-          "Create, import, review and approve marketing content in one simple admin dashboard.",
+          "Create, import, review and approve marketing content in one simple dashboard.",
       },
     ],
   }),
@@ -31,7 +32,8 @@ const cards = [
 ] as const;
 
 function Dashboard() {
-  const { content } = useStore();
+  const { content, clients } = useStore();
+  const { profile } = useAuth();
   const c = counts(content);
   const [selected, setSelected] = useState<ContentItem | null>(null);
   const current = selected ? (content.find((i) => i.id === selected.id) ?? null) : null;
@@ -40,17 +42,60 @@ function Dashboard() {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 6);
 
+  const isAdmin = profile?.role === "admin";
+  const userName = profile?.full_name || profile?.email?.split("@")[0] || "User";
+
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        subtitle="Manage and organize your marketing content in one place."
+        title={`Welcome, ${userName}`}
+        subtitle={
+          isAdmin
+            ? "You have full access to all clients and content."
+            : `Managing content for ${clients.length > 0 ? clients[0]?.name : "your client"}.`
+        }
         actions={
-          <Button asChild>
-            <Link to="/content/create">Create Content</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link to="/content/create">Create Content</Link>
+            </Button>
+            {isAdmin && (
+              <Button asChild variant="outline">
+                <Link to="/users">
+                  <Shield className="mr-2 size-4" />
+                  Manage Users
+                </Link>
+              </Button>
+            )}
+          </div>
         }
       />
+
+      {isAdmin && (
+        <div className="mb-6 rounded-xl border bg-card p-4 shadow-soft">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                <Shield className="size-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Admin Access</p>
+                <p className="text-xs text-muted-foreground">
+                  You can manage all clients, users, and content across the platform.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link to="/clients">View Clients</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/users">Manage Users</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {cards.map((card) => (

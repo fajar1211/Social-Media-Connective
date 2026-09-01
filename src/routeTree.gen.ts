@@ -22,6 +22,7 @@ import { Route as PreviewDemoRouteImport } from './routes/preview-demo'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubmittedRouteImport } from './routes/submitted'
 import { Route as SuggestedRouteImport } from './routes/suggested'
+import { Route as UsersRouteImport } from './routes/users'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 import { Route as ContentIndexRouteImport } from './routes/content.index'
 import { Route as ContentCreateRouteImport } from './routes/content.create'
@@ -100,6 +101,11 @@ const SuggestedRoute = SuggestedRouteImport.update({
   path: '/suggested',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
   id: '/$clientId',
   path: '/$clientId',
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
+  '/users': typeof UsersRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
+  '/users': typeof UsersRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content': typeof ContentIndexRoute
@@ -231,6 +239,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
+  '/users': typeof UsersRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submitted'
     | '/suggested'
+    | '/users'
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submitted'
     | '/suggested'
+    | '/users'
     | '/clients/$clientId'
     | '/content/create'
     | '/content'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submitted'
     | '/suggested'
+    | '/users'
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
@@ -342,6 +354,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SubmittedRoute: typeof SubmittedRoute
   SuggestedRoute: typeof SuggestedRoute
+  UsersRoute: typeof UsersRoute
   ContentCreateRoute: typeof ContentCreateRoute
   ContentIndexRoute: typeof ContentIndexRoute
   ApiAuthFacebookRoute: typeof ApiAuthFacebookRouteWithChildren
@@ -444,6 +457,13 @@ declare module '@tanstack/react-router' {
       path: '/suggested'
       fullPath: '/suggested'
       preLoaderRoute: typeof SuggestedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients/$clientId': {
@@ -581,6 +601,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SubmittedRoute: SubmittedRoute,
   SuggestedRoute: SuggestedRoute,
+  UsersRoute: UsersRoute,
   ContentCreateRoute: ContentCreateRoute,
   ContentIndexRoute: ContentIndexRoute,
   ApiAuthFacebookRoute: ApiAuthFacebookRouteWithChildren,

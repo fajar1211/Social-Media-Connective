@@ -15,13 +15,14 @@ import {
   Settings,
   Menu,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 
-const nav = [
+const adminNav = [
   {
     label: "Overview",
     items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
@@ -48,6 +49,7 @@ const nav = [
     label: "Management",
     items: [
       { to: "/clients", label: "Clients", icon: Users },
+      { to: "/users", label: "Users", icon: Shield },
       { to: "/platforms", label: "Platforms", icon: Share2 },
     ],
   },
@@ -57,8 +59,43 @@ const nav = [
   },
 ];
 
+const clientNav = [
+  {
+    label: "Overview",
+    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    label: "Content",
+    items: [
+      { to: "/content", label: "All Content", icon: Files },
+      { to: "/content/create", label: "Create Content", icon: PenLine },
+      { to: "/import", label: "Import", icon: Upload },
+    ],
+  },
+  {
+    label: "Content Status",
+    items: [
+      { to: "/suggested", label: "Suggested Posts", icon: Lightbulb },
+      { to: "/additional", label: "Additional Posts", icon: PlusCircle },
+      { to: "/submitted", label: "Submitted", icon: Send },
+      { to: "/approved", label: "Approved", icon: CheckCircle2 },
+      { to: "/deleted", label: "Deleted", icon: Trash2 },
+    ],
+  },
+  {
+    label: "Management",
+    items: [{ to: "/clients", label: "Clients", icon: Users }],
+  },
+  {
+    label: "System",
+    items: [{ to: "/settings", label: "Settings", icon: Settings }],
+  },
+];
+
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const nav = profile?.role === "admin" ? adminNav : clientNav;
+  const roleLabel = profile?.role === "admin" ? "Admin" : "Client";
 
   return (
     <div className="flex h-full flex-col bg-sidebar">
@@ -69,7 +106,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <p className="text-sm font-semibold tracking-tight text-sidebar-foreground">
               Social Media Connective
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">Admin</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{roleLabel}</p>
           </div>
         </div>
       </div>
@@ -104,6 +141,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {user && (
           <div className="mb-2 px-2">
             <p className="text-xs font-medium text-sidebar-foreground truncate">{user.email}</p>
+            {profile?.full_name && (
+              <p className="text-xs text-muted-foreground truncate">{profile.full_name}</p>
+            )}
           </div>
         )}
         <button
@@ -154,7 +194,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <img src="/logo.png" alt="Social Media Connective" className="size-6" />
           <div>
             <p className="text-sm font-semibold">Social Media Connective</p>
-            <p className="text-[11px] text-muted-foreground">Admin</p>
+            <p className="text-[11px] text-muted-foreground">Marketing Platform</p>
           </div>
         </div>
       </header>

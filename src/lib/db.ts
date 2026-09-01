@@ -42,6 +42,50 @@ export async function createProfile(
   return data;
 }
 
+export async function updateProfile(
+  userId: string,
+  patch: Partial<Profile>
+): Promise<Profile | null> {
+  if (!supabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(patch)
+    .eq("id", userId)
+    .select()
+    .single();
+  if (error) {
+    console.error("Error updating profile:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function getAllProfiles(): Promise<Profile[]> {
+  if (!supabaseConfigured) return [];
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Error fetching profiles:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function deleteProfile(userId: string): Promise<boolean> {
+  if (!supabaseConfigured) return false;
+  const { error } = await supabase
+    .from("profiles")
+    .delete()
+    .eq("id", userId);
+  if (error) {
+    console.error("Error deleting profile:", error);
+    return false;
+  }
+  return true;
+}
+
 // ============================================
 // CLIENT QUERIES
 // ============================================
