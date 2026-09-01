@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +40,7 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     if (!supabaseConfigured) {
       localStorage.setItem(
@@ -56,7 +57,11 @@ function AuthPage() {
     });
 
     if (error) {
-      setError(error.message);
+      if (error.message.includes("Email not confirmed")) {
+        setError("Please confirm your email first. Check your inbox for the confirmation link.");
+      } else {
+        setError(error.message);
+      }
       setLoading(false);
     } else {
       window.location.href = "/dashboard";
@@ -71,6 +76,12 @@ function AuthPage() {
 
     if (signUpPassword !== signUpConfirmPassword) {
       setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    if (signUpPassword.length < 6) {
+      setError("Password must be at least 6 characters");
       setLoading(false);
       return;
     }
@@ -109,16 +120,25 @@ function AuthPage() {
         role: userRole,
         client_id: null,
       });
+
+      if (data.user.identities?.length === 0) {
+        setError("An account with this email already exists. Please sign in instead.");
+        setLoading(false);
+        return;
+      }
+
       if (isFirstUser) {
-        setSuccess("Admin account created! Check your email for confirmation.");
+        setSuccess("Admin account created! Please check your email to confirm your account.");
       } else {
-        setSuccess("Account created! Check your email for confirmation.");
+        setSuccess("Account created! Please check your email to confirm your account.");
       }
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setError(null);
+
     if (!supabaseConfigured) {
       localStorage.setItem(
         "socmedconnective-local-auth",
@@ -127,12 +147,17 @@ function AuthPage() {
       window.location.href = "/dashboard";
       return;
     }
-    await supabase.auth.signInWithOAuth({
+
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: window.location.origin + "/dashboard",
       },
     });
+
+    if (error) {
+      setError(error.message);
+    }
   };
 
   return (
@@ -154,7 +179,11 @@ function AuthPage() {
           <CardHeader className="pb-4">
             <div className="flex rounded-lg bg-muted p-1">
               <button
-                onClick={() => setActiveTab("signin")}
+                onClick={() => {
+                  setActiveTab("signin");
+                  setError(null);
+                  setSuccess(null);
+                }}
                 className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   activeTab === "signin"
                     ? "bg-background text-foreground shadow-sm"
@@ -164,7 +193,11 @@ function AuthPage() {
                 Sign In
               </button>
               <button
-                onClick={() => setActiveTab("signup")}
+                onClick={() => {
+                  setActiveTab("signup");
+                  setError(null);
+                  setSuccess(null);
+                }}
                 className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   activeTab === "signup"
                     ? "bg-background text-foreground shadow-sm"
@@ -184,16 +217,21 @@ function AuthPage() {
             )}
             {success && (
               <div className="mb-4 rounded-lg bg-green-500/10 p-3 text-sm text-green-600">
-                {success}
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
+                  <span>{success}</span>
+                </div>
               </div>
             )}
 
             {activeTab === "signin" ? (
               <form onSubmit={handleSignIn} className="space-y-4">
-                <CardTitle className="text-lg">Welcome back</CardTitle>
-                <CardDescription>
-                  Sign in to your account to continue.
-                </CardDescription>
+                <div>
+                  <CardTitle className="text-lg">Welcome back</CardTitle>
+                  <CardDescription className="mt-1">
+                    Sign in to your account to continue.
+                  </CardDescription>
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="signin-email">Email</Label>
@@ -214,12 +252,6 @@ function AuthPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="signin-password">Password</Label>
-                    <button
-                      type="button"
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Forgot password?
-                    </button>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -274,10 +306,12 @@ function AuthPage() {
               </form>
             ) : (
               <form onSubmit={handleSignUp} className="space-y-4">
-                <CardTitle className="text-lg">Create account</CardTitle>
-                <CardDescription>
-                  Get started with Social Media Connective.
-                </CardDescription>
+                <div>
+                  <CardTitle className="text-lg">Create account</CardTitle>
+                  <CardDescription className="mt-1">
+                    Get started with Social Media Connective.
+                  </CardDescription>
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Full Name</Label>
@@ -318,11 +352,12 @@ function AuthPage() {
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder="Create a password"
+                      placeholder="At least 6 characters"
                       className="pl-9"
                       value={signUpPassword}
                       onChange={(e) => setSignUpPassword(e.target.value)}
                       required
+                      minLength={6}
                     />
                   </div>
                 </div>
@@ -339,6 +374,7 @@ function AuthPage() {
                       value={signUpConfirmPassword}
                       onChange={(e) => setSignUpConfirmPassword(e.target.value)}
                       required
+                      minLength={6}
                     />
                   </div>
                 </div>

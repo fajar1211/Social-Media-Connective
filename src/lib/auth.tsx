@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
-import { getProfile, createProfile } from "@/lib/db";
+import { getProfile, createProfile, hasExistingProfiles } from "@/lib/db";
 import type { User, Session } from "@supabase/supabase-js";
 import type { UserRole } from "@/lib/database.types";
 
@@ -53,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile({ role: "admin", clientId: null, fullName: "Local Admin" });
       return;
     }
+
     const p = await getProfile(userId);
     if (p) {
       setProfile({
@@ -61,12 +62,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fullName: p.full_name,
       });
     } else {
-      // Profile doesn't exist yet, create it
+      const isFirstUser = !(await hasExistingProfiles());
+      const userRole = isFirstUser ? "admin" : "client";
+
       const newProfile = await createProfile({
         id: userId,
         email: user?.email || "",
-        full_name: user?.user_metadata?.full_name || "",
-        role: "client",
+        full_name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "",
+        role: userRole,
         client_id: null,
       });
       if (newProfile) {
