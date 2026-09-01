@@ -63,10 +63,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="border-b px-5 py-5">
-        <p className="text-sm font-semibold tracking-tight text-sidebar-foreground">
-          Social Media Connective
-        </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">Admin</p>
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="Social Media Connective" className="size-8" />
+          <div>
+            <p className="text-sm font-semibold tracking-tight text-sidebar-foreground">
+              Social Media Connective
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Admin</p>
+          </div>
+        </div>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         {nav.map((group) => (
@@ -145,9 +150,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SidebarContent onNavigate={() => setOpen(false)} />
           </SheetContent>
         </Sheet>
-        <div>
-          <p className="text-sm font-semibold">Social Media Connective</p>
-          <p className="text-[11px] text-muted-foreground">Admin</p>
+        <div className="flex items-center gap-2">
+          <img src="/logo.png" alt="Social Media Connective" className="size-6" />
+          <div>
+            <p className="text-sm font-semibold">Social Media Connective</p>
+            <p className="text-[11px] text-muted-foreground">Admin</p>
+          </div>
         </div>
       </header>
 

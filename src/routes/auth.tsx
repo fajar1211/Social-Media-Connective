@@ -98,9 +98,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-primary">
-              <Share2 className="size-5 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="Social Media Connective" className="size-10" />
           </Link>
           <h1 className="mt-4 text-2xl font-bold tracking-tight">
             Social Media Connective
