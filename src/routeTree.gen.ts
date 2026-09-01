@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdditionalRouteImport } from './routes/additional'
 import { Route as ApprovedRouteImport } from './routes/approved'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as DeletedRouteImport } from './routes/deleted'
 import { Route as ImportRouteImport } from './routes/import'
@@ -46,6 +47,11 @@ const AdditionalRoute = AdditionalRouteImport.update({
 const ApprovedRoute = ApprovedRouteImport.update({
   id: '/approved',
   path: '/approved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsRoute = ClientsRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/additional': typeof AdditionalRoute
   '/approved': typeof ApprovedRoute
+  '/auth': typeof AuthRoute
   '/clients': typeof ClientsRouteWithChildren
   '/deleted': typeof DeletedRoute
   '/import': typeof ImportRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/additional': typeof AdditionalRoute
   '/approved': typeof ApprovedRoute
+  '/auth': typeof AuthRoute
   '/clients': typeof ClientsRouteWithChildren
   '/deleted': typeof DeletedRoute
   '/import': typeof ImportRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/additional': typeof AdditionalRoute
   '/approved': typeof ApprovedRoute
+  '/auth': typeof AuthRoute
   '/clients': typeof ClientsRouteWithChildren
   '/deleted': typeof DeletedRoute
   '/import': typeof ImportRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/'
     | '/additional'
     | '/approved'
+    | '/auth'
     | '/clients'
     | '/deleted'
     | '/import'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/'
     | '/additional'
     | '/approved'
+    | '/auth'
     | '/clients'
     | '/deleted'
     | '/import'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/'
     | '/additional'
     | '/approved'
+    | '/auth'
     | '/clients'
     | '/deleted'
     | '/import'
@@ -308,6 +320,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdditionalRoute: typeof AdditionalRoute
   ApprovedRoute: typeof ApprovedRoute
+  AuthRoute: typeof AuthRoute
   ClientsRoute: typeof ClientsRouteWithChildren
   DeletedRoute: typeof DeletedRoute
   ImportRoute: typeof ImportRoute
@@ -348,6 +361,13 @@ declare module '@tanstack/react-router' {
       path: '/approved'
       fullPath: '/approved'
       preLoaderRoute: typeof ApprovedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients': {
@@ -531,6 +551,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdditionalRoute: AdditionalRoute,
   ApprovedRoute: ApprovedRoute,
+  AuthRoute: AuthRoute,
   ClientsRoute: ClientsRouteWithChildren,
   DeletedRoute: DeletedRoute,
   ImportRoute: ImportRoute,
