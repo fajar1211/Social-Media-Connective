@@ -16,6 +16,8 @@ import {
   Menu,
   LogOut,
   Shield,
+  Calendar,
+  BarChart3,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -25,7 +27,11 @@ import { useAuth } from "@/lib/auth";
 const adminNav = [
   {
     label: "Overview",
-    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/analytics", label: "Analytics", icon: BarChart3 },
+      { to: "/calendar", label: "Calendar", icon: Calendar },
+    ],
   },
   {
     label: "Content",
@@ -62,7 +68,11 @@ const adminNav = [
 const clientNav = [
   {
     label: "Overview",
-    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/analytics", label: "Analytics", icon: BarChart3 },
+      { to: "/calendar", label: "Calendar", icon: Calendar },
+    ],
   },
   {
     label: "Content",

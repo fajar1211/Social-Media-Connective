@@ -23,6 +23,8 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubmittedRouteImport } from './routes/submitted'
 import { Route as SuggestedRouteImport } from './routes/suggested'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 import { Route as ContentIndexRouteImport } from './routes/content.index'
 import { Route as ContentCreateRouteImport } from './routes/content.create'
@@ -106,6 +108,16 @@ const UsersRoute = UsersRouteImport.update({
   path: '/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
   id: '/$clientId',
   path: '/$clientId',
@@ -183,6 +195,8 @@ export interface FileRoutesByFullPath {
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
   '/users': typeof UsersRoute
+  '/analytics': typeof AnalyticsRoute
+  '/calendar': typeof CalendarRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
@@ -211,6 +225,8 @@ export interface FileRoutesByTo {
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
   '/users': typeof UsersRoute
+  '/analytics': typeof AnalyticsRoute
+  '/calendar': typeof CalendarRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content': typeof ContentIndexRoute
@@ -240,6 +256,8 @@ export interface FileRoutesById {
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
   '/users': typeof UsersRoute
+  '/analytics': typeof AnalyticsRoute
+  '/calendar': typeof CalendarRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
@@ -270,6 +288,8 @@ export interface FileRouteTypes {
     | '/submitted'
     | '/suggested'
     | '/users'
+    | '/analytics'
+    | '/calendar'
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
@@ -298,6 +318,8 @@ export interface FileRouteTypes {
     | '/submitted'
     | '/suggested'
     | '/users'
+    | '/analytics'
+    | '/calendar'
     | '/clients/$clientId'
     | '/content/create'
     | '/content'
@@ -326,6 +348,8 @@ export interface FileRouteTypes {
     | '/submitted'
     | '/suggested'
     | '/users'
+    | '/analytics'
+    | '/calendar'
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
@@ -355,6 +379,8 @@ export interface RootRouteChildren {
   SubmittedRoute: typeof SubmittedRoute
   SuggestedRoute: typeof SuggestedRoute
   UsersRoute: typeof UsersRoute
+  AnalyticsRoute: typeof AnalyticsRoute
+  CalendarRoute: typeof CalendarRoute
   ContentCreateRoute: typeof ContentCreateRoute
   ContentIndexRoute: typeof ContentIndexRoute
   ApiAuthFacebookRoute: typeof ApiAuthFacebookRouteWithChildren
@@ -464,6 +490,20 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients/$clientId': {
@@ -602,6 +642,8 @@ const rootRouteChildren: RootRouteChildren = {
   SubmittedRoute: SubmittedRoute,
   SuggestedRoute: SuggestedRoute,
   UsersRoute: UsersRoute,
+  AnalyticsRoute: AnalyticsRoute,
+  CalendarRoute: CalendarRoute,
   ContentCreateRoute: ContentCreateRoute,
   ContentIndexRoute: ContentIndexRoute,
   ApiAuthFacebookRoute: ApiAuthFacebookRouteWithChildren,
