@@ -130,20 +130,24 @@ function RootShell({ children }: { children: ReactNode }) {
 function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const [ready, setReady] = useState(false);
-  const [pathname, setPathname] = useState("");
+  const [isPublicPage, setIsPublicPage] = useState(false);
 
   useEffect(() => {
-    setPathname(window.location.pathname);
+    const path = window.location.pathname;
+    setIsPublicPage(path === "/auth" || path === "/home");
     setReady(true);
   }, []);
 
   useEffect(() => {
     if (!ready || loading) return;
 
-    if (user && pathname === "/auth") {
+    if (!user && !isPublicPage) {
+      window.location.href = "/home";
+    }
+    if (user && window.location.pathname === "/auth") {
       window.location.href = "/";
     }
-  }, [ready, user, loading, pathname]);
+  }, [ready, user, loading, isPublicPage]);
 
   if (loading || !ready) {
     return (
@@ -151,6 +155,10 @@ function AuthGuard({ children }: { children: ReactNode }) {
         <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
+  }
+
+  if (!user && !isPublicPage) {
+    return null;
   }
 
   return <>{children}</>;

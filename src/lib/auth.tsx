@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("socmedconnective-local-auth");
     setUser(null);
     setSession(null);
-    window.location.href = "/";
+    window.location.href = "/home";
   };
 
   return (
