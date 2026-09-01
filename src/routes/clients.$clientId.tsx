@@ -46,6 +46,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from "@/components/badges";
 import { ContentList } from "@/components/content-list";
 import { counts, useStore, actions, SOCIAL_PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem } from "@/lib/content-store";
@@ -755,64 +762,57 @@ function SettingsTab({ clientId }: { clientId: string }) {
               <>
                 {pendingBusinesses.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="text-sm">Select Business ({pendingBusinesses.length})</Label>
-                    <select
+                    <Label className="text-sm">Business Portfolio</Label>
+                    <Select
                       value={selectedBusinessId}
-                      onChange={(e) => setSelectedBusinessId(e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                      onValueChange={(value) => {
+                        setSelectedBusinessId(value);
+                        setSelectedPageId("");
+                      }}
                     >
-                      {pendingBusinesses.map((business) => (
-                        <option key={business.id} value={business.id}>
-                          {business.name}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedBusinessId && (
-                      <div className="rounded-lg border bg-muted/50 p-3">
-                        <p className="text-xs text-muted-foreground">Selected Business:</p>
-                        <p className="text-sm font-medium">
-                          {pendingBusinesses.find((b) => b.id === selectedBusinessId)?.name}
-                        </p>
-                      </div>
-                    )}
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a business..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pendingBusinesses.map((business) => (
+                          <SelectItem key={business.id} value={business.id}>
+                            {business.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
 
-                {pendingPages.length > 0 && (
+                {selectedBusinessId && (
                   <div className="space-y-2">
-                    <Label className="text-sm">Select Page ({pendingPages.filter((p) => {
-                      if (!selectedBusinessId) return true;
-                      const biz = pendingBusinesses.find((b) => b.id === selectedBusinessId);
-                      return biz?.pages?.some((bp) => bp.id === p.id) ?? true;
-                    }).length})</Label>
-                    <select
+                    <Label className="text-sm">Page</Label>
+                    <Select
                       value={selectedPageId}
-                      onChange={(e) => setSelectedPageId(e.target.value)}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                      onValueChange={setSelectedPageId}
+                      disabled={!selectedBusinessId}
                     >
-                      {pendingPages.filter((p) => {
-                        if (!selectedBusinessId) return true;
-                        const biz = pendingBusinesses.find((b) => b.id === selectedBusinessId);
-                        return biz?.pages?.some((bp) => bp.id === p.id) ?? true;
-                      }).map((page) => (
-                        <option key={page.id} value={page.id}>
-                          {page.name}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedPageId && (
-                      <div className="rounded-lg border bg-muted/50 p-3">
-                        <p className="text-xs text-muted-foreground">Selected Page:</p>
-                        <p className="text-sm font-medium">
-                          {pendingPages.find((p) => p.id === selectedPageId)?.name}
-                        </p>
-                      </div>
-                    )}
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a page..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pendingPages
+                          .filter((p) => {
+                            const biz = pendingBusinesses.find((b) => b.id === selectedBusinessId);
+                            return biz?.pages?.some((bp) => bp.id === p.id) ?? true;
+                          })
+                          .map((page) => (
+                            <SelectItem key={page.id} value={page.id}>
+                              {page.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  Only 1 business and 1 page can be connected. You can change this later by disconnecting and reconnecting.
+                  Select 1 Business and 1 Page to connect.
                 </p>
               </>
             )}
@@ -835,9 +835,9 @@ function SettingsTab({ clientId }: { clientId: string }) {
             </Button>
             <Button
               onClick={handleConfirmPageSelection}
-              disabled={!selectedPageId || pendingPages.length === 0}
+              disabled={!selectedBusinessId || !selectedPageId}
             >
-              Connect Page
+              Connect
             </Button>
           </div>
         </DialogContent>
