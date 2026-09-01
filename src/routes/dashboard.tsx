@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lightbulb, PlusCircle, Send, CheckCircle2, Trash2, Users, Shield } from "lucide-react";
+import { Lightbulb, PlusCircle, Send, CheckCircle2, Trash2, Users, Shield, Building2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { ContentTable } from "@/components/content-list";
@@ -43,7 +43,38 @@ function Dashboard() {
     .slice(0, 6);
 
   const isAdmin = profile?.role === "admin";
-  const userName = profile?.full_name || profile?.email?.split("@")[0] || "User";
+  const isClient = profile?.role === "client";
+  const hasClient = isClient && !!profile?.clientId;
+  const userName = profile?.fullName || "User";
+
+  // Client without a client assigned - show setup prompt
+  if (isClient && !hasClient) {
+    return (
+      <>
+        <PageHeader
+          title={`Welcome, ${userName}`}
+          subtitle="Set up your client profile to get started."
+        />
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card px-6 py-20 text-center">
+          <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10">
+            <Building2 className="size-7 text-primary" />
+          </div>
+          <p className="text-base font-medium">No Client Profile Yet</p>
+          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+            You need to set up your client profile before you can manage content. 
+            Please contact your admin to assign you to a client, or create one below.
+          </p>
+          <Button className="mt-6" asChild>
+            <Link to="/clients">Set Up Client</Link>
+          </Button>
+        </div>
+      </>
+    );
+  }
+
+  const clientName = isClient && profile?.clientId
+    ? clients.find((cl) => cl.id === profile.clientId)?.name || "your client"
+    : "all clients";
 
   return (
     <>
@@ -52,7 +83,7 @@ function Dashboard() {
         subtitle={
           isAdmin
             ? "You have full access to all clients and content."
-            : `Managing content for ${clients.length > 0 ? clients[0]?.name : "your client"}.`
+            : `Managing content for ${clientName}.`
         }
         actions={
           <div className="flex gap-2">

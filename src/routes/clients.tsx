@@ -8,6 +8,7 @@ import {
   Pencil,
   Trash2,
   Inbox,
+  Building2,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ClientStatusBadge, PlatformBadge } from "@/components/badges";
-import { actions, useStore, type Client, type Platform } from "@/lib/content-store";
+import { actions, useStore, counts, type Client, type Platform } from "@/lib/content-store";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/clients")({
   head: () => ({
@@ -135,12 +137,21 @@ function ClientsPage() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isChildRoute = pathname !== "/clients";
+  const { profile } = useAuth();
 
   if (isChildRoute) {
     return <Outlet />;
   }
 
+  const isAdmin = profile?.role === "admin";
+  const isClient = profile?.role === "client";
+  const myClientId = profile?.clientId;
+
   const { clients, content } = useStore();
+
+  // Client role: show only their own client
+  const myClient = isClient && myClientId ? clients.find((c) => c.id === myClientId) : null;
+
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -156,6 +167,129 @@ function ClientsPage() {
 
   const [deleting, setDeleting] = useState<Client | null>(null);
 
+  // Client without assigned client - show setup form
+  if (isClient && !myClientId) {
+    return (
+      <>
+        <PageHeader
+          title="Set Up Your Client"
+          subtitle="Create your client profile to start managing content."
+        />
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card px-6 py-20 text-center">
+          <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10">
+            <Building2 className="size-7 text-primary" />
+          </div>
+          <p className="text-base font-medium">No Client Profile</p>
+          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+            You need to create a client profile. This will be used to organize your content.
+          </p>
+          <Button className="mt-6" onClick={() => setAdding(true)}>
+            Create My Client
+          </Button>
+        </div>
+
+        <Dialog
+          open={adding}
+          onOpenChange={(o) => {
+            if (!o) {
+              setAdding(false);
+              setClientId("");
+              setName("");
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Your Client</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <Label>Client Name</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. My Business"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && name.trim()) {
+                    const cid = "client-" + Date.now();
+                    actions.addClient(cid, name.trim(), []);
+                    toast.success("Client created! Please contact admin to link your account.");
+                    setAdding(false);
+                    setClientId("");
+                    setName("");
+                  }
+                }}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setAdding(false); setClientId(""); setName(""); }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!name.trim()) {
+                    toast.error("Enter a client name.");
+                    return;
+                  }
+                  const cid = "client-" + Date.now();
+                  actions.addClient(cid, name.trim(), []);
+                  toast.success("Client created! Please contact admin to link your account.");
+                  setAdding(false);
+                  setClientId("");
+                  setName("");
+                }}
+              >
+                Create Client
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // Client with assigned client - show their client read-only
+  if (isClient && myClient) {
+    const myContent = content.filter((i) => i.clientId === myClientId);
+    const c = counts(myContent);
+
+    return (
+      <>
+        <PageHeader
+          title="My Client"
+          subtitle={myClient.name}
+        />
+
+        <div className="rounded-xl border bg-card p-6 shadow-soft">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-lg font-semibold">{myClient.name}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <ClientStatusBadge active={myClient.active} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {myClient.platforms.length > 0 ? (
+                  myClient.platforms.map((p) => <PlatformBadge key={p} platform={p} />)
+                ) : (
+                  <span className="text-xs text-muted-foreground">No platforms assigned</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {(["Suggested", "Additional", "Submitted", "Approved", "Deleted"] as const).map((status) => (
+              <div key={status} className="rounded-lg border p-3 text-center">
+                <p className="text-2xl font-semibold tabular-nums">{c[status]}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{status}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Admin view - full client management
   const filtered = useMemo(() => {
     let list = clients;
     if (query.trim()) {

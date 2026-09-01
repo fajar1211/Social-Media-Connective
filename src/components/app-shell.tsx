@@ -99,10 +99,6 @@ const clientNav = [
     ],
   },
   {
-    label: "Management",
-    items: [{ to: "/clients", label: "Clients", icon: Users }],
-  },
-  {
     label: "System",
     items: [{ to: "/settings", label: "Settings", icon: Settings }],
   },
