@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
-import { createProfile } from "@/lib/db";
+import { createProfile, hasExistingProfiles } from "@/lib/db";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -84,13 +84,16 @@ function AuthPage() {
       return;
     }
 
+    const isFirstUser = !(await hasExistingProfiles());
+    const userRole = isFirstUser ? "admin" : "client";
+
     const { data, error } = await supabase.auth.signUp({
       email: signUpEmail,
       password: signUpPassword,
       options: {
         data: {
           full_name: signUpName,
-          role: "client",
+          role: userRole,
         },
       },
     });
@@ -99,15 +102,18 @@ function AuthPage() {
       setError(error.message);
       setLoading(false);
     } else if (data.user) {
-      // Profile is auto-created by trigger, but we can update it
       await createProfile({
         id: data.user.id,
         email: signUpEmail,
         full_name: signUpName,
-        role: "client",
+        role: userRole,
         client_id: null,
       });
-      setSuccess("Account created! Check your email for confirmation.");
+      if (isFirstUser) {
+        setSuccess("Admin account created! Check your email for confirmation.");
+      } else {
+        setSuccess("Account created! Check your email for confirmation.");
+      }
       setLoading(false);
     }
   };

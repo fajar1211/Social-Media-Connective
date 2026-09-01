@@ -26,6 +26,18 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return data;
 }
 
+export async function hasExistingProfiles(): Promise<boolean> {
+  if (!supabaseConfigured) return false;
+  const { count, error } = await supabase
+    .from("profiles")
+    .select("*", { count: "exact", head: true });
+  if (error) {
+    console.error("Error checking profiles:", error);
+    return true;
+  }
+  return (count ?? 0) > 0;
+}
+
 export async function createProfile(
   profile: Omit<Profile, "created_at" | "updated_at">
 ): Promise<Profile | null> {
