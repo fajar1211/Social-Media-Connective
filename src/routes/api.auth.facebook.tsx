@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/auth/facebook")({
           scope: "public_profile,email",
           state: clientId,
           auth_type: "reauthenticate",
-          config_id: "1609958777368717",
+          config_id: "1623538329189371",
         });
 
         return new Response(null, {
