@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -131,11 +131,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const location = useLocation();
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+  const location = useLocation();
 
   useEffect(() => {
-    if (loading) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || loading) return;
 
     if (!user && location.pathname !== "/auth") {
       router.navigate({ to: "/auth" });
@@ -144,9 +149,9 @@ function AuthGuard({ children }: { children: ReactNode }) {
     if (user && location.pathname === "/auth") {
       router.navigate({ to: "/" });
     }
-  }, [user, loading, location.pathname, router]);
+  }, [mounted, user, loading, location.pathname, router]);
 
-  if (loading) {
+  if (loading || !mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
