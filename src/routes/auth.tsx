@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -40,6 +40,15 @@ function AuthPage() {
     setLoading(true);
     setError(null);
 
+    if (!supabaseConfigured) {
+      localStorage.setItem(
+        "socmedconnective-local-auth",
+        JSON.stringify({ email: signInEmail, name: signInEmail.split("@")[0] })
+      );
+      window.location.href = "/";
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email: signInEmail,
       password: signInPassword,
@@ -65,6 +74,15 @@ function AuthPage() {
       return;
     }
 
+    if (!supabaseConfigured) {
+      localStorage.setItem(
+        "socmedconnective-local-auth",
+        JSON.stringify({ email: signUpEmail, name: signUpName })
+      );
+      window.location.href = "/";
+      return;
+    }
+
     const { error } = await supabase.auth.signUp({
       email: signUpEmail,
       password: signUpPassword,
@@ -85,6 +103,14 @@ function AuthPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!supabaseConfigured) {
+      localStorage.setItem(
+        "socmedconnective-local-auth",
+        JSON.stringify({ email: "user@google.com", name: "Google User" })
+      );
+      window.location.href = "/";
+      return;
+    }
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

@@ -23,7 +23,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!supabaseConfigured) {
-      setUser({ id: "local", email: "admin@local" } as User);
+      try {
+        const raw = localStorage.getItem("socmedconnective-local-auth");
+        if (raw) {
+          const data = JSON.parse(raw);
+          setUser({ id: "local", email: data.email, user_metadata: { full_name: data.name } } as User);
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      }
       setSession(null);
       setLoading(false);
       return;
@@ -50,6 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (supabaseConfigured) {
       await supabase.auth.signOut();
     }
+    localStorage.removeItem("socmedconnective-local-auth");
+    setUser(null);
+    setSession(null);
     window.location.href = "/home";
   };
 
