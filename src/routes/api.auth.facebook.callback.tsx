@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 const META_APP_ID = "1513088904188454";
 const META_APP_SECRET = "a2801fd1f190e76d0ffdb3125ec2dc14";
 const REDIRECT_URI =
-  "https://socmedconnective.marketingconnective.com/api/auth/facebook/callback";
+  "https://socmed.marketingconnective.com/api/auth/facebook/callback";
 const GRAPH_API_VERSION = "v19.0";
 
 export const Route = createFileRoute("/api/auth/facebook/callback")({

@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -130,7 +131,20 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const pathname = window.location.pathname;
+  const location = useLocation();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user && location.pathname !== "/auth") {
+      router.navigate({ to: "/auth" });
+    }
+
+    if (user && location.pathname === "/auth") {
+      router.navigate({ to: "/" });
+    }
+  }, [user, loading, location.pathname, router]);
 
   if (loading) {
     return (
@@ -140,13 +154,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user && pathname !== "/auth") {
-    window.location.href = "/auth";
-    return null;
-  }
-
-  if (user && pathname === "/auth") {
-    window.location.href = "/";
+  if (!user && location.pathname !== "/auth") {
     return null;
   }
 

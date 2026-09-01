@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Repository**: https://github.com/fajar1211/Social-Media-Connective
-- **Production**: https://socmedconnective.marketingconnective.com/
+- **Production**: https://socmed.marketingconnective.com/
 - **Tech Stack**: TanStack Start (React 19), TanStack Router, Nitro, Tailwind CSS v4, shadcn/ui, Vite 8
 - **Dev Server**: `npx vite dev` on port 8080
 - **PowerShell**: Need `-ExecutionPolicy Bypass` prefix
@@ -40,7 +40,7 @@
 - **Facebook OAuth**: `/api/auth/facebook` → redirect to Meta → `/api/auth/facebook/callback`
 - **Instagram OAuth**: `/api/auth/instagram` → redirect to Meta → `/api/auth/instagram/callback`
 - Meta App ID: `1513088904188454`
-- Callback URL: `https://socmedconnective.marketingconnective.com/api/auth/facebook/callback`
+- Callback URL: `https://socmed.marketingconnective.com/api/auth/facebook/callback`
 - Scopes: `business_management`, `pages_read_engagement`, `pages_manage_posts`
 - `auth_type=reauthenticate` → force different accounts per client
 - `state` parameter = `clientId` → prevents cross-client token save
@@ -113,7 +113,7 @@
 ```
 META_APP_ID=1513088904188454
 META_APP_SECRET=a2801fd1f190e76d0ffdb3125ec2dc14
-META_REDIRECT_URI=https://socmedconnective.marketingconnective.com/api/auth/facebook/callback
+META_REDIRECT_URI=https://socmed.marketingconnective.com/api/auth/facebook/callback
 ```
 
 > ⚠️ Note: `META_APP_SECRET` is hardcoded in callback files for Cloudflare Workers compatibility (not ideal for production security).

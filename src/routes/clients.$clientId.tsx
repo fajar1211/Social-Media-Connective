@@ -541,7 +541,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
   const [selectedPageId, setSelectedPageId] = useState<string>("");
 
-  const magicLinkUrl = `https://socmedconnective.marketingconnective.com/client/${clientId}`;
+  const magicLinkUrl = `https://socmed.marketingconnective.com/client/${clientId}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(magicLinkUrl);
