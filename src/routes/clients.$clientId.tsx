@@ -675,10 +675,83 @@ function SettingsTab({ clientId }: { clientId: string }) {
         `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
       );
 
+      const processInstagramAuth = (eventData: Record<string, unknown>) => {
+        const instagramAccounts = (eventData.instagram_accounts || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string } }>;
+        const pages = (eventData.pages || []) as Array<{ id: string; name: string }>;
+        const user = eventData.user as { id: string; name: string };
+
+        if (instagramAccounts.length === 1) {
+          const account = instagramAccounts[0];
+          const page = pages.find((p) => p.instagram_business_account);
+          const igAccount = page?.instagram_business_account;
+
+          actions.updateClient(clientId, {
+            socialIntegrations: {
+              ...socialIntegrationsRef.current,
+              Instagram: {
+                connected: true,
+                accountName: igAccount?.name || account.name,
+                accountId: igAccount?.id || account.id,
+                connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                accessToken: eventData.access_token as string,
+                tokenExpiresIn: eventData.expires_in as number,
+              },
+            },
+          });
+
+          toast.success(`Instagram connected to "${igAccount?.name || account.name}" successfully!`);
+        } else if (instagramAccounts.length > 1) {
+          toast.info(`Found ${instagramAccounts.length} Instagram accounts. Select one.`);
+        } else {
+          toast.error("No Instagram Business accounts found. Please connect an Instagram Business account to a Facebook Page first.");
+        }
+      };
+
+      const handler = (event: MessageEvent) => {
+        if (event.data?.type === "instagram-auth-success" && event.data.clientId === clientId) {
+          processInstagramAuth(event.data);
+          window.removeEventListener("message", handler);
+        } else if (event.data?.type === "instagram-auth-error" && event.data.clientId === clientId) {
+          toast.error(`Failed to connect Instagram: ${event.data.error}`);
+          window.removeEventListener("message", handler);
+        }
+      };
+
+      window.addEventListener("message", handler);
+
+      const handleStorage = (e: StorageEvent) => {
+        if (e.key === "socmedconnective-ig-auth" && e.newValue) {
+          try {
+            const data = JSON.parse(e.newValue);
+            if (data.type === "instagram-auth-success" && data.clientId === clientId) {
+              processInstagramAuth(data);
+              localStorage.removeItem("socmedconnective-ig-auth");
+            }
+          } catch {}
+        }
+      };
+      window.addEventListener("storage", handleStorage);
+
+      const checkExisting = setInterval(() => {
+        try {
+          const raw = localStorage.getItem("socmedconnective-ig-auth");
+          if (raw) {
+            const data = JSON.parse(raw);
+            if (data.type === "instagram-auth-success" && data.clientId === clientId) {
+              processInstagramAuth(data);
+              localStorage.removeItem("socmedconnective-ig-auth");
+            }
+          }
+        } catch {}
+      }, 300);
+
       if (popup) {
         const check = setInterval(() => {
           if (popup.closed) {
             clearInterval(check);
+            clearInterval(checkExisting);
+            window.removeEventListener("message", handler);
+            window.removeEventListener("storage", handleStorage);
           }
         }, 500);
       }

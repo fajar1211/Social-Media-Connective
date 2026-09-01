@@ -12,6 +12,13 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
         const clientId = state || "unknown";
 
         if (error) {
+          const errorPayload = JSON.stringify({
+            type: "instagram-auth-error",
+            clientId: clientId,
+            error: error,
+            description: errorDescription || "",
+          });
+
           return new Response(
             `<!DOCTYPE html>
 <html>
@@ -21,10 +28,15 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
   <p><strong>Error:</strong> ${error}</p>
   <p><strong>Description:</strong> ${errorDescription || "Unknown error"}</p>
   <script>
-    if (window.opener) {
-      window.opener.postMessage({ type: "instagram-auth-error", clientId: "${clientId}", error: "${error}", description: "${errorDescription || ""}" }, "*");
-      window.close();
-    }
+    (function() {
+      try {
+        localStorage.setItem("socmedconnective-ig-auth", atob("${btoa(errorPayload)}"));
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(${errorPayload}, "*");
+        }
+      } catch(e) {}
+      setTimeout(function() { try { window.close(); } catch(e) {} }, 500);
+    })();
   </script>
 </body>
 </html>`,
@@ -87,6 +99,17 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
             (page: { instagram_business_account?: unknown }) => page.instagram_business_account
           ) || [];
 
+          const payload = JSON.stringify({
+            type: "instagram-auth-success",
+            clientId: clientId,
+            user: userData,
+            pages: pagesData.data || [],
+            instagram_accounts: instagramAccounts,
+            access_token: tokenData.access_token,
+            token_type: tokenData.token_type || "bearer",
+            expires_in: tokenData.expires_in || 0,
+          });
+
           return new Response(
             `<!DOCTYPE html>
 <html>
@@ -95,20 +118,26 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
   <h2>Instagram Authentication Successful!</h2>
   <p><strong>User:</strong> ${userData.name} (${userData.id})</p>
   <p><strong>Instagram Accounts:</strong> ${instagramAccounts.length} found</p>
+  <p id="status" style="color:green;">Connecting...</p>
   <script>
-    if (window.opener) {
-      window.opener.postMessage({
-        type: "instagram-auth-success",
-        clientId: "${clientId}",
-        user: ${JSON.stringify(userData)},
-        pages: ${JSON.stringify(pagesData.data || [])},
-        instagram_accounts: ${JSON.stringify(instagramAccounts)},
-        access_token: "${tokenData.access_token}",
-        token_type: "${tokenData.token_type}",
-        expires_in: ${tokenData.expires_in || 0}
-      }, "*");
-      window.close();
-    }
+    (function() {
+      try {
+        localStorage.setItem("socmedconnective-ig-auth", atob("${btoa(payload)}"));
+
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(${payload}, "*");
+        }
+
+        setTimeout(function() {
+          try { window.close(); } catch(e) {}
+          var el = document.getElementById("status");
+          if (el) el.textContent = "Connected! You can close this tab.";
+        }, 800);
+      } catch(e) {
+        var el = document.getElementById("status");
+        if (el) el.textContent = "Connected! Please close this tab.";
+      }
+    })();
   </script>
 </body>
 </html>`,
@@ -118,6 +147,12 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
             }
           );
         } catch (err) {
+          const errorPayload = JSON.stringify({
+            type: "instagram-auth-error",
+            clientId: clientId,
+            error: err instanceof Error ? err.message : "Unknown error",
+          });
+
           return new Response(
             `<!DOCTYPE html>
 <html>
@@ -126,10 +161,15 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
   <h2>Instagram OAuth Error</h2>
   <p><strong>Error:</strong> ${err instanceof Error ? err.message : "Unknown error"}</p>
   <script>
-    if (window.opener) {
-      window.opener.postMessage({ type: "instagram-auth-error", clientId: "${clientId}", error: "${err instanceof Error ? err.message : "Unknown error"}" }, "*");
-      window.close();
-    }
+    (function() {
+      try {
+        localStorage.setItem("socmedconnective-ig-auth", atob("${btoa(errorPayload)}"));
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(${errorPayload}, "*");
+        }
+      } catch(e) {}
+      setTimeout(function() { try { window.close(); } catch(e) {} }, 500);
+    })();
   </script>
 </body>
 </html>`,
