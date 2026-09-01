@@ -2,9 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
-  createRootRouteWithContext,
   useRouter,
-  useLocation,
+  createRootRouteWithContext,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -40,8 +39,7 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
-  const router = useRouter();
+  console.error("[SMC Error]", error);
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
@@ -55,12 +53,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        <pre className="mt-4 max-h-40 overflow-auto rounded bg-muted p-3 text-left text-xs text-muted-foreground">
+          {error?.message ?? String(error)}
+        </pre>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
+            onClick={() => reset()}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Try again
@@ -131,27 +129,26 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const [mounted, setMounted] = useState(false);
-  const router = useRouter();
-  const location = useLocation();
+  const [ready, setReady] = useState(false);
+  const [isAuthPage, setIsAuthPage] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setIsAuthPage(window.location.pathname === "/auth");
+    setReady(true);
   }, []);
 
   useEffect(() => {
-    if (!mounted || loading) return;
+    if (!ready || loading) return;
 
-    if (!user && location.pathname !== "/auth") {
-      router.navigate({ to: "/auth" });
+    if (!user && !isAuthPage) {
+      window.location.href = "/auth";
     }
-
-    if (user && location.pathname === "/auth") {
-      router.navigate({ to: "/" });
+    if (user && isAuthPage) {
+      window.location.href = "/";
     }
-  }, [mounted, user, loading, location.pathname, router]);
+  }, [ready, user, loading, isAuthPage]);
 
-  if (loading || !mounted) {
+  if (loading || !ready) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -159,7 +156,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user && location.pathname !== "/auth") {
+  if (!user && !isAuthPage) {
     return null;
   }
 
