@@ -84,7 +84,7 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
           const pagesData = await pagesResponse.json();
 
           const businessesResponse = await fetch(
-            `https://graph.facebook.com/v19.0/me?fields=businesses{id,name}&access_token=${tokenData.access_token}`
+            `https://graph.facebook.com/v19.0/me/businesses?fields=id,name&access_token=${tokenData.access_token}`
           );
           const businessesData = await businessesResponse.json();
 
@@ -100,7 +100,7 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
 <body>
   <h2>Facebook Authentication Successful!</h2>
   <p><strong>User:</strong> ${userData.name} (${userData.id})</p>
-  <p><strong>Businesses:</strong> ${businessesData.businesses?.data?.length || 0} found</p>
+  <p><strong>Businesses:</strong> ${businessesData.data?.length || 0} found</p>
   <p><strong>Pages:</strong> ${facebookPages.length} found</p>
   <script>
     if (window.opener) {
@@ -108,7 +108,7 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
         type: "facebook-auth-success",
         clientId: "${clientId}",
         user: ${JSON.stringify(userData)},
-        businesses: ${JSON.stringify(businessesData.businesses?.data || [])},
+        businesses: ${JSON.stringify(businessesData.data || [])},
         pages: ${JSON.stringify(facebookPages)},
         access_token: "${tokenData.access_token}",
         token_type: "${tokenData.token_type}",
