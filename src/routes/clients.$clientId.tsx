@@ -570,50 +570,53 @@ function SettingsTab({ clientId }: { clientId: string }) {
         `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
       );
 
+      const processFacebookAuth = (eventData: Record<string, unknown>) => {
+        const user = eventData.user as { id: string; name: string };
+        const businesses = (eventData.businesses || []) as Array<{ id: string; name: string; pages?: Array<{ id: string; name: string; category: string; access_token: string }> }>;
+        const pages = (eventData.pages || []) as Array<{ id: string; name: string; category: string; access_token: string }>;
+        const autoConnect = eventData.auto_connect === true;
+
+        if (autoConnect && businesses.length === 1 && pages.length === 1) {
+          const biz = businesses[0];
+          const page = pages[0];
+
+          actions.updateClient(clientId, {
+            socialIntegrations: {
+              ...socialIntegrationsRef.current,
+              Facebook: {
+                connected: true,
+                accountName: user.name,
+                accountId: user.id,
+                connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                accessToken: eventData.access_token as string,
+                tokenExpiresIn: eventData.expires_in as number,
+                pages: [page],
+                selectedBusinessId: biz.id,
+                selectedBusinessName: biz.name,
+                selectedPageId: page.id,
+                selectedPageName: page.name,
+              },
+            },
+          });
+
+          toast.success(`Facebook connected to "${page.name}" successfully!`);
+        } else {
+          setPendingPages(pages);
+          setPendingBusinesses(businesses);
+          setPendingUser(user);
+          setPendingToken({
+            access_token: eventData.access_token as string,
+            expires_in: eventData.expires_in as number,
+          });
+          setSelectedBusinessId(businesses[0]?.id || "");
+          setSelectedPageId(pages[0]?.id || "");
+          setPageSelectorOpen(true);
+        }
+      };
+
       const handler = (event: MessageEvent) => {
         if (event.data?.type === "facebook-auth-success" && event.data.clientId === clientId) {
-          const user = event.data.user;
-          const businesses = event.data.businesses || [];
-          const pages = event.data.pages || [];
-          const autoConnect = event.data.auto_connect === true;
-
-          if (autoConnect && businesses.length === 1 && pages.length === 1) {
-            const biz = businesses[0];
-            const page = pages[0];
-
-            actions.updateClient(clientId, {
-              socialIntegrations: {
-                ...socialIntegrationsRef.current,
-                Facebook: {
-                  connected: true,
-                  accountName: user.name,
-                  accountId: user.id,
-                  connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-                  accessToken: event.data.access_token,
-                  tokenExpiresIn: event.data.expires_in,
-                  pages: [page],
-                  selectedBusinessId: biz.id,
-                  selectedBusinessName: biz.name,
-                  selectedPageId: page.id,
-                  selectedPageName: page.name,
-                },
-              },
-            });
-
-            toast.success(`Facebook connected to "${page.name}" successfully!`);
-          } else {
-            setPendingPages(pages);
-            setPendingBusinesses(businesses);
-            setPendingUser(user);
-            setPendingToken({
-              access_token: event.data.access_token,
-              expires_in: event.data.expires_in,
-            });
-            setSelectedBusinessId(businesses[0]?.id || "");
-            setSelectedPageId(pages[0]?.id || "");
-            setPageSelectorOpen(true);
-          }
-
+          processFacebookAuth(event.data);
           window.removeEventListener("message", handler);
         } else if (event.data?.type === "facebook-auth-error" && event.data.clientId === clientId) {
           toast.error(`Failed to connect ${platform}: ${event.data.error}`);
@@ -623,11 +626,39 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
       window.addEventListener("message", handler);
 
+      const handleStorage = (e: StorageEvent) => {
+        if (e.key === "socmedconnective-fb-auth" && e.newValue) {
+          try {
+            const data = JSON.parse(e.newValue);
+            if (data.type === "facebook-auth-success" && data.clientId === clientId) {
+              processFacebookAuth(data);
+              localStorage.removeItem("socmedconnective-fb-auth");
+            }
+          } catch {}
+        }
+      };
+      window.addEventListener("storage", handleStorage);
+
+      const checkExisting = setInterval(() => {
+        try {
+          const raw = localStorage.getItem("socmedconnective-fb-auth");
+          if (raw) {
+            const data = JSON.parse(raw);
+            if (data.type === "facebook-auth-success" && data.clientId === clientId) {
+              processFacebookAuth(data);
+              localStorage.removeItem("socmedconnective-fb-auth");
+            }
+          }
+        } catch {}
+      }, 300);
+
       if (popup) {
         const check = setInterval(() => {
           if (popup.closed) {
             clearInterval(check);
+            clearInterval(checkExisting);
             window.removeEventListener("message", handler);
+            window.removeEventListener("storage", handleStorage);
           }
         }, 500);
       }

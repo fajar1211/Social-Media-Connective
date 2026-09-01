@@ -74,7 +74,7 @@ const slides = [
   "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1200&q=70",
 ];
 
-let state: State = {
+const defaultState: State = {
   content: [
     {
       id: "c-1001",
@@ -107,9 +107,45 @@ let state: State = {
   ],
 };
 
+const STORAGE_KEY = "socmedconnective-store";
+
+function loadState(): State {
+  if (typeof window === "undefined") return defaultState;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      return {
+        ...defaultState,
+        clients: saved.clients || defaultState.clients,
+        content: saved.content || defaultState.content,
+        platforms: saved.platforms || defaultState.platforms,
+      };
+    }
+  } catch {}
+  return defaultState;
+}
+
+function saveState() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        clients: state.clients,
+        content: state.content,
+        platforms: state.platforms,
+      })
+    );
+  } catch {}
+}
+
+let state: State = loadState();
+
 const listeners = new Set<() => void>();
 function emit() {
   state = { ...state };
+  saveState();
   listeners.forEach((l) => l());
 }
 function subscribe(l: () => void) {

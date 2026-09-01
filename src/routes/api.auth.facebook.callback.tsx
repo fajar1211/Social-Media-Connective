@@ -157,6 +157,18 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
 
           const autoConnect = businesses.length === 1 && allBusinessPages.length === 1;
 
+          const payload = JSON.stringify({
+            type: "facebook-auth-success",
+            clientId: clientId,
+            user: userData,
+            businesses: businesses,
+            pages: allBusinessPages,
+            access_token: accessToken,
+            token_type: tokenData.token_type || "bearer",
+            expires_in: tokenData.expires_in || 0,
+            auto_connect: autoConnect,
+          });
+
           const successHtml = buildHtml({
             title: "Facebook Auth Success",
             body: `
@@ -169,29 +181,20 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
             script: `
               (function() {
                 try {
-                  var data = {
-                    type: "facebook-auth-success",
-                    clientId: "${escapeJs(clientId)}",
-                    user: ${JSON.stringify(userData)},
-                    businesses: ${JSON.stringify(businesses)},
-                    pages: ${JSON.stringify(allBusinessPages)},
-                    access_token: "${accessToken}",
-                    token_type: "${tokenData.token_type || "bearer"}",
-                    expires_in: ${tokenData.expires_in || 0},
-                    auto_connect: ${autoConnect}
-                  };
+                  localStorage.setItem("socmedconnective-fb-auth", atob("${btoa(payload)}"));
 
                   if (window.opener && !window.opener.closed) {
-                    window.opener.postMessage(data, "*");
-                    setTimeout(function() {
-                      try { window.close(); } catch(e) {}
-                      document.getElementById("status").textContent = "Connected! You can close this tab.";
-                    }, 500);
-                  } else {
-                    document.getElementById("status").textContent = "Connected! Please close this tab.";
+                    window.opener.postMessage(${payload}, "*");
                   }
+
+                  setTimeout(function() {
+                    try { window.close(); } catch(e) {}
+                    var el = document.getElementById("status");
+                    if (el) el.textContent = "Connected! You can close this tab.";
+                  }, 800);
                 } catch(e) {
-                  document.getElementById("status").textContent = "Connected! Please close this tab.";
+                  var el = document.getElementById("status");
+                  if (el) el.textContent = "Connected! Please close this tab.";
                 }
               })();
             `,
