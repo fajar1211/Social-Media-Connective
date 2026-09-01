@@ -444,6 +444,7 @@ function SocialIntegrationCard({
   platform,
   connected,
   accountName,
+  selectedBusinessName,
   selectedPageName,
   onConnect,
   onDisconnect,
@@ -451,6 +452,7 @@ function SocialIntegrationCard({
   platform: SocialPlatform;
   connected: boolean;
   accountName?: string | undefined;
+  selectedBusinessName?: string | undefined;
   selectedPageName?: string | undefined;
   onConnect: () => void;
   onDisconnect: () => void;
@@ -486,6 +488,9 @@ function SocialIntegrationCard({
             <div className="mt-2 rounded-lg bg-success/5 px-3 py-2">
               <p className="text-xs text-muted-foreground">Connected account</p>
               <p className="text-sm font-medium text-foreground">{accountName}</p>
+              {selectedBusinessName && (
+                <p className="mt-1 text-xs text-muted-foreground">Business: {selectedBusinessName}</p>
+              )}
               {selectedPageName && (
                 <p className="mt-1 text-xs text-muted-foreground">Page: {selectedPageName}</p>
               )}
@@ -524,8 +529,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const [isPaused, setIsPaused] = useState(false);
   const [pageSelectorOpen, setPageSelectorOpen] = useState(false);
   const [pendingPages, setPendingPages] = useState<{ id: string; name: string; access_token: string }[]>([]);
+  const [pendingBusinesses, setPendingBusinesses] = useState<{ id: string; name: string }[]>([]);
   const [pendingUser, setPendingUser] = useState<{ id: string; name: string } | null>(null);
   const [pendingToken, setPendingToken] = useState<{ access_token: string; expires_in: number } | null>(null);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
   const [selectedPageId, setSelectedPageId] = useState<string>("");
 
   const magicLinkUrl = `https://socmedconnective.marketingconnective.com/client/${clientId}`;
@@ -558,13 +565,14 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
       const handler = (event: MessageEvent) => {
         if (event.data?.type === "facebook-auth-success" && event.data.clientId === clientId) {
-          // Show page selector modal instead of auto-connecting
           setPendingPages(event.data.pages || []);
+          setPendingBusinesses(event.data.businesses || []);
           setPendingUser(event.data.user);
           setPendingToken({
             access_token: event.data.access_token,
             expires_in: event.data.expires_in,
           });
+          setSelectedBusinessId(event.data.businesses?.[0]?.id || "");
           setSelectedPageId(event.data.pages?.[0]?.id || "");
           setPageSelectorOpen(true);
           window.removeEventListener("message", handler);
@@ -593,6 +601,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     if (!selectedPageId || !pendingUser || !pendingToken) return;
 
     const selectedPage = pendingPages.find((p) => p.id === selectedPageId);
+    const selectedBusiness = pendingBusinesses.find((b) => b.id === selectedBusinessId);
     if (!selectedPage) return;
 
     actions.updateClient(clientId, {
@@ -606,6 +615,8 @@ function SettingsTab({ clientId }: { clientId: string }) {
           accessToken: pendingToken.access_token,
           tokenExpiresIn: pendingToken.expires_in,
           pages: [selectedPage],
+          selectedBusinessId: selectedBusiness?.id || "",
+          selectedBusinessName: selectedBusiness?.name || "",
           selectedPageId: selectedPage.id,
           selectedPageName: selectedPage.name,
         },
@@ -615,8 +626,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
     toast.success(`Facebook connected to "${selectedPage.name}" successfully!`);
     setPageSelectorOpen(false);
     setPendingPages([]);
+    setPendingBusinesses([]);
     setPendingUser(null);
     setPendingToken(null);
+    setSelectedBusinessId("");
     setSelectedPageId("");
   };
 
@@ -712,6 +725,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               platform={platform}
               connected={client.socialIntegrations[platform]?.connected === true}
               accountName={client.socialIntegrations[platform]?.accountName}
+              selectedBusinessName={client.socialIntegrations[platform]?.selectedBusinessName}
               selectedPageName={client.socialIntegrations[platform]?.selectedPageName}
               onConnect={() => handleConnect(platform)}
               onDisconnect={() => handleDisconnect(platform)}
@@ -724,47 +738,73 @@ function SettingsTab({ clientId }: { clientId: string }) {
       <Dialog open={pageSelectorOpen} onOpenChange={setPageSelectorOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Select Facebook Page</DialogTitle>
+            <DialogTitle>Select Facebook Business & Page</DialogTitle>
             <DialogDescription>
-              Choose one Facebook Page to connect with {client.name}.
+              Choose one Business and one Page to connect with {client.name}.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {pendingPages.length === 0 ? (
+            {pendingPages.length === 0 && pendingBusinesses.length === 0 ? (
               <div className="rounded-lg border border-dashed p-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  No Facebook Pages found. Please create a Page first.
+                  No Facebook Businesses or Pages found. Please create a Business and Page first.
                 </p>
               </div>
             ) : (
               <>
-                <div className="space-y-2">
-                  <Label className="text-sm">Available Pages ({pendingPages.length})</Label>
-                  <select
-                    value={selectedPageId}
-                    onChange={(e) => setSelectedPageId(e.target.value)}
-                    className="w-full rounded-lg border px-3 py-2 text-sm"
-                  >
-                    {pendingPages.map((page) => (
-                      <option key={page.id} value={page.id}>
-                        {page.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {pendingBusinesses.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Select Business ({pendingBusinesses.length})</Label>
+                    <select
+                      value={selectedBusinessId}
+                      onChange={(e) => setSelectedBusinessId(e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    >
+                      {pendingBusinesses.map((business) => (
+                        <option key={business.id} value={business.id}>
+                          {business.name}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedBusinessId && (
+                      <div className="rounded-lg border bg-muted/50 p-3">
+                        <p className="text-xs text-muted-foreground">Selected Business:</p>
+                        <p className="text-sm font-medium">
+                          {pendingBusinesses.find((b) => b.id === selectedBusinessId)?.name}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                {selectedPageId && (
-                  <div className="rounded-lg border bg-muted/50 p-3">
-                    <p className="text-xs text-muted-foreground">Selected Page:</p>
-                    <p className="text-sm font-medium">
-                      {pendingPages.find((p) => p.id === selectedPageId)?.name}
-                    </p>
+                {pendingPages.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Select Page ({pendingPages.length})</Label>
+                    <select
+                      value={selectedPageId}
+                      onChange={(e) => setSelectedPageId(e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm"
+                    >
+                      {pendingPages.map((page) => (
+                        <option key={page.id} value={page.id}>
+                          {page.name}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedPageId && (
+                      <div className="rounded-lg border bg-muted/50 p-3">
+                        <p className="text-xs text-muted-foreground">Selected Page:</p>
+                        <p className="text-sm font-medium">
+                          {pendingPages.find((p) => p.id === selectedPageId)?.name}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  Only 1 page can be connected. You can change this later by disconnecting and reconnecting.
+                  Only 1 business and 1 page can be connected. You can change this later by disconnecting and reconnecting.
                 </p>
               </>
             )}
@@ -776,8 +816,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
               onClick={() => {
                 setPageSelectorOpen(false);
                 setPendingPages([]);
+                setPendingBusinesses([]);
                 setPendingUser(null);
                 setPendingToken(null);
+                setSelectedBusinessId("");
                 setSelectedPageId("");
               }}
             >
