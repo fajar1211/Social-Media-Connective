@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "@/components/app-shell";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider, useAuth } from "@/lib/auth";
 
 
 function NotFoundComponent() {
@@ -127,17 +128,44 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function AuthGuard({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  const pathname = window.location.pathname;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user && pathname !== "/auth") {
+    window.location.href = "/auth";
+    return null;
+  }
+
+  if (user && pathname === "/auth") {
+    window.location.href = "/";
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppShell>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </AppShell>
-      <Toaster position="top-right" />
+      <AuthProvider>
+        <AuthGuard>
+          <AppShell>
+            <Outlet />
+          </AppShell>
+        </AuthGuard>
+        <Toaster position="top-right" />
+      </AuthProvider>
     </QueryClientProvider>
   );
-
 }

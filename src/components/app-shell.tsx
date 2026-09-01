@@ -14,10 +14,12 @@ import {
   Share2,
   Settings,
   Menu,
+  LogOut,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 
 const nav = [
   {
@@ -56,6 +58,8 @@ const nav = [
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { user, signOut } = useAuth();
+
   return (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="border-b px-5 py-5">
@@ -91,6 +95,20 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         ))}
       </nav>
+      <div className="border-t px-3 py-3">
+        {user && (
+          <div className="mb-2 px-2">
+            <p className="text-xs font-medium text-sidebar-foreground truncate">{user.email}</p>
+          </div>
+        )}
+        <button
+          onClick={signOut}
+          className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+        >
+          <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
+          Sign Out
+        </button>
+      </div>
       <div className="border-t px-5 py-4 text-xs text-muted-foreground">
         Simple. Organized. Professional.
       </div>
