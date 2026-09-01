@@ -15,7 +15,7 @@ import { Route as ApprovedRouteImport } from './routes/approved'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as DeletedRouteImport } from './routes/deleted'
-import { Route as HomeRouteImport } from './routes/home'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as PlatformsRouteImport } from './routes/platforms'
 import { Route as PreviewDemoRouteImport } from './routes/preview-demo'
@@ -65,9 +65,9 @@ const DeletedRoute = DeletedRouteImport.update({
   path: '/deleted',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HomeRoute = HomeRouteImport.update({
-  id: '/home',
-  path: '/home',
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImportRoute = ImportRouteImport.update({
@@ -169,7 +169,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/clients': typeof ClientsRouteWithChildren
   '/deleted': typeof DeletedRoute
-  '/home': typeof HomeRoute
+  '/dashboard': typeof DashboardRoute
   '/import': typeof ImportRoute
   '/platforms': typeof PlatformsRoute
   '/preview-demo': typeof PreviewDemoRoute
@@ -196,7 +196,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/clients': typeof ClientsRouteWithChildren
   '/deleted': typeof DeletedRoute
-  '/home': typeof HomeRoute
+  '/dashboard': typeof DashboardRoute
   '/import': typeof ImportRoute
   '/platforms': typeof PlatformsRoute
   '/preview-demo': typeof PreviewDemoRoute
@@ -224,7 +224,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/clients': typeof ClientsRouteWithChildren
   '/deleted': typeof DeletedRoute
-  '/home': typeof HomeRoute
+  '/dashboard': typeof DashboardRoute
   '/import': typeof ImportRoute
   '/platforms': typeof PlatformsRoute
   '/preview-demo': typeof PreviewDemoRoute
@@ -253,7 +253,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/clients'
     | '/deleted'
-    | '/home'
+    | '/dashboard'
     | '/import'
     | '/platforms'
     | '/preview-demo'
@@ -280,7 +280,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/clients'
     | '/deleted'
-    | '/home'
+    | '/dashboard'
     | '/import'
     | '/platforms'
     | '/preview-demo'
@@ -307,7 +307,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/clients'
     | '/deleted'
-    | '/home'
+    | '/dashboard'
     | '/import'
     | '/platforms'
     | '/preview-demo'
@@ -335,7 +335,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ClientsRoute: typeof ClientsRouteWithChildren
   DeletedRoute: typeof DeletedRoute
-  HomeRoute: typeof HomeRoute
+  DashboardRoute: typeof DashboardRoute
   ImportRoute: typeof ImportRoute
   PlatformsRoute: typeof PlatformsRoute
   PreviewDemoRoute: typeof PreviewDemoRoute
@@ -397,11 +397,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeletedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/home': {
-      id: '/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeRouteImport
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/import': {
@@ -574,7 +574,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ClientsRoute: ClientsRouteWithChildren,
   DeletedRoute: DeletedRoute,
-  HomeRoute: HomeRoute,
+  DashboardRoute: DashboardRoute,
   ImportRoute: ImportRoute,
   PlatformsRoute: PlatformsRoute,
   PreviewDemoRoute: PreviewDemoRoute,

@@ -24,7 +24,7 @@ import { useAuth } from "@/lib/auth";
 const nav = [
   {
     label: "Overview",
-    items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }],
+    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
     label: "Content",
@@ -126,7 +126,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => setOpen(false), [pathname]);
 
-  const isPublicPage = pathname === "/auth" || pathname === "/home";
+  const isPublicPage = pathname === "/" || pathname === "/auth";
 
   if (isPublicPage) {
     return <>{children}</>;

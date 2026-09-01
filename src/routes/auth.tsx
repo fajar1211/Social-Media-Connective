@@ -45,7 +45,7 @@ function AuthPage() {
         "socmedconnective-local-auth",
         JSON.stringify({ email: signInEmail, name: signInEmail.split("@")[0] })
       );
-      window.location.href = "/";
+      window.location.href = "/dashboard";
       return;
     }
 
@@ -58,7 +58,7 @@ function AuthPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     }
   };
 
@@ -79,7 +79,7 @@ function AuthPage() {
         "socmedconnective-local-auth",
         JSON.stringify({ email: signUpEmail, name: signUpName })
       );
-      window.location.href = "/";
+      window.location.href = "/dashboard";
       return;
     }
 
@@ -108,7 +108,7 @@ function AuthPage() {
         "socmedconnective-local-auth",
         JSON.stringify({ email: "user@google.com", name: "Google User" })
       );
-      window.location.href = "/";
+      window.location.href = "/dashboard";
       return;
     }
     await supabase.auth.signInWithOAuth({

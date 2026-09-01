@@ -134,7 +134,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const path = window.location.pathname;
-    setIsPublicPage(path === "/auth" || path === "/home");
+    setIsPublicPage(path === "/" || path === "/auth");
     setReady(true);
   }, []);
 
@@ -142,10 +142,10 @@ function AuthGuard({ children }: { children: ReactNode }) {
     if (!ready || loading) return;
 
     if (!user && !isPublicPage) {
-      window.location.href = "/home";
+      window.location.href = "/";
     }
     if (user && window.location.pathname === "/auth") {
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     }
   }, [ready, user, loading, isPublicPage]);
 
