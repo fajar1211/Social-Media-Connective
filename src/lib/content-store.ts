@@ -1,8 +1,22 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useCallback } from "react";
+import { supabaseConfigured } from "@/lib/supabase";
+import {
+  getContent as dbGetContent,
+  getContentByClient as dbGetContentByClient,
+  createContent as dbCreateContent,
+  updateContent as dbUpdateContent,
+  deleteContent as dbDeleteContent,
+  getClients as dbGetClients,
+  createClient as dbCreateClient,
+  updateClient as dbUpdateClient,
+  deleteClient as dbDeleteClient,
+  getPlatforms as dbGetPlatforms,
+} from "@/lib/db";
+import type { ContentStatus } from "@/lib/database.types";
 
 export type Platform = "Facebook" | "Instagram" | "X / Twitter" | "LinkedIn" | "Blog";
 export type ContentType = "Text Post" | "Image" | "Carousel" | "Short Video" | "Long-form" | "Blog Article";
-export type Status = "Suggested" | "Additional" | "Submitted" | "Approved" | "Deleted";
+export type Status = ContentStatus;
 export type SocialPlatform = "Facebook" | "Instagram" | "YouTube" | "GBP" | "LinkedIn" | "Blog" | "TikTok" | "Xiaohongshu" | "Reddit" | "Threads" | "X (Twitter)";
 
 export const PLATFORMS: Platform[] = ["Facebook", "Instagram", "X / Twitter", "LinkedIn", "Blog"];
@@ -21,10 +35,11 @@ export type ContentItem = {
   id: string;
   title: string;
   client: string;
+  clientId?: string;
   platform: Platform;
   type: ContentType;
   status: Status;
-  date: string; // ISO
+  date: string;
   caption: string;
   body?: string;
   hashtags: string[];
@@ -66,6 +81,7 @@ type State = {
   content: ContentItem[];
   clients: Client[];
   platforms: { name: Platform; enabled: boolean; types: ContentType[] }[];
+  loaded: boolean;
 };
 
 const slides = [
@@ -105,11 +121,16 @@ const defaultState: State = {
     { name: "LinkedIn", enabled: true, types: ["Text Post", "Image", "Blog Article"] },
     { name: "Blog", enabled: false, types: ["Blog Article"] },
   ],
+  loaded: false,
 };
 
 const STORAGE_KEY = "socmedconnective-store";
 
-function loadState(): State {
+// ============================================
+// LOCAL STORAGE FALLBACK (when Supabase not configured)
+// ============================================
+
+function loadLocalState(): State {
   if (typeof window === "undefined") return defaultState;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -120,38 +141,46 @@ function loadState(): State {
         clients: saved.clients || defaultState.clients,
         content: saved.content || defaultState.content,
         platforms: saved.platforms || defaultState.platforms,
+        loaded: true,
       };
     }
   } catch {}
-  return defaultState;
+  return { ...defaultState, loaded: true };
 }
 
-function saveState() {
+function saveLocalState(s: State) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        clients: state.clients,
-        content: state.content,
-        platforms: state.platforms,
+        clients: s.clients,
+        content: s.content,
+        platforms: s.platforms,
       })
     );
   } catch {}
 }
 
-let state: State = loadState();
+// ============================================
+// STORE
+// ============================================
+
+let state: State = { ...defaultState };
 
 const listeners = new Set<() => void>();
+
 function emit() {
   state = { ...state };
-  saveState();
+  if (!supabaseConfigured) saveLocalState(state);
   listeners.forEach((l) => l());
 }
+
 function subscribe(l: () => void) {
   listeners.add(l);
   return () => listeners.delete(l);
 }
+
 const getSnapshot = () => state;
 export const getStoreState = () => state;
 
@@ -159,50 +188,223 @@ export function useStore(): State {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+// ============================================
+// DATA LOADING (Supabase or localStorage)
+// ============================================
+
+export async function loadStoreData(clientId?: string): Promise<void> {
+  if (!supabaseConfigured) {
+    state = loadLocalState();
+    emit();
+    return;
+  }
+
+  try {
+    const [contentData, clientsData, platformsData] = await Promise.all([
+      clientId ? dbGetContentByClient(clientId) : dbGetContent(),
+      dbGetClients(),
+      dbGetPlatforms(),
+    ]);
+
+    const mappedContent: ContentItem[] = contentData.map((c) => ({
+      id: c.id,
+      title: c.title,
+      client: clientsData.find((cl) => cl.id === c.client_id)?.name || "",
+      clientId: c.client_id,
+      platform: c.platform as Platform,
+      type: c.type as ContentType,
+      status: c.status as Status,
+      date: c.date,
+      caption: c.caption,
+      body: c.body || undefined,
+      hashtags: c.hashtags || [],
+      cta: c.cta,
+      notes: c.notes || undefined,
+      media: c.media || [],
+      previousStatus: (c.previous_status as Status) || undefined,
+      timezone: c.timezone || undefined,
+      scheduledDate: c.scheduled_date || undefined,
+      scheduledTime: c.scheduled_time || undefined,
+    }));
+
+    const mappedClients: Client[] = clientsData.map((c) => ({
+      id: c.id,
+      name: c.name,
+      active: c.active,
+      platforms: [],
+      socialIntegrations: {},
+    }));
+
+    const mappedPlatforms = platformsData.map((p) => ({
+      name: p.name as Platform,
+      enabled: p.enabled,
+      types: (p.types || []) as ContentType[],
+    }));
+
+    state = {
+      content: mappedContent,
+      clients: mappedClients.length > 0 ? mappedClients : defaultState.clients,
+      platforms: mappedPlatforms.length > 0 ? mappedPlatforms : defaultState.platforms,
+      loaded: true,
+    };
+  } catch (error) {
+    console.error("Error loading store data:", error);
+    state = { ...defaultState, loaded: true };
+  }
+  emit();
+}
+
+// ============================================
+// ACTIONS
+// ============================================
+
 export const actions = {
-  addContent(item: Omit<ContentItem, "id">) {
-    state.content = [{ ...item, id: `c-${Date.now()}${Math.floor(Math.random() * 100)}` }, ...state.content];
+  async addContent(item: Omit<ContentItem, "id">) {
+    if (supabaseConfigured && item.clientId) {
+      const created = await dbCreateContent({
+        client_id: item.clientId,
+        title: item.title,
+        caption: item.caption,
+        body: item.body || "",
+        platform: item.platform,
+        type: item.type,
+        status: item.status || "Suggested",
+        hashtags: item.hashtags || [],
+        cta: item.cta,
+        notes: item.notes || "",
+        media: item.media || [],
+        date: item.date,
+        previous_status: item.previousStatus || null,
+        timezone: item.timezone || "",
+        scheduled_date: item.scheduledDate || null,
+        scheduled_time: item.scheduledTime || "",
+      });
+      if (created) {
+        state.content = [
+          {
+            ...item,
+            id: created.id,
+          },
+          ...state.content,
+        ];
+      }
+    } else {
+      state.content = [
+        { ...item, id: `c-${Date.now()}${Math.floor(Math.random() * 100)}` },
+        ...state.content,
+      ];
+    }
     emit();
   },
-  addMany(items: Omit<ContentItem, "id">[]) {
-    state.content = [
-      ...items.map((i, idx) => ({ ...i, id: `c-${Date.now()}${idx}` })),
-      ...state.content,
-    ];
-    emit();
+
+  async addMany(items: Omit<ContentItem, "id">[]) {
+    if (supabaseConfigured) {
+      for (const item of items) {
+        await actions.addContent(item);
+      }
+    } else {
+      state.content = [
+        ...items.map((i, idx) => ({ ...i, id: `c-${Date.now()}${idx}` })),
+        ...state.content,
+      ];
+      emit();
+    }
   },
-  update(id: string, patch: Partial<ContentItem>) {
+
+  async update(id: string, patch: Partial<ContentItem>) {
+    if (supabaseConfigured) {
+      const dbPatch: Record<string, unknown> = {};
+      if (patch.title !== undefined) dbPatch.title = patch.title;
+      if (patch.caption !== undefined) dbPatch.caption = patch.caption;
+      if (patch.body !== undefined) dbPatch.body = patch.body;
+      if (patch.platform !== undefined) dbPatch.platform = patch.platform;
+      if (patch.type !== undefined) dbPatch.type = patch.type;
+      if (patch.status !== undefined) dbPatch.status = patch.status;
+      if (patch.hashtags !== undefined) dbPatch.hashtags = patch.hashtags;
+      if (patch.cta !== undefined) dbPatch.cta = patch.cta;
+      if (patch.notes !== undefined) dbPatch.notes = patch.notes;
+      if (patch.media !== undefined) dbPatch.media = patch.media;
+      if (patch.date !== undefined) dbPatch.date = patch.date;
+      if (patch.previousStatus !== undefined) dbPatch.previous_status = patch.previousStatus;
+      if (patch.timezone !== undefined) dbPatch.timezone = patch.timezone;
+      if (patch.scheduledDate !== undefined) dbPatch.scheduled_date = patch.scheduledDate;
+      if (patch.scheduledTime !== undefined) dbPatch.scheduled_time = patch.scheduledTime;
+
+      await dbUpdateContent(id, dbPatch);
+    }
+
     state.content = state.content.map((c) => (c.id === id ? { ...c, ...patch } : c));
     emit();
   },
-  setStatus(id: string, status: Status) {
+
+  async setStatus(id: string, status: Status) {
+    if (supabaseConfigured) {
+      const item = state.content.find((c) => c.id === id);
+      await dbUpdateContent(id, {
+        status,
+        previous_status: item?.status || null,
+      });
+    }
+
     state.content = state.content.map((c) =>
       c.id === id ? { ...c, previousStatus: c.status, status } : c,
     );
     emit();
   },
-  restore(id: string) {
+
+  async restore(id: string) {
+    const item = state.content.find((c) => c.id === id);
+    const newStatus = item?.previousStatus && item.previousStatus !== "Deleted" ? item.previousStatus : "Suggested";
+
+    if (supabaseConfigured) {
+      await dbUpdateContent(id, { status: newStatus, previous_status: null });
+    }
+
     state.content = state.content.map((c) =>
-      c.id === id ? { ...c, status: c.previousStatus && c.previousStatus !== "Deleted" ? c.previousStatus : "Suggested" } : c,
+      c.id === id ? { ...c, previousStatus: undefined, status: newStatus } : c,
     );
     emit();
   },
-  purge(id: string) {
+
+  async purge(id: string) {
+    if (supabaseConfigured) {
+      await dbDeleteContent(id);
+    }
+
     state.content = state.content.filter((c) => c.id !== id);
     emit();
   },
-  addClient(clientId: string, name: string, platforms: Platform[]) {
-    state.clients = [...state.clients, { id: clientId, name, active: true, platforms, socialIntegrations: {} }];
+
+  async addClient(clientId: string, name: string, platforms: Platform[]) {
+    if (supabaseConfigured) {
+      const created = await dbCreateClient({ name, active: true });
+      if (created) {
+        state.clients = [...state.clients, { id: created.id, name, active: true, platforms, socialIntegrations: {} }];
+      }
+    } else {
+      state.clients = [...state.clients, { id: clientId, name, active: true, platforms, socialIntegrations: {} }];
+    }
     emit();
   },
-  updateClient(id: string, patch: Partial<Client>) {
+
+  async updateClient(id: string, patch: Partial<Client>) {
+    if (supabaseConfigured) {
+      await dbUpdateClient(id, { name: patch.name, active: patch.active });
+    }
+
     state.clients = state.clients.map((c) => (c.id === id ? { ...c, ...patch } : c));
     emit();
   },
-  deleteClient(id: string) {
+
+  async deleteClient(id: string) {
+    if (supabaseConfigured) {
+      await dbDeleteClient(id);
+    }
+
     state.clients = state.clients.filter((c) => c.id !== id);
     emit();
   },
+
   togglePlatform(name: Platform) {
     state.platforms = state.platforms.map((p) =>
       p.name === name ? { ...p, enabled: !p.enabled } : p,

@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "@/components/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { loadStoreData } from "@/lib/content-store";
 
 
 function NotFoundComponent() {
@@ -164,6 +165,32 @@ function AuthGuard({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+function StoreLoader({ children }: { children: ReactNode }) {
+  const { user, profile } = useAuth();
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setLoaded(true);
+      return;
+    }
+
+    // Admin sees all data, client sees only their client's data
+    const clientId = profile?.role === "client" ? profile.clientId || undefined : undefined;
+    loadStoreData(clientId).finally(() => setLoaded(true));
+  }, [user, profile]);
+
+  if (!loaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -171,9 +198,11 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <AuthGuard>
-          <AppShell>
-            <Outlet />
-          </AppShell>
+          <StoreLoader>
+            <AppShell>
+              <Outlet />
+            </AppShell>
+          </StoreLoader>
         </AuthGuard>
         <Toaster position="top-right" />
       </AuthProvider>
