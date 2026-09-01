@@ -25,6 +25,8 @@ import { Route as SuggestedRouteImport } from './routes/suggested'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as TemplatesRouteImport } from './routes/templates'
+import { Route as ExportRouteImport } from './routes/export'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 import { Route as ContentIndexRouteImport } from './routes/content.index'
 import { Route as ContentCreateRouteImport } from './routes/content.create'
@@ -118,6 +120,16 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExportRoute = ExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
   id: '/$clientId',
   path: '/$clientId',
@@ -197,6 +209,8 @@ export interface FileRoutesByFullPath {
   '/users': typeof UsersRoute
   '/analytics': typeof AnalyticsRoute
   '/calendar': typeof CalendarRoute
+  '/templates': typeof TemplatesRoute
+  '/export': typeof ExportRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
@@ -227,6 +241,8 @@ export interface FileRoutesByTo {
   '/users': typeof UsersRoute
   '/analytics': typeof AnalyticsRoute
   '/calendar': typeof CalendarRoute
+  '/templates': typeof TemplatesRoute
+  '/export': typeof ExportRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content': typeof ContentIndexRoute
@@ -258,6 +274,8 @@ export interface FileRoutesById {
   '/users': typeof UsersRoute
   '/analytics': typeof AnalyticsRoute
   '/calendar': typeof CalendarRoute
+  '/templates': typeof TemplatesRoute
+  '/export': typeof ExportRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
@@ -290,6 +308,8 @@ export interface FileRouteTypes {
     | '/users'
     | '/analytics'
     | '/calendar'
+    | '/templates'
+    | '/export'
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
@@ -320,6 +340,8 @@ export interface FileRouteTypes {
     | '/users'
     | '/analytics'
     | '/calendar'
+    | '/templates'
+    | '/export'
     | '/clients/$clientId'
     | '/content/create'
     | '/content'
@@ -350,6 +372,8 @@ export interface FileRouteTypes {
     | '/users'
     | '/analytics'
     | '/calendar'
+    | '/templates'
+    | '/export'
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
@@ -381,6 +405,8 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRoute
   AnalyticsRoute: typeof AnalyticsRoute
   CalendarRoute: typeof CalendarRoute
+  TemplatesRoute: typeof TemplatesRoute
+  ExportRoute: typeof ExportRoute
   ContentCreateRoute: typeof ContentCreateRoute
   ContentIndexRoute: typeof ContentIndexRoute
   ApiAuthFacebookRoute: typeof ApiAuthFacebookRouteWithChildren
@@ -504,6 +530,20 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/export': {
+      id: '/export'
+      path: '/export'
+      fullPath: '/export'
+      preLoaderRoute: typeof ExportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients/$clientId': {
@@ -644,6 +684,8 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRoute,
   AnalyticsRoute: AnalyticsRoute,
   CalendarRoute: CalendarRoute,
+  TemplatesRoute: TemplatesRoute,
+  ExportRoute: ExportRoute,
   ContentCreateRoute: ContentCreateRoute,
   ContentIndexRoute: ContentIndexRoute,
   ApiAuthFacebookRoute: ApiAuthFacebookRouteWithChildren,
