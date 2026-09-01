@@ -95,7 +95,6 @@ const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.React
       </svg>
     ),
     description: "Connect Instagram Business to publish photos, stories, and reels.",
-    comingSoon: true,
   },
   YouTube: {
     color: "bg-[#FF0000]",
@@ -659,6 +658,27 @@ function SettingsTab({ clientId }: { clientId: string }) {
             clearInterval(checkExisting);
             window.removeEventListener("message", handler);
             window.removeEventListener("storage", handleStorage);
+          }
+        }, 500);
+      }
+    } else if (platform === "Instagram") {
+      const width = 600;
+      const height = 700;
+      const left = (window.innerWidth - width) / 2;
+      const top = (window.innerHeight - height) / 2;
+
+      const authUrl = `/api/auth/instagram?client_id=${clientId}`;
+
+      const popup = window.open(
+        authUrl,
+        `instagram_oauth_${clientId}`,
+        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+      );
+
+      if (popup) {
+        const check = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(check);
           }
         }, 500);
       }
