@@ -126,9 +126,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => setOpen(false), [pathname]);
 
-  const isPublicPage = pathname === "/auth" || pathname === "/home";
+  const isAuthPage = pathname === "/auth";
 
-  if (isPublicPage) {
+  if (isAuthPage) {
     return <>{children}</>;
   }
 
