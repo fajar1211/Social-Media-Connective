@@ -532,6 +532,7 @@ function SocialIntegrationCard({
 function SettingsTab({ clientId }: { clientId: string }) {
   const { clients } = useStore();
   const client = clients.find((c) => c.id === clientId);
+  const [socialIntegrations, setSocialIntegrations] = useState(client?.socialIntegrations || {});
   const socialIntegrationsRef = useRef(client?.socialIntegrations || {});
   const [isPaused, setIsPaused] = useState(client?.magicLinkActive === false);
   const [pageSelectorOpen, setPageSelectorOpen] = useState(false);
@@ -543,6 +544,13 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const [selectedPageId, setSelectedPageId] = useState<string>("");
   const [magicToken, setMagicToken] = useState(client?.magicLinkToken || "");
   const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    if (client?.socialIntegrations) {
+      setSocialIntegrations(client.socialIntegrations);
+      socialIntegrationsRef.current = client.socialIntegrations;
+    }
+  }, [client?.socialIntegrations]);
 
   useEffect(() => {
     async function loadToken() {
@@ -586,10 +594,6 @@ function SettingsTab({ clientId }: { clientId: string }) {
     }
   };
 
-  if (client) {
-    socialIntegrationsRef.current = client.socialIntegrations;
-  }
-
   if (!client) return null;
 
   const handleConnect = (platform: SocialPlatform) => {
@@ -620,28 +624,25 @@ function SettingsTab({ clientId }: { clientId: string }) {
           const biz = businesses[0];
           const page = pages[0];
 
-          const currentClients = getStoreState().clients;
-          const currentClient = currentClients.find((c) => c.id === clientId);
-          const currentIntegrations = currentClient?.socialIntegrations || {};
-
-          actions.updateClient(clientId, {
-            socialIntegrations: {
-              ...currentIntegrations,
-              Facebook: {
-                connected: true,
-                accountName: user.name,
-                accountId: user.id,
-                connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-                accessToken: eventData.access_token as string,
-                tokenExpiresIn: eventData.expires_in as number,
-                pages: [page],
-                selectedBusinessId: biz.id,
-                selectedBusinessName: biz.name,
-                selectedPageId: page.id,
-                selectedPageName: page.name,
-              },
+          const newIntegrations = {
+            ...socialIntegrationsRef.current,
+            Facebook: {
+              connected: true,
+              accountName: user.name,
+              accountId: user.id,
+              connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+              accessToken: eventData.access_token as string,
+              tokenExpiresIn: eventData.expires_in as number,
+              pages: [page],
+              selectedBusinessId: biz.id,
+              selectedBusinessName: biz.name,
+              selectedPageId: page.id,
+              selectedPageName: page.name,
             },
-          });
+          };
+          setSocialIntegrations(newIntegrations);
+          socialIntegrationsRef.current = newIntegrations;
+          actions.updateClient(clientId, { socialIntegrations: newIntegrations });
 
           toast.success(`Facebook connected to "${page.name}" successfully!`);
         } else {
@@ -705,15 +706,13 @@ function SettingsTab({ clientId }: { clientId: string }) {
             window.removeEventListener("storage", handleStorage);
 
             if (!authSuccessful) {
-              const currentClients = getStoreState().clients;
-              const currentClient = currentClients.find((c) => c.id === clientId);
-              const currentIntegrations = currentClient?.socialIntegrations || {};
-              actions.updateClient(clientId, {
-                socialIntegrations: {
-                  ...currentIntegrations,
-                  Facebook: { connected: false },
-                },
-              });
+              const newIntegrations = {
+                ...socialIntegrationsRef.current,
+                Facebook: { connected: false },
+              };
+              setSocialIntegrations(newIntegrations);
+              socialIntegrationsRef.current = newIntegrations;
+              actions.updateClient(clientId, { socialIntegrations: newIntegrations });
             }
           }
         }, 500);
@@ -745,23 +744,20 @@ function SettingsTab({ clientId }: { clientId: string }) {
           const page = pages.find((p) => p.instagram_business_account);
           const igAccount = page?.instagram_business_account;
 
-          const currentClients = getStoreState().clients;
-          const currentClient = currentClients.find((c) => c.id === clientId);
-          const currentIntegrations = currentClient?.socialIntegrations || {};
-
-          actions.updateClient(clientId, {
-            socialIntegrations: {
-              ...currentIntegrations,
-              Instagram: {
-                connected: true,
-                accountName: igAccount?.name || account.name,
-                accountId: igAccount?.id || account.id,
-                connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-                accessToken: eventData.access_token as string,
-                tokenExpiresIn: eventData.expires_in as number,
-              },
+          const newIntegrations = {
+            ...socialIntegrationsRef.current,
+            Instagram: {
+              connected: true,
+              accountName: igAccount?.name || account.name,
+              accountId: igAccount?.id || account.id,
+              connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+              accessToken: eventData.access_token as string,
+              tokenExpiresIn: eventData.expires_in as number,
             },
-          });
+          };
+          setSocialIntegrations(newIntegrations);
+          socialIntegrationsRef.current = newIntegrations;
+          actions.updateClient(clientId, { socialIntegrations: newIntegrations });
 
           toast.success(`Instagram connected to "${igAccount?.name || account.name}" successfully!`);
         } else if (instagramAccounts.length > 1) {
@@ -818,15 +814,13 @@ function SettingsTab({ clientId }: { clientId: string }) {
             window.removeEventListener("storage", handleStorage);
 
             if (!igAuthSuccessful) {
-              const currentClients = getStoreState().clients;
-              const currentClient = currentClients.find((c) => c.id === clientId);
-              const currentIntegrations = currentClient?.socialIntegrations || {};
-              actions.updateClient(clientId, {
-                socialIntegrations: {
-                  ...currentIntegrations,
-                  Instagram: { connected: false },
-                },
-              });
+              const newIntegrations = {
+                ...socialIntegrationsRef.current,
+                Instagram: { connected: false },
+              };
+              setSocialIntegrations(newIntegrations);
+              socialIntegrationsRef.current = newIntegrations;
+              actions.updateClient(clientId, { socialIntegrations: newIntegrations });
             }
           }
         }, 500);
@@ -843,28 +837,25 @@ function SettingsTab({ clientId }: { clientId: string }) {
     const selectedBusiness = pendingBusinesses.find((b) => b.id === selectedBusinessId);
     if (!selectedPage) return;
 
-    const currentClients = getStoreState().clients;
-    const currentClient = currentClients.find((c) => c.id === clientId);
-    const currentIntegrations = currentClient?.socialIntegrations || {};
-
-    actions.updateClient(clientId, {
-      socialIntegrations: {
-        ...currentIntegrations,
-        Facebook: {
-          connected: true,
-          accountName: pendingUser.name,
-          accountId: pendingUser.id,
-          connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-          accessToken: pendingToken.access_token,
-          tokenExpiresIn: pendingToken.expires_in,
-          pages: [selectedPage],
-          selectedBusinessId: selectedBusiness?.id || "",
-          selectedBusinessName: selectedBusiness?.name || "",
-          selectedPageId: selectedPage.id,
-          selectedPageName: selectedPage.name,
-        },
+    const newIntegrations = {
+      ...socialIntegrationsRef.current,
+      Facebook: {
+        connected: true,
+        accountName: pendingUser.name,
+        accountId: pendingUser.id,
+        connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        accessToken: pendingToken.access_token,
+        tokenExpiresIn: pendingToken.expires_in,
+        pages: [selectedPage],
+        selectedBusinessId: selectedBusiness?.id || "",
+        selectedBusinessName: selectedBusiness?.name || "",
+        selectedPageId: selectedPage.id,
+        selectedPageName: selectedPage.name,
       },
-    });
+    };
+    setSocialIntegrations(newIntegrations);
+    socialIntegrationsRef.current = newIntegrations;
+    actions.updateClient(clientId, { socialIntegrations: newIntegrations });
 
     toast.success(`Facebook connected to "${selectedPage.name}" successfully!`);
     setPageSelectorOpen(false);
@@ -877,17 +868,18 @@ function SettingsTab({ clientId }: { clientId: string }) {
   };
 
   const handleDisconnect = (platform: SocialPlatform) => {
-    actions.updateClient(clientId, {
-      socialIntegrations: {
-        ...socialIntegrationsRef.current,
-        [platform]: { connected: false },
-      },
-    });
+    const newIntegrations = {
+      ...socialIntegrationsRef.current,
+      [platform]: { connected: false },
+    };
+    setSocialIntegrations(newIntegrations);
+    socialIntegrationsRef.current = newIntegrations;
+    actions.updateClient(clientId, { socialIntegrations: newIntegrations });
     toast.success(`${platform} disconnected`);
   };
 
   const connectedCount = SOCIAL_PLATFORMS.filter(
-    (p) => client.socialIntegrations[p]?.connected
+    (p) => socialIntegrations[p]?.connected
   ).length;
 
   return (
@@ -971,10 +963,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
             <SocialIntegrationCard
               key={platform}
               platform={platform}
-              connected={client.socialIntegrations[platform]?.connected === true}
-              accountName={client.socialIntegrations[platform]?.accountName}
-              selectedBusinessName={client.socialIntegrations[platform]?.selectedBusinessName}
-              selectedPageName={client.socialIntegrations[platform]?.selectedPageName}
+              connected={socialIntegrations[platform]?.connected === true}
+              accountName={socialIntegrations[platform]?.accountName}
+              selectedBusinessName={socialIntegrations[platform]?.selectedBusinessName}
+              selectedPageName={socialIntegrations[platform]?.selectedPageName}
               onConnect={() => handleConnect(platform)}
               onDisconnect={() => handleDisconnect(platform)}
             />
