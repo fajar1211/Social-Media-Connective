@@ -255,7 +255,7 @@ function PlatformsPage() {
     }
 
     const popup = window.open(
-      `${platform.authUrl}?client_id=${selectedClientId}`,
+      `${platform.authUrl}?client_id=${selectedClientId}&role=${profile?.role || 'client'}`,
       `${platform.id}-auth`,
       "width=600,height=700,scrollbars=yes"
     );

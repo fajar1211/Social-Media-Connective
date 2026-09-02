@@ -57,6 +57,7 @@ import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from 
 import { ContentList } from "@/components/content-list";
 import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem } from "@/lib/content-store";
 import * as db from "@/lib/db";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/clients/$clientId")({
   head: () => ({
@@ -531,6 +532,7 @@ function SocialIntegrationCard({
 
 function SettingsTab({ clientId }: { clientId: string }) {
   const { clients } = useStore();
+  const { profile } = useAuth();
   const client = clients.find((c) => c.id === clientId);
   const [socialIntegrations, setSocialIntegrations] = useState(client?.socialIntegrations || {});
   const socialIntegrationsRef = useRef(client?.socialIntegrations || {});
@@ -604,7 +606,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
       const left = (window.innerWidth - width) / 2;
       const top = (window.innerHeight - height) / 2;
 
-      const authUrl = `/api/auth/facebook?client_id=${clientId}`;
+      const authUrl = `/api/auth/facebook?client_id=${clientId}&role=${profile?.role || 'client'}`;
 
       const popup = window.open(
         authUrl,

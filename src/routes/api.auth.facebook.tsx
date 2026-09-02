@@ -10,6 +10,7 @@ export const Route = createFileRoute("/api/auth/facebook")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const clientId = url.searchParams.get("client_id") || "unknown";
+        const role = url.searchParams.get("role") || "client";
 
         const params = new URLSearchParams({
           client_id: META_APP_ID,
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/api/auth/facebook")({
             "pages_manage_posts",
           ].join(","),
           state: clientId,
-          config_id: "1015151248177076",
+          config_id: role === "admin" ? "1015151248177076" : "2576054396179955",
         });
 
         return new Response(null, {
