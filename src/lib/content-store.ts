@@ -236,7 +236,7 @@ export async function loadStoreData(clientId?: string): Promise<void> {
       name: c.name,
       active: c.active,
       platforms: [],
-      socialIntegrations: {},
+      socialIntegrations: (c as any).social_integrations || {},
       magicLinkToken: c.magic_link_token || "",
       magicLinkActive: c.magic_link_active ?? true,
     }));
@@ -408,7 +408,15 @@ export const actions = {
 
   async updateClient(id: string, patch: Partial<Client>) {
     if (supabaseConfigured) {
-      await dbUpdateClient(id, { name: patch.name, active: patch.active });
+      const dbPatch: Record<string, unknown> = {};
+      if (patch.name !== undefined) dbPatch.name = patch.name;
+      if (patch.active !== undefined) dbPatch.active = patch.active;
+      if (patch.magicLinkToken !== undefined) dbPatch.magic_link_token = patch.magicLinkToken;
+      if (patch.magicLinkActive !== undefined) dbPatch.magic_link_active = patch.magicLinkActive;
+      if (patch.socialIntegrations !== undefined) dbPatch.social_integrations = patch.socialIntegrations;
+      if (Object.keys(dbPatch).length > 0) {
+        await dbUpdateClient(id, dbPatch as any);
+      }
     }
 
     state.clients = state.clients.map((c) => (c.id === id ? { ...c, ...patch } : c));

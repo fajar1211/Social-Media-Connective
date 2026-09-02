@@ -607,7 +607,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
         `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
       );
 
+      let authSuccessful = false;
+
       const processFacebookAuth = (eventData: Record<string, unknown>) => {
+        authSuccessful = true;
         const user = eventData.user as { id: string; name: string };
         const businesses = (eventData.businesses || []) as Array<{ id: string; name: string; pages?: Array<{ id: string; name: string; category: string; access_token: string }> }>;
         const pages = (eventData.pages || []) as Array<{ id: string; name: string; category: string; access_token: string }>;
@@ -700,6 +703,18 @@ function SettingsTab({ clientId }: { clientId: string }) {
             clearInterval(checkExisting);
             window.removeEventListener("message", handler);
             window.removeEventListener("storage", handleStorage);
+
+            if (!authSuccessful) {
+              const currentClients = getStoreState().clients;
+              const currentClient = currentClients.find((c) => c.id === clientId);
+              const currentIntegrations = currentClient?.socialIntegrations || {};
+              actions.updateClient(clientId, {
+                socialIntegrations: {
+                  ...currentIntegrations,
+                  Facebook: { connected: false },
+                },
+              });
+            }
           }
         }, 500);
       }
@@ -717,7 +732,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
         `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
       );
 
+      let igAuthSuccessful = false;
+
       const processInstagramAuth = (eventData: Record<string, unknown>) => {
+        igAuthSuccessful = true;
         const instagramAccounts = (eventData.instagram_accounts || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string } }>;
         const pages = (eventData.pages || []) as Array<{ id: string; name: string }>;
         const user = eventData.user as { id: string; name: string };
@@ -798,6 +816,18 @@ function SettingsTab({ clientId }: { clientId: string }) {
             clearInterval(checkExisting);
             window.removeEventListener("message", handler);
             window.removeEventListener("storage", handleStorage);
+
+            if (!igAuthSuccessful) {
+              const currentClients = getStoreState().clients;
+              const currentClient = currentClients.find((c) => c.id === clientId);
+              const currentIntegrations = currentClient?.socialIntegrations || {};
+              actions.updateClient(clientId, {
+                socialIntegrations: {
+                  ...currentIntegrations,
+                  Instagram: { connected: false },
+                },
+              });
+            }
           }
         }, 500);
       }
