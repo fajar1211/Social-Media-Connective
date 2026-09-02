@@ -193,10 +193,15 @@ function StoreLoader({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [isPublicClientRoute, setIsPublicClientRoute] = useState(false);
+  const [isPublicPage, setIsPublicPage] = useState(false);
 
   useEffect(() => {
-    setIsPublicClientRoute(window.location.pathname.startsWith("/client/"));
+    const path = window.location.pathname;
+    setIsPublicPage(
+      path === "/" ||
+      path === "/privacy" ||
+      path.startsWith("/client/")
+    );
   }, []);
 
   return (
@@ -204,7 +209,7 @@ function RootComponent() {
       <AuthProvider>
         <AuthGuard>
           <StoreLoader>
-            {isPublicClientRoute ? (
+            {isPublicPage ? (
               <Outlet />
             ) : (
               <AppShell>

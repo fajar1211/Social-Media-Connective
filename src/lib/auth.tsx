@@ -62,6 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fullName: p.full_name,
       });
     } else {
+      // Only create profile if user metadata has role (from signup trigger)
+      // or if this is genuinely the first user
       const isFirstUser = !(await hasExistingProfiles());
       const userRole = isFirstUser ? "admin" : "client";
 

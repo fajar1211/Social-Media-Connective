@@ -28,12 +28,22 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 
 export async function hasExistingProfiles(): Promise<boolean> {
   if (!supabaseConfigured) return false;
+  
+  // Try RPC first
   const { data, error } = await supabase.rpc("get_profile_count");
-  if (error) {
-    console.error("Error checking profiles:", error);
-    return true;
+  if (!error && data !== null) {
+    return (data ?? 0) > 0;
   }
-  return (data ?? 0) > 0;
+  
+  // Fallback: direct query
+  const { data: rows, error: err2 } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true });
+  if (err2) {
+    console.error("Error checking profiles:", err2);
+    return true; // assume profiles exist to avoid giving everyone admin
+  }
+  return (rows?.length ?? 0) > 0;
 }
 
 export async function createProfile(
