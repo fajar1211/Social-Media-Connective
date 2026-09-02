@@ -25,8 +25,11 @@ export const Route = createFileRoute("/api/auth/facebook")({
             "pages_manage_posts",
           ].join(","),
           state: clientId,
-          config_id: role === "admin" ? "1015151248177076" : "2576054396179955",
         });
+
+        if (role === "admin") {
+          params.set("config_id", "1015151248177076");
+        }
 
         return new Response(null, {
           status: 302,
