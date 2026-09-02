@@ -604,7 +604,6 @@ function SettingsTab({ clientId }: { clientId: string }) {
       const top = (window.innerHeight - height) / 2;
 
       const authUrl = `/api/auth/facebook?client_id=${clientId}`;
-      localStorage.removeItem("socmedconnective-fb-auth");
 
       const popup = window.open(
         authUrl,
@@ -612,7 +611,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
         `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
       );
 
+      let authSuccessful = false;
+
       const processFacebookAuth = (eventData: Record<string, unknown>) => {
+        authSuccessful = true;
         const user = eventData.user as { id: string; name: string };
         const businesses = (eventData.businesses || []) as Array<{ id: string; name: string; pages?: Array<{ id: string; name: string; category: string; access_token: string }> }>;
         const pages = (eventData.pages || []) as Array<{ id: string; name: string; category: string; access_token: string }>;
@@ -638,9 +640,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
               selectedPageName: page.name,
             },
           };
+          setSocialIntegrations(newIntegrations);
           socialIntegrationsRef.current = newIntegrations;
-          setSocialIntegrations({ ...newIntegrations });
           actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+
           toast.success(`Facebook connected to "${page.name}" successfully!`);
         } else {
           setPendingPages(pages);
@@ -656,39 +659,63 @@ function SettingsTab({ clientId }: { clientId: string }) {
         }
       };
 
-      const checkPopupAuth = () => {
+      const handler = (event: MessageEvent) => {
+        if (event.data?.type === "facebook-auth-success" && event.data.clientId === clientId) {
+          processFacebookAuth(event.data);
+          window.removeEventListener("message", handler);
+        } else if (event.data?.type === "facebook-auth-error" && event.data.clientId === clientId) {
+          toast.error(`Failed to connect ${platform}: ${event.data.error}`);
+          window.removeEventListener("message", handler);
+        }
+      };
+
+      window.addEventListener("message", handler);
+
+      const handleStorage = (e: StorageEvent) => {
+        if (e.key === "socmedconnective-fb-auth" && e.newValue) {
+          try {
+            const data = JSON.parse(e.newValue);
+            if (data.type === "facebook-auth-success" && data.clientId === clientId) {
+              processFacebookAuth(data);
+              localStorage.removeItem("socmedconnective-fb-auth");
+            }
+          } catch {}
+        }
+      };
+      window.addEventListener("storage", handleStorage);
+
+      const checkExisting = setInterval(() => {
         try {
           const raw = localStorage.getItem("socmedconnective-fb-auth");
           if (raw) {
             const data = JSON.parse(raw);
             if (data.type === "facebook-auth-success" && data.clientId === clientId) {
-              localStorage.removeItem("socmedconnective-fb-auth");
               processFacebookAuth(data);
-              return true;
+              localStorage.removeItem("socmedconnective-fb-auth");
             }
           }
         } catch {}
-        return false;
-      };
+      }, 300);
 
       if (popup) {
-        const poll = setInterval(() => {
+        const check = setInterval(() => {
           if (popup.closed) {
-            clearInterval(poll);
-            const found = checkPopupAuth();
-            if (!found) {
+            clearInterval(check);
+            clearInterval(checkExisting);
+            window.removeEventListener("message", handler);
+            window.removeEventListener("storage", handleStorage);
+
+            if (!authSuccessful) {
               const newIntegrations = {
                 ...socialIntegrationsRef.current,
                 Facebook: { connected: false },
               };
+              setSocialIntegrations(newIntegrations);
               socialIntegrationsRef.current = newIntegrations;
-              setSocialIntegrations({ ...newIntegrations });
               actions.updateClient(clientId, { socialIntegrations: newIntegrations });
             }
-          } else {
-            checkPopupAuth();
           }
-        }, 300);
+        }, 500);
       }
     } else if (platform === "Instagram") {
       const width = 600;
@@ -697,7 +724,6 @@ function SettingsTab({ clientId }: { clientId: string }) {
       const top = (window.innerHeight - height) / 2;
 
       const authUrl = `/api/auth/instagram?client_id=${clientId}`;
-      localStorage.removeItem("socmedconnective-ig-auth");
 
       const popup = window.open(
         authUrl,
@@ -705,7 +731,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
         `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
       );
 
+      let igAuthSuccessful = false;
+
       const processInstagramAuth = (eventData: Record<string, unknown>) => {
+        igAuthSuccessful = true;
         const instagramAccounts = (eventData.instagram_accounts || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string } }>;
         const pages = (eventData.pages || []) as Array<{ id: string; name: string }>;
         const user = eventData.user as { id: string; name: string };
@@ -726,9 +755,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
               tokenExpiresIn: eventData.expires_in as number,
             },
           };
+          setSocialIntegrations(newIntegrations);
           socialIntegrationsRef.current = newIntegrations;
-          setSocialIntegrations({ ...newIntegrations });
           actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+
           toast.success(`Instagram connected to "${igAccount?.name || account.name}" successfully!`);
         } else if (instagramAccounts.length > 1) {
           toast.info(`Found ${instagramAccounts.length} Instagram accounts. Select one.`);
@@ -737,39 +767,63 @@ function SettingsTab({ clientId }: { clientId: string }) {
         }
       };
 
-      const checkPopupAuth = () => {
+      const handler = (event: MessageEvent) => {
+        if (event.data?.type === "instagram-auth-success" && event.data.clientId === clientId) {
+          processInstagramAuth(event.data);
+          window.removeEventListener("message", handler);
+        } else if (event.data?.type === "instagram-auth-error" && event.data.clientId === clientId) {
+          toast.error(`Failed to connect Instagram: ${event.data.error}`);
+          window.removeEventListener("message", handler);
+        }
+      };
+
+      window.addEventListener("message", handler);
+
+      const handleStorage = (e: StorageEvent) => {
+        if (e.key === "socmedconnective-ig-auth" && e.newValue) {
+          try {
+            const data = JSON.parse(e.newValue);
+            if (data.type === "instagram-auth-success" && data.clientId === clientId) {
+              processInstagramAuth(data);
+              localStorage.removeItem("socmedconnective-ig-auth");
+            }
+          } catch {}
+        }
+      };
+      window.addEventListener("storage", handleStorage);
+
+      const checkExisting = setInterval(() => {
         try {
           const raw = localStorage.getItem("socmedconnective-ig-auth");
           if (raw) {
             const data = JSON.parse(raw);
             if (data.type === "instagram-auth-success" && data.clientId === clientId) {
-              localStorage.removeItem("socmedconnective-ig-auth");
               processInstagramAuth(data);
-              return true;
+              localStorage.removeItem("socmedconnective-ig-auth");
             }
           }
         } catch {}
-        return false;
-      };
+      }, 300);
 
       if (popup) {
-        const poll = setInterval(() => {
+        const check = setInterval(() => {
           if (popup.closed) {
-            clearInterval(poll);
-            const found = checkPopupAuth();
-            if (!found) {
+            clearInterval(check);
+            clearInterval(checkExisting);
+            window.removeEventListener("message", handler);
+            window.removeEventListener("storage", handleStorage);
+
+            if (!igAuthSuccessful) {
               const newIntegrations = {
                 ...socialIntegrationsRef.current,
                 Instagram: { connected: false },
               };
+              setSocialIntegrations(newIntegrations);
               socialIntegrationsRef.current = newIntegrations;
-              setSocialIntegrations({ ...newIntegrations });
               actions.updateClient(clientId, { socialIntegrations: newIntegrations });
             }
-          } else {
-            checkPopupAuth();
           }
-        }, 300);
+        }, 500);
       }
     } else {
       toast.info(`${platform} is coming soon!`);
