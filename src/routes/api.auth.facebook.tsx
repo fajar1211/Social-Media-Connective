@@ -24,14 +24,12 @@ export const Route = createFileRoute("/api/auth/facebook")({
             "pages_manage_posts",
           ].join(","),
           state: clientId,
-          auth_type: "reauthenticate",
-          config_id: "1409843624622246",
         });
 
         return new Response(null, {
           status: 302,
           headers: {
-            Location: `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`,
+            Location: `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}`,
           },
         });
       },

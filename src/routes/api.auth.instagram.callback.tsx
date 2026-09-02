@@ -68,7 +68,7 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
 
         try {
           const tokenResponse = await fetch(
-            "https://graph.facebook.com/v19.0/oauth/access_token",
+            "https://graph.facebook.com/v21.0/oauth/access_token",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -88,12 +88,12 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
           }
 
           const userResponse = await fetch(
-            `https://graph.facebook.com/v19.0/me?fields=id,name,email&access_token=${tokenData.access_token}`
+            `https://graph.facebook.com/v21.0/me?fields=id,name,email&access_token=${tokenData.access_token}`
           );
           const userData = await userResponse.json();
 
           const pagesResponse = await fetch(
-            `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,category,instagram_business_account&access_token=${tokenData.access_token}`
+            `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,category,instagram_business_account&access_token=${tokenData.access_token}`
           );
           const pagesData = await pagesResponse.json();
 

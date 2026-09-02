@@ -16,7 +16,7 @@ export const Route = createFileRoute("/api/facebook/delete")({
           }
 
           const fbResponse = await fetch(
-            `https://graph.facebook.com/v19.0/${postId}`,
+            `https://graph.facebook.com/v21.0/${postId}`,
             {
               method: "DELETE",
               headers: { "Content-Type": "application/json" },

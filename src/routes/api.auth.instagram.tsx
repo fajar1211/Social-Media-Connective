@@ -16,13 +16,12 @@ export const Route = createFileRoute("/api/auth/instagram")({
           response_type: "code",
           scope: "instagram_basic,instagram_content_publish,pages_show_list",
           state: clientId,
-          auth_type: "reauthenticate",
         });
 
         return new Response(null, {
           status: 302,
           headers: {
-            Location: `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`,
+            Location: `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}`,
           },
         });
       },

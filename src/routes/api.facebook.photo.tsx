@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/facebook/photo")({
           }
 
           const fbResponse = await fetch(
-            `https://graph.facebook.com/v19.0/${pageId}/photos`,
+            `https://graph.facebook.com/v21.0/${pageId}/photos`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
