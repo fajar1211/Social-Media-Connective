@@ -903,8 +903,16 @@ function CreateContent() {
 
           {platform ? (
             <SocialMediaPreviewCard
-              profileName={selectedPage ? (pages.find((p) => p.id === selectedPage)?.name || client?.name || "Your Business") : (client?.name || "Your Business")}
-              profileImage={selectedPage ? `https://graph.facebook.com/${selectedPage}/picture?height=80&width=80` : undefined}
+              profileName={(() => {
+                if (isFacebook && selectedPage) {
+                  return pages.find((p) => p.id === selectedPage)?.name || fbConnection?.selectedPageName || client?.name || "Your Business";
+                }
+                if (platform === "Instagram") {
+                  return client?.socialIntegrations?.Instagram?.accountName || client?.name || "Your Business";
+                }
+                return client?.name || "Your Business";
+              })()}
+              profileImage={isFacebook && selectedPage ? `https://graph.facebook.com/${selectedPage}/picture?height=80&width=80` : undefined}
               timestamp={new Date()}
               content={body || topic || "Your post content will appear here..."}
               images={mediaPreview ? [{ src: mediaPreview, alt: "Uploaded media" }] : []}
