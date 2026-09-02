@@ -5,115 +5,137 @@
 - **Production**: https://socmed.marketingconnective.com/
 - **Tech Stack**: TanStack Start (React 19), TanStack Router, Tailwind CSS v4, shadcn/ui, Cloudflare Workers
 - **Deployment**: Cloudflare Workers (auto-deploy from GitHub `main` branch via `bun run build` + `npx wrangler deploy`)
-- **Last Updated**: 2 September 2026
+- **Last Updated**: 3 September 2026
 
 ---
 
-## 🔑 Facebook Developer Console
+## 🔑 Facebook Developer Console — NEW APP
 
+### App Baru (Socmed Connective)
 | Item | Value |
 |------|-------|
 | **App ID** | `1109449551768527` |
 | **App Secret** | `42bc8519cc029ed1e79062a137d57b75` |
-| **App Name** | Social Media Connective |
-| **App Mode** | **Published (Live)** ✅ |
-| **Privacy Policy** | `https://socmed.marketingconnective.com/privacy` ✅ |
-| **Redirect URIs** | `https://socmed.marketingconnective.com/api/auth/facebook/callback` ✅ |
-| | `https://socmed.marketingconnective.com/api/auth/instagram/callback` ✅ |
+| **Client Token** | `fbe4dbe7441f202984e89b534ea56530` |
+| **App Name** | Socmed Connective |
+| **App Type** | Business |
+| **Business Portfolio** | Marketing Connective ID |
+| **Category** | Business |
 
-### Facebook Login for Business Config IDs
-| Config ID | Name | Used For |
-|-----------|------|----------|
-| `1015151248177076` | Connective User | **Admin** role OAuth |
-| `2576054396179955` | Connective Admin | **Client** role (UNUSED - causing issues) |
+### App Settings Status
+| Setting | Status | Value |
+|---------|--------|-------|
+| Domain | ✅ | `socmed.marketingconnective.com` |
+| Privacy Policy URL | ✅ | `https://socmed.marketingconnective.com/privacy` |
+| Terms of Service URL | ⚠️ | `https://www.facebook.com/` → Ganti ke privacy URL |
+| Data Deletion URL | ❌ | Belum diisi |
+| Redirect URIs | ✅ | Facebook + Instagram callback |
 
-### App Review Status
-| Permission | Status | Action Needed |
-|------------|--------|---------------|
-| `pages_show_list` | Siap untuk pengujian | Submit for review |
-| `pages_read_engagement` | Siap untuk pengujian | Submit for review |
-| `pages_manage_posts` | Siap untuk pengujian | Submit for review |
-| `business_management` | Siap untuk pengujian | Submit for review |
-| `public_profile` | Siap untuk pengujian | Auto-approved |
-| `email` | Siap untuk pengujian | Auto-approved |
+### Permissions Status
+| Permission | Status | Keterangan |
+|------------|--------|------------|
+| `email` | ✅ **live** | Sudah aktif |
+| `public_profile` | ✅ **live** | Sudah aktif |
+| `pages_show_list` | ❌ **belum ada** | Belum ditambahkan ke app |
+| `pages_read_engagement` | ❌ **belum ada** | Belum ditambahkan ke app |
+| `pages_manage_posts` | ❌ **belum ada** | Belum ditambahkan ke app |
+| `business_management` | ❌ **belum ada** | Belum ditambahkan ke app |
 
-**⚠️ CRITICAL: All permissions are in "Ready for testing" status. Must submit for App Review before non-developer users can connect.**
-
----
-
-## 📊 Current Issue: Facebook Login for Client Role
-
-### Problem
-- **Admin** can connect Facebook ✅ (developer of the app)
-- **Client** gets "Fitur Tidak Tersedia" ❌ (not a developer + permissions not approved)
-
-### Root Cause Analysis
-1. App is **Published (Live)** ✅
-2. Redirect URIs are correctly configured ✅
-3. Facebook Login for Business settings are correct ✅
-4. **BUT** all permissions are in "Siap untuk pengujian" (Ready for testing) status ❌
-5. This means only developers/testers can authenticate
-6. Non-developer users (clients) are blocked
-
-### Solution Implemented
-- **Admin**: Uses `config_id: "1015151248177076"` (Login for Business)
-- **Client**: No `config_id` (Standard OAuth) — sees their own pages, not admin's pages
-
-### Remaining Blocker
-**App Review must be submitted and approved** for client role to work.
+### App Roles
+| User ID | Role |
+|---------|------|
+| `10216559544817647` | Administrator |
 
 ---
 
-## 📝 Files Modified (2 September 2026)
+## 🔴 Current Issue: "Fitur Tidak Tersedia" Error
 
-### 1. `src/routes/api.auth.facebook.tsx`
-- Reads `role` parameter from query string
-- Admin → `config_id: "1015151248177076"` (Login for Business)
-- Client → no `config_id` (Standard OAuth)
-- Graph API updated to `v21.0`
+### Error Details
+```
+error_code=1349186
+error_message=Fitur Tidak Tersedia: Fitur ini untuk sementara tidak tersedia
+```
 
-### 2. `src/routes/api.auth.facebook.callback.tsx`
-- Graph API updated to `v21.0`
-- Popup close delay: 3000ms (prevents race condition)
+### Root Cause
+App baru **belum memiliki Pages permissions**. Hanya `email` dan `public_profile` yang aktif. Facebook block login karena app meminta permission yang belum disetujui.
 
-### 3. `src/routes/api.auth.instagram.tsx`
-- Graph API updated to `v21.0`
-- Removed `auth_type: "reauthenticate"`
+### Solusi — 2 Opsi
 
-### 4. `src/routes/api.auth.instagram.callback.tsx`
-- Graph API updated to `v21.0`
+#### Opsi A: Tambah Tester (Testing)
+1. Buka `https://developers.facebook.com/apps/1109449551768527/roles/`
+2. Klik **"Add User"**
+3. Masukkan Facebook ID: `10216559544817647`
+4. Pilih role **"Tester"**
+5. Terima undangan di email Facebook
+6. Tester bisa login meskipun app Development mode
 
-### 5. `src/routes/clients.$clientId.tsx`
-- Added `useAuth` import
-- SettingsTab passes `role` parameter to Facebook OAuth URL
-
-### 6. `src/routes/platforms.tsx`
-- Passes `role` parameter to OAuth URL
-
-### 7. All Facebook API endpoints
-- Updated from `v19.0` to `v21.0`:
-  - `api.facebook.post.tsx`
-  - `api.facebook.photo.tsx`
-  - `api.facebook.schedule.tsx`
-  - `api.facebook.edit.tsx`
-  - `api.facebook.delete.tsx`
+#### Opsi B: Submit App Review (Production)
+1. Buka `https://developers.facebook.com/apps/1109449551768527/app-review/`
+2. Tambah use case **"Kelola Halaman"**
+3. Tambahkan permission:
+   - `pages_show_list`
+   - `pages_read_engagement`
+   - `pages_manage_posts`
+   - `business_management`
+4. Jawab pertanyaan:
+   - "Apakah Anda membuat integrasi untuk memungkinkan beberapa klien bisnis?" → **Ya**
+   - "Apakah Anda membuat integrasi atas nama klien individu?" → **Tidak**
+5. Submit untuk review
+6. Tunggu 1-7 hari approval
 
 ---
 
-## 📋 App Review Submission Files
+## ⏳ Yang Harus Dilakukan Besok
 
-| File | Purpose |
-|------|---------|
-| `APP_REVIEW_DESCRIPTION.md` | Complete documentation for App Review |
-| `APP_REVIEW_SUBMISSION.txt` | Short version for form submission |
+### Prioritas 1: Fix App Settings
+1. Buka `https://developers.facebook.com/apps/1109449551768527/settings/basic/`
+2. **Ketentuan Layanan URL**: ganti ke `https://socmed.marketingconnective.com/privacy`
+3. **URL Permintaan Penghapusan Data**: masukkan `https://socmed.marketingconnective.com/privacy`
+4. Klik **Save Changes**
 
-### User Action Required
-1. Go to `https://developers.facebook.com/apps/1109449551768527/app-review/`
-2. Open "Kelola Halaman" use case
-3. Click "Kirim untuk Tinjauan"
-4. Copy content from `APP_REVIEW_SUBMISSION.txt`
-5. Upload video/screenshot of app usage
-6. Submit and wait 1-7 days for approval
+### Prioritas 2: Pilih Opsi Testing/Production
+- **Opsi A (Testing)**: Tambah tester → bisa test sekarang
+- **Opsi B (Production)**: Submit App Review → butuh 1-7 hari
+
+### Prioritas 3: Submit App Review (jika pilih Opsi B)
+1. Buka App Review
+2. Tambah use case "Kelola Halaman"
+3. Tambah permissions
+4. Submit dengan deskripsi dari `APP_REVIEW_SUBMISSION.txt`
+5. Tunggu approval
+
+### Prioritas 4: Update Code (setelah App Review approve)
+- Update `config_id` jika menggunakan Facebook Login for Business
+- Test login sebagai admin dan client
+
+---
+
+## 📝 Files Modified (3 September 2026)
+
+### 1. Facebook App Migration
+- Migrated from old app (`1513088904188454`) to new app (`1109449551768527`)
+- Updated App ID and Secret in all files:
+  - `api.auth.facebook.tsx`
+  - `api.auth.facebook.callback.tsx`
+  - `api.auth.instagram.tsx`
+  - `api.auth.instagram.callback.tsx`
+  - `APP_REVIEW_DESCRIPTION.md`
+  - `APP_REVIEW_SUBMISSION.txt`
+  - `PROJECT-STATUS.md`
+
+### 2. Privacy Page Redesign
+- Modern UI with gradient background
+- Quick summary cards (Data Encrypted, No Tracking, etc.)
+- Contact card with email `info@marketingconnective.com`
+- Footer: "Powered by marketingconnective.com"
+
+### 3. Facebook OAuth Role-Based Config
+- Admin: `config_id: "1015151248177076"` (Login for Business)
+- Client: no `config_id` (Standard OAuth)
+- Client sees own pages, not admin's pages
+
+### 4. Graph API Update
+- All Facebook endpoints updated v19.0 → v21.0
 
 ---
 
@@ -122,51 +144,50 @@
 ### 1. Client Management (`/clients`)
 - Search + filter bar
 - Responsive table (desktop) + card (mobile)
-- Dropdown menu: View / Edit / Delete
-- Edit dialog: Client ID + Name + Active toggle
-- Add Client dialog: Client ID + Name (auto-generated S-prefixed IDs)
-- Delete with AlertDialog confirmation
-- Status badge (Active/Inactive)
-- Entire row clickable for navigation
+- Add Client with auto-generated S-prefixed IDs
+- Edit/Delete with confirmation
 
 ### 2. Client Detail (`/clients/$clientId`)
-**Tab Structure (5 tabs):**
-- **Content Tab**: Status cards, Import section, ContentList with clientIdFilter
-- **AI Content Tab**: Post about, campaign image, reference doc/url, knowledge notes
-- **Media Tab**: Grid view, select all/delete selected, add images
-- **Settings Tab**: Social Integration cards, Magic Link management
-- **Account Tab**: Username/Password form, Google Sign-In button (UI only)
+- Content Tab with clientIdFilter
+- AI Content Tab
+- Media Tab with grid view
+- Settings Tab with Magic Link + Social Integration
+- Account Tab (UI only)
 
 ### 3. Social Integration OAuth
-- **Facebook OAuth**: Role-based config_id selection
-- **Instagram OAuth**: Standard flow
-- Popup flow with `postMessage` + localStorage fallback
-- Token stored per-client in `socialIntegrations`
+- Facebook: Role-based config_id
+- Instagram: Standard flow
+- Popup with postMessage + localStorage
 
-### 4. Facebook Content Publishing APIs
-| Endpoint | Method | Function |
-|----------|--------|----------|
-| `/api/facebook/post` | POST | Publish text/link to Facebook Page |
-| `/api/facebook/photo` | POST | Publish image to Facebook Page |
-| `/api/facebook/schedule` | POST | Schedule post with datetime |
-| `/api/facebook/edit` | POST | Edit existing Facebook post |
-| `/api/facebook/delete` | POST | Delete Facebook post |
+### 4. Facebook Publishing APIs
+- Post, Photo, Schedule, Edit, Delete
 
-### 5. Content Creation (`/content/create`)
-- Auto-select client from URL params
-- Connected platforms shown first
-- Publish Now / Schedule For Later options
-- Complete world timezone list
+### 5. Content Creation
+- Auto-select client
+- Publish Now / Schedule For Later
+- Complete timezone list
 
 ### 6. Magic Link System
-- Public client portal at `/client/$token`
-- No auth required for client viewing
-- Copy/Regenerate/Pause controls in Settings
+- Public client portal
+- No auth required
 
 ### 7. Landing Page
-- Animated orbs, gradient shimmer, marquee
-- Scroll animations, animated counters
-- Footer with "Powered by Marketing Connective"
+- Animated design
+- Professional footer
+
+### 8. Privacy Policy Page
+- Modern redesign
+- Contact info: info@marketingconnective.com
+- Powered by marketingconnective.com
+
+---
+
+## 📋 App Review Submission Files
+
+| File | Purpose |
+|------|---------|
+| `APP_REVIEW_DESCRIPTION.md` | Complete documentation (updated with new App ID) |
+| `APP_REVIEW_SUBMISSION.txt` | Short version for form (updated with new App ID) |
 
 ---
 
@@ -174,45 +195,17 @@
 
 | File | Purpose |
 |------|---------|
-| `src/lib/content-store.ts` | Store: types, actions, content management |
-| `src/lib/db.ts` | Supabase queries, magic link functions |
-| `src/lib/auth.tsx` | AuthProvider, profile management |
-| `src/routes/clients.$clientId.tsx` | Client detail with all tabs (~1860 lines) |
-| `src/routes/content.create.tsx` | Content creation page |
-| `src/routes/api.auth.facebook.tsx` | Facebook OAuth with role-based config |
-| `src/routes/api.auth.facebook.callback.tsx` | Facebook OAuth callback |
+| `src/lib/content-store.ts` | Store: types, actions |
+| `src/lib/db.ts` | Supabase queries |
+| `src/lib/auth.tsx` | AuthProvider |
+| `src/routes/clients.$clientId.tsx` | Client detail (~1860 lines) |
+| `src/routes/content.create.tsx` | Content creation |
+| `src/routes/api.auth.facebook.tsx` | Facebook OAuth |
+| `src/routes/api.auth.facebook.callback.tsx` | Facebook callback |
 | `src/routes/api.auth.instagram.tsx` | Instagram OAuth |
-| `src/routes/api.auth.instagram.callback.tsx` | Instagram OAuth callback |
-| `src/routes/privacy.tsx` | Public privacy policy page |
+| `src/routes/api.auth.instagram.callback.tsx` | Instagram callback |
+| `src/routes/privacy.tsx` | Privacy policy page |
 | `src/routes/client.$token.tsx` | Public client portal |
-| `supabase/migrations/` | Database migrations |
-
----
-
-## ⏳ Pending / Next Steps
-
-### 🔴 CRITICAL (Blocker)
-- [ ] **Submit Facebook App Review** — required for client role to work
-- [ ] **Wait for Facebook approval** — 1-7 days
-
-### 🟡 HIGH Priority
-- [ ] Content Calendar View
-- [ ] Dashboard with analytics
-- [ ] Token refresh (handle expired Facebook/Instagram tokens)
-- [ ] Instagram Graph API posting
-
-### 🟢 MEDIUM Priority
-- [ ] YouTube Data API integration
-- [ ] Google Business Profile (GBP) posting
-- [ ] LinkedIn API integration
-- [ ] TikTok API integration
-- [ ] Bulk publish
-- [ ] One post → multiple platforms
-
-### ⚪ LOW Priority
-- [ ] Analytics insights from published posts
-- [ ] Content preview before publish
-- [ ] Pricing tiers (Free / Pro / Business)
 
 ---
 
@@ -231,13 +224,27 @@ git add -A; git commit -m "message"; git push origin main
 
 ---
 
-## 📝 Recent Changes (2 September 2026)
+## 📝 Session Summary (2-3 September 2026)
 
+### Hari Ini (2 September):
 1. ✅ Facebook OAuth: Role-based config_id (admin vs client)
 2. ✅ Client sees own pages, not admin's pages
-3. ✅ Graph API updated v19.0 → v21.0 (all endpoints)
-4. ✅ Removed `auth_type: "reauthenticate"` from Instagram OAuth
-5. ✅ Added `useAuth` to SettingsTab for role detection
-6. ✅ Created App Review description files
-7. ✅ Diagnosed root cause: permissions not approved for non-developers
-8. ⏳ Waiting for user to submit App Review
+3. ✅ Graph API updated v19.0 → v21.0
+4. ✅ Created App Review description files
+5. ✅ Diagnosed root cause: permissions not approved
+6. ✅ Privacy page redesigned with modern UI
+
+### Besok (3 September):
+1. ⏳ Fix Terms of Service URL di Facebook Developer Console
+2. ⏳ Add Data Deletion URL
+3. ⏳ Pilih: Tambah Tester atau Submit App Review
+4. ⏳ Submit App Review jika sudah siap
+5. ⏳ Test login setelah approval
+
+---
+
+## 🎯 Target
+
+1. **Minggu ini**: App Review submit + approval
+2. **Minggu depan**: Client bisa connect Facebook
+3. **2 minggu lagi**: Production ready
