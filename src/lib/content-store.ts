@@ -68,6 +68,10 @@ export type SocialConnection = {
   accessToken?: string;
   tokenExpiresIn?: number;
   pages?: FacebookPage[];
+  selectedBusinessId?: string;
+  selectedBusinessName?: string;
+  selectedPageId?: string;
+  selectedPageName?: string;
 };
 
 export type Client = {
@@ -403,6 +407,9 @@ export const actions = {
   },
 
   async updateClient(id: string, patch: Partial<Client>) {
+    state.clients = state.clients.map((c) => (c.id === id ? { ...c, ...patch } : c));
+    emit();
+
     if (supabaseConfigured) {
       const dbPatch: Record<string, unknown> = {};
       if (patch.name !== undefined) dbPatch.name = patch.name;
@@ -414,9 +421,6 @@ export const actions = {
         await dbUpdateClient(id, dbPatch as any);
       }
     }
-
-    state.clients = state.clients.map((c) => (c.id === id ? { ...c, ...patch } : c));
-    emit();
   },
 
   async deleteClient(id: string) {

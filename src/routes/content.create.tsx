@@ -924,7 +924,7 @@ function CreateContent() {
                 }
                 return client?.name || "Your Business";
               })()}
-              profileImage={isFacebook && selectedPage ? `https://graph.facebook.com/${selectedPage}/picture?height=80&width=80` : undefined}
+              profileImage={isFacebook ? `https://graph.facebook.com/${selectedPage || fbConnection?.selectedPageId || ""}/picture?height=80&width=80` : undefined}
               timestamp={new Date()}
               content={body || topic || "Your post content will appear here..."}
               images={mediaPreview ? [{ src: mediaPreview, alt: "Uploaded media" }] : []}
