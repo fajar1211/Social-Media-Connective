@@ -3,11 +3,117 @@
 ## Project Overview
 - **Repository**: https://github.com/fajar1211/Social-Media-Connective
 - **Production**: https://socmed.marketingconnective.com/
-- **Tech Stack**: TanStack Start (React 19), TanStack Router, Nitro, Tailwind CSS v4, shadcn/ui, Vite 8
-- **Dev Server**: `npx vite dev` on port 8080
-- **PowerShell**: Need `-ExecutionPolicy Bypass` prefix
-- **Deployment**: Cloudflare Workers (auto-deploy from GitHub `main` branch)
-- **Last Updated**: 31 August 2026
+- **Tech Stack**: TanStack Start (React 19), TanStack Router, Tailwind CSS v4, shadcn/ui, Cloudflare Workers
+- **Deployment**: Cloudflare Workers (auto-deploy from GitHub `main` branch via `bun run build` + `npx wrangler deploy`)
+- **Last Updated**: 2 September 2026
+
+---
+
+## 🔑 Facebook Developer Console
+
+| Item | Value |
+|------|-------|
+| **App ID** | `1109449551768527` |
+| **App Secret** | `42bc8519cc029ed1e79062a137d57b75` |
+| **App Name** | Social Media Connective |
+| **App Mode** | **Published (Live)** ✅ |
+| **Privacy Policy** | `https://socmed.marketingconnective.com/privacy` ✅ |
+| **Redirect URIs** | `https://socmed.marketingconnective.com/api/auth/facebook/callback` ✅ |
+| | `https://socmed.marketingconnective.com/api/auth/instagram/callback` ✅ |
+
+### Facebook Login for Business Config IDs
+| Config ID | Name | Used For |
+|-----------|------|----------|
+| `1015151248177076` | Connective User | **Admin** role OAuth |
+| `2576054396179955` | Connective Admin | **Client** role (UNUSED - causing issues) |
+
+### App Review Status
+| Permission | Status | Action Needed |
+|------------|--------|---------------|
+| `pages_show_list` | Siap untuk pengujian | Submit for review |
+| `pages_read_engagement` | Siap untuk pengujian | Submit for review |
+| `pages_manage_posts` | Siap untuk pengujian | Submit for review |
+| `business_management` | Siap untuk pengujian | Submit for review |
+| `public_profile` | Siap untuk pengujian | Auto-approved |
+| `email` | Siap untuk pengujian | Auto-approved |
+
+**⚠️ CRITICAL: All permissions are in "Ready for testing" status. Must submit for App Review before non-developer users can connect.**
+
+---
+
+## 📊 Current Issue: Facebook Login for Client Role
+
+### Problem
+- **Admin** can connect Facebook ✅ (developer of the app)
+- **Client** gets "Fitur Tidak Tersedia" ❌ (not a developer + permissions not approved)
+
+### Root Cause Analysis
+1. App is **Published (Live)** ✅
+2. Redirect URIs are correctly configured ✅
+3. Facebook Login for Business settings are correct ✅
+4. **BUT** all permissions are in "Siap untuk pengujian" (Ready for testing) status ❌
+5. This means only developers/testers can authenticate
+6. Non-developer users (clients) are blocked
+
+### Solution Implemented
+- **Admin**: Uses `config_id: "1015151248177076"` (Login for Business)
+- **Client**: No `config_id` (Standard OAuth) — sees their own pages, not admin's pages
+
+### Remaining Blocker
+**App Review must be submitted and approved** for client role to work.
+
+---
+
+## 📝 Files Modified (2 September 2026)
+
+### 1. `src/routes/api.auth.facebook.tsx`
+- Reads `role` parameter from query string
+- Admin → `config_id: "1015151248177076"` (Login for Business)
+- Client → no `config_id` (Standard OAuth)
+- Graph API updated to `v21.0`
+
+### 2. `src/routes/api.auth.facebook.callback.tsx`
+- Graph API updated to `v21.0`
+- Popup close delay: 3000ms (prevents race condition)
+
+### 3. `src/routes/api.auth.instagram.tsx`
+- Graph API updated to `v21.0`
+- Removed `auth_type: "reauthenticate"`
+
+### 4. `src/routes/api.auth.instagram.callback.tsx`
+- Graph API updated to `v21.0`
+
+### 5. `src/routes/clients.$clientId.tsx`
+- Added `useAuth` import
+- SettingsTab passes `role` parameter to Facebook OAuth URL
+
+### 6. `src/routes/platforms.tsx`
+- Passes `role` parameter to OAuth URL
+
+### 7. All Facebook API endpoints
+- Updated from `v19.0` to `v21.0`:
+  - `api.facebook.post.tsx`
+  - `api.facebook.photo.tsx`
+  - `api.facebook.schedule.tsx`
+  - `api.facebook.edit.tsx`
+  - `api.facebook.delete.tsx`
+
+---
+
+## 📋 App Review Submission Files
+
+| File | Purpose |
+|------|---------|
+| `APP_REVIEW_DESCRIPTION.md` | Complete documentation for App Review |
+| `APP_REVIEW_SUBMISSION.txt` | Short version for form submission |
+
+### User Action Required
+1. Go to `https://developers.facebook.com/apps/1109449551768527/app-review/`
+2. Open "Kelola Halaman" use case
+3. Click "Kirim untuk Tinjauan"
+4. Copy content from `APP_REVIEW_SUBMISSION.txt`
+5. Upload video/screenshot of app usage
+6. Submit and wait 1-7 days for approval
 
 ---
 
@@ -16,37 +122,26 @@
 ### 1. Client Management (`/clients`)
 - Search + filter bar
 - Responsive table (desktop) + card (mobile)
-- Dropdown menu: View / Edit / Delete (Manage Platforms & Social Integration removed from dropdown)
+- Dropdown menu: View / Edit / Delete
 - Edit dialog: Client ID + Name + Active toggle
-- Add Client dialog: Client ID + Name
+- Add Client dialog: Client ID + Name (auto-generated S-prefixed IDs)
 - Delete with AlertDialog confirmation
 - Status badge (Active/Inactive)
 - Entire row clickable for navigation
 
 ### 2. Client Detail (`/clients/$clientId`)
 **Tab Structure (5 tabs):**
-- **Content Tab**: Status cards (Suggested/Additional/Submitted/Approved/Deleted), Import section (.docx/.pdf/.md), ContentList
-- **AI Content Tab**: Post about, campaign image, reference doc/url, knowledge notes, knowledge files, posts per platform, schedule dates
-- **Media Tab**: Grid view, select all/delete selected, add images, filter all/images/videos
-- **Settings Tab**: Social Integration cards with professional SVG logos per platform
+- **Content Tab**: Status cards, Import section, ContentList with clientIdFilter
+- **AI Content Tab**: Post about, campaign image, reference doc/url, knowledge notes
+- **Media Tab**: Grid view, select all/delete selected, add images
+- **Settings Tab**: Social Integration cards, Magic Link management
 - **Account Tab**: Username/Password form, Google Sign-In button (UI only)
 
-**Social Platforms:**
-- Connected: Facebook, Instagram
-- Coming Soon: YouTube, GBP, LinkedIn, TikTok, Xiaohongshu, Reddit, Threads, X (Twitter)
-- Blog (WordPress)
-
-### 3. Social Integration OAuth (Facebook & Instagram)
-- **Facebook OAuth**: `/api/auth/facebook` → redirect to Meta → `/api/auth/facebook/callback`
-- **Instagram OAuth**: `/api/auth/instagram` → redirect to Meta → `/api/auth/instagram/callback`
-- Meta App ID: `1513088904188454`
-- Callback URL: `https://socmed.marketingconnective.com/api/auth/facebook/callback`
-- Scopes: `business_management`, `pages_read_engagement`, `pages_manage_posts`
-- `auth_type=reauthenticate` → force different accounts per client
-- `state` parameter = `clientId` → prevents cross-client token save
-- Popup flow with `postMessage` communication
-- Token stored in `SocialConnection.accessToken`, `pages` stored per-client
-- Facebook OAuth tested and working (6 pages found)
+### 3. Social Integration OAuth
+- **Facebook OAuth**: Role-based config_id selection
+- **Instagram OAuth**: Standard flow
+- Popup flow with `postMessage` + localStorage fallback
+- Token stored per-client in `socialIntegrations`
 
 ### 4. Facebook Content Publishing APIs
 | Endpoint | Method | Function |
@@ -58,28 +153,20 @@
 | `/api/facebook/delete` | POST | Delete Facebook post |
 
 ### 5. Content Creation (`/content/create`)
-- **URL Behavior**:
-  - From `/clients/$clientId` → `/content/create?clientId=xxx&clientName=xxx` (auto-select client)
-  - From menu utama → `/content/create` (shows Select Client dropdown)
-- **Back Button**: "Back" → `/clients/$clientId` | "Back to Clients" → `/clients`
-- **Form Fields**:
-  - Topic (text input)
-  - Goal (Select Goal dropdown)
-  - Platform (Select Platform dropdown - shows connected platforms first)
-  - Content Type (Select Type dropdown)
-  - Body (Include Hashtag) textarea
-  - Start Date / End Date
-- **Media Preview**: Upload image/video with preview
-- **Publish Options** (professional card design with icons):
-  - **Publish Now** (green card) → Cancel | Publish Post buttons
-  - **Schedule For Later** (blue card) → Timezone (with UTC offsets, complete world list) + Date + Time → Cancel | Schedule Post buttons
-- Facebook Page selector when platform = Facebook and connected
+- Auto-select client from URL params
+- Connected platforms shown first
+- Publish Now / Schedule For Later options
+- Complete world timezone list
 
-### 6. Content List Publishing Actions
-- Per-item Publish button (Send icon)
-- Per-item Schedule button (CalendarClock icon)
-- Per-item Delete from Facebook (Trash icon)
-- Publish/Schedule actions show page selector + datetime picker inline
+### 6. Magic Link System
+- Public client portal at `/client/$token`
+- No auth required for client viewing
+- Copy/Regenerate/Pause controls in Settings
+
+### 7. Landing Page
+- Animated orbs, gradient shimmer, marquee
+- Scroll animations, animated counters
+- Footer with "Powered by Marketing Connective"
 
 ---
 
@@ -87,77 +174,45 @@
 
 | File | Purpose |
 |------|---------|
-| `src/lib/content-store.ts` | Store: `SocialPlatform`, `SocialConnection`, `FacebookPage`, `Client`, `ContentItem` |
-| `src/routes/clients.tsx` | Client list |
-| `src/routes/clients.$clientId.tsx` | Client detail: Content/AI Content/Media/Settings/Account tabs (~1350 lines) |
-| `src/routes/content.create.tsx` | Content creation with Publish Now/Schedule For Later |
-| `src/routes/content.index.tsx` | Content list page |
-| `src/components/content-list.tsx` | Content table with Publish/Schedule/Delete actions |
-| `src/components/badges.tsx` | StatusBadge, PlatformBadge, ContentTypeBadge, ClientStatusBadge |
-| `src/routes/api.auth.facebook.tsx` | Facebook OAuth redirect |
-| `src/routes/api.auth.facebook.callback.tsx` | Facebook OAuth callback (token exchange + postMessage) |
-| `src/routes/api.auth.instagram.tsx` | Instagram OAuth redirect |
+| `src/lib/content-store.ts` | Store: types, actions, content management |
+| `src/lib/db.ts` | Supabase queries, magic link functions |
+| `src/lib/auth.tsx` | AuthProvider, profile management |
+| `src/routes/clients.$clientId.tsx` | Client detail with all tabs (~1860 lines) |
+| `src/routes/content.create.tsx` | Content creation page |
+| `src/routes/api.auth.facebook.tsx` | Facebook OAuth with role-based config |
+| `src/routes/api.auth.facebook.callback.tsx` | Facebook OAuth callback |
+| `src/routes/api.auth.instagram.tsx` | Instagram OAuth |
 | `src/routes/api.auth.instagram.callback.tsx` | Instagram OAuth callback |
-| `src/routes/api.facebook.post.tsx` | Facebook Graph API: post to Page |
-| `src/routes/api.facebook.photo.tsx` | Facebook Graph API: post photo |
-| `src/routes/api.facebook.schedule.tsx` | Facebook Graph API: schedule post |
-| `src/routes/api.facebook.edit.tsx` | Facebook Graph API: edit post |
-| `src/routes/api.facebook.delete.tsx` | Facebook Graph API: delete post |
-| `src/routes/settings.tsx` | Global settings page |
-| `src/routes/index.tsx` | Dashboard page |
-
----
-
-## 🔑 Environment Variables (`.env`)
-
-```
-META_APP_ID=1513088904188454
-META_APP_SECRET=a2801fd1f190e76d0ffdb3125ec2dc14
-META_REDIRECT_URI=https://socmed.marketingconnective.com/api/auth/facebook/callback
-```
-
-> ⚠️ Note: `META_APP_SECRET` is hardcoded in callback files for Cloudflare Workers compatibility (not ideal for production security).
-
----
-
-## 📋 Data Types
-
-```typescript
-type SocialPlatform = "Facebook" | "Instagram" | "YouTube" | "GBP" | "LinkedIn" | "Blog" | "TikTok" | "Xiaohongshu" | "Reddit" | "Threads" | "X (Twitter)";
-
-type ContentType = "Text" | "Carousel" | "Image" | "Short Video" | "Long Video" | "Reel";
-```
+| `src/routes/privacy.tsx` | Public privacy policy page |
+| `src/routes/client.$token.tsx` | Public client portal |
+| `supabase/migrations/` | Database migrations |
 
 ---
 
 ## ⏳ Pending / Next Steps
 
-### High Priority
-- [ ] Content Calendar View (see upcoming posts at a glance)
+### 🔴 CRITICAL (Blocker)
+- [ ] **Submit Facebook App Review** — required for client role to work
+- [ ] **Wait for Facebook approval** — 1-7 days
+
+### 🟡 HIGH Priority
+- [ ] Content Calendar View
 - [ ] Dashboard with analytics
 - [ ] Token refresh (handle expired Facebook/Instagram tokens)
-- [ ] Instagram Graph API posting (post photo/reels)
-- [ ] Real-time publish to Facebook (test with production app)
+- [ ] Instagram Graph API posting
 
-### Medium Priority
+### 🟢 MEDIUM Priority
 - [ ] YouTube Data API integration
 - [ ] Google Business Profile (GBP) posting
 - [ ] LinkedIn API integration
 - [ ] TikTok API integration
-- [ ] Media upload (image/video) directly to Facebook/Instagram
 - [ ] Bulk publish
 - [ ] One post → multiple platforms
 
-### Low Priority
+### ⚪ LOW Priority
 - [ ] Analytics insights from published posts
 - [ ] Content preview before publish
 - [ ] Pricing tiers (Free / Pro / Business)
-- [ ] Agency workflow improvements
-
-### Account Tab (UI Only - Needs Backend)
-- [ ] Username/Password authentication
-- [ ] Google Sign-In integration
-- [ ] Session management
 
 ---
 
@@ -172,30 +227,17 @@ npx tsc --noEmit --pretty
 
 # Push to git (auto-deploys to Cloudflare)
 git add -A; git commit -m "message"; git push origin main
-
-# Manual deploy (if auto-deploy not configured)
-# Go to Cloudflare Dashboard → Workers & Pages → Social-Media-Connective → Deployments → Retry
 ```
 
 ---
 
-## 📝 Recent Changes (31 August 2026)
+## 📝 Recent Changes (2 September 2026)
 
-1. ✅ Updated Meta App ID and OAuth redirect URIs
-2. ✅ Added Facebook OAuth scopes: `business_management`, `pages_read_engagement`, `pages_manage_posts`
-3. ✅ Fixed Cloudflare Workers `process.env` issue (hardcoded META_APP_SECRET)
-4. ✅ Removed "Manage Platforms" and "Social Integration" from clients dropdown
-5. ✅ Simplified Import Posts to button-only (.docx/.pdf/.md)
-6. ✅ Added AI Content tab with full form
-7. ✅ Added Media tab with grid view and filters
-8. ✅ Added Client Magic Link URL in Settings
-9. ✅ Added professional SVG logos for all social platforms
-10. ✅ Added "Coming Soon" badges for YouTube, GBP, LinkedIn, TikTok, etc.
-11. ✅ Added Blog platform with WordPress logo
-12. ✅ Redesigned Create Content page with Back button, Select Client, connected platforms
-13. ✅ Removed Posting Settings from client Settings tab
-14. ✅ Added Account tab with Username/Password and Google Sign-In (UI only)
-15. ✅ Removed Published tab from client detail
-16. ✅ Changed Publish Options to professional card design (Publish Now / Schedule For Later)
-17. ✅ Added complete world timezone list with UTC offsets
-18. ✅ Fixed clientId quotes issue in URL params
+1. ✅ Facebook OAuth: Role-based config_id (admin vs client)
+2. ✅ Client sees own pages, not admin's pages
+3. ✅ Graph API updated v19.0 → v21.0 (all endpoints)
+4. ✅ Removed `auth_type: "reauthenticate"` from Instagram OAuth
+5. ✅ Added `useAuth` to SettingsTab for role detection
+6. ✅ Created App Review description files
+7. ✅ Diagnosed root cause: permissions not approved for non-developers
+8. ⏳ Waiting for user to submit App Review

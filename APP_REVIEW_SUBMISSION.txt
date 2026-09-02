@@ -1,0 +1,36 @@
+=== FACEBOOK APP REVIEW SUBMISSION ===
+
+APP NAME: Social Media Connective
+APP ID: 1109449551768527
+
+=== USE CASE DESCRIPTION ===
+
+Social Media Connective is a social media content management platform that helps businesses manage their Facebook Pages. Users can connect their pages, create/schedule content, and view engagement metrics.
+
+=== PERMISSION JUSTIFICATION ===
+
+1. pages_show_list
+To display the list of Facebook Pages that the user manages, allowing them to select which page to connect to our platform.
+
+2. pages_read_engagement
+To read engagement metrics (likes, comments, shares) on posts published through our app, helping users track content performance.
+
+3. pages_manage_posts
+To create, edit, and delete posts on the user's selected Facebook Pages when they publish content through our platform.
+
+4. business_management
+To access Business Manager settings and properly manage page assignments within business portfolios.
+
+=== DATA USAGE ===
+
+- We do NOT sell user data
+- We do NOT use data for advertising
+- We do NOT share data with third parties
+- Users can disconnect and delete their data at any time
+- Data is only used to provide the requested service
+
+=== COMPLIANCE ===
+
+- Privacy Policy: https://socmed.marketingconnective.com/privacy
+- Users can disconnect their Facebook account at any time
+- Only necessary permissions are requested

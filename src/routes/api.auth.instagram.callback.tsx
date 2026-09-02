@@ -73,8 +73,8 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                client_id: "1513088904188454",
-                client_secret: "a2801fd1f190e76d0ffdb3125ec2dc14",
+                client_id: "1109449551768527",
+                client_secret: "42bc8519cc029ed1e79062a137d57b75",
                 redirect_uri: "https://socmed.marketingconnective.com/api/auth/instagram/callback",
                 code: code,
               }),

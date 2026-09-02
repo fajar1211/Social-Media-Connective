@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const META_APP_ID = "1513088904188454";
+const META_APP_ID = "1109449551768527";
 const REDIRECT_URI = "https://socmed.marketingconnective.com/api/auth/instagram/callback";
 
 export const Route = createFileRoute("/api/auth/instagram")({
