@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Lightbulb, PlusCircle, Send, CheckCircle2, Trash2, Users, Shield, Building2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,15 @@ const cards = [
 function Dashboard() {
   const { content, clients } = useStore();
   const { profile } = useAuth();
+  const navigate = useNavigate();
+
+  // Client with assigned clientId → redirect to their client page
+  useEffect(() => {
+    if (profile?.role === "client" && profile?.clientId) {
+      navigate({ to: "/clients/$clientId", params: { clientId: profile.clientId }, replace: true });
+    }
+  }, [profile, navigate]);
+
   const c = counts(content);
   const [selected, setSelected] = useState<ContentItem | null>(null);
   const current = selected ? (content.find((i) => i.id === selected.id) ?? null) : null;
