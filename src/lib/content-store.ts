@@ -245,7 +245,7 @@ export async function loadStoreData(clientId?: string): Promise<void> {
 
     state = {
       content: mappedContent,
-      clients: mappedClients.length > 0 ? mappedClients : defaultState.clients,
+      clients: mappedClients,
       platforms: mappedPlatforms.length > 0 ? mappedPlatforms : defaultState.platforms,
       loaded: true,
     };
