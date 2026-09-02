@@ -240,7 +240,7 @@ export async function loadStoreData(clientId?: string): Promise<void> {
       name: c.name,
       active: c.active,
       platforms: [],
-      socialIntegrations: (c as any).social_integrations || {},
+      socialIntegrations: (c as any).social_integrations || (c as any).socialIntegrations || {},
       magicLinkToken: c.magic_link_token || "",
       magicLinkActive: c.magic_link_active ?? true,
     }));
