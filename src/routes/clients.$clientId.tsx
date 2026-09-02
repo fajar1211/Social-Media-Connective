@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useReducer } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -534,6 +534,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const client = clients.find((c) => c.id === clientId);
   const [socialIntegrations, setSocialIntegrations] = useState(client?.socialIntegrations || {});
   const socialIntegrationsRef = useRef(client?.socialIntegrations || {});
+  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
   const [isPaused, setIsPaused] = useState(client?.magicLinkActive === false);
   const [pageSelectorOpen, setPageSelectorOpen] = useState(false);
   const [pendingPages, setPendingPages] = useState<{ id: string; name: string; category?: string; access_token: string }[]>([]);
@@ -643,6 +644,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           setSocialIntegrations(newIntegrations);
           socialIntegrationsRef.current = newIntegrations;
           actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+          forceUpdate();
 
           toast.success(`Facebook connected to "${page.name}" successfully!`);
         } else {
@@ -713,6 +715,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               setSocialIntegrations(newIntegrations);
               socialIntegrationsRef.current = newIntegrations;
               actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+              forceUpdate();
             }
           }
         }, 500);
@@ -758,6 +761,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           setSocialIntegrations(newIntegrations);
           socialIntegrationsRef.current = newIntegrations;
           actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+          forceUpdate();
 
           toast.success(`Instagram connected to "${igAccount?.name || account.name}" successfully!`);
         } else if (instagramAccounts.length > 1) {
@@ -821,6 +825,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               setSocialIntegrations(newIntegrations);
               socialIntegrationsRef.current = newIntegrations;
               actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+              forceUpdate();
             }
           }
         }, 500);
@@ -856,6 +861,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     setSocialIntegrations(newIntegrations);
     socialIntegrationsRef.current = newIntegrations;
     actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+    forceUpdate();
 
     toast.success(`Facebook connected to "${selectedPage.name}" successfully!`);
     setPageSelectorOpen(false);
@@ -875,6 +881,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     setSocialIntegrations(newIntegrations);
     socialIntegrationsRef.current = newIntegrations;
     actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+    forceUpdate();
     toast.success(`${platform} disconnected`);
   };
 
