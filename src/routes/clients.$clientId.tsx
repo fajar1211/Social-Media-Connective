@@ -718,7 +718,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               forceUpdate();
             }
           }
-        }, 1000);
+        }, 4000);
       }
     } else if (platform === "Instagram") {
       const width = 600;
@@ -828,7 +828,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               forceUpdate();
             }
           }
-        }, 1000);
+        }, 4000);
       }
     } else {
       toast.info(`${platform} is coming soon!`);

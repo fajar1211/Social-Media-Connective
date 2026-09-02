@@ -137,7 +137,7 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
         var el = document.getElementById("status");
         if (el) el.textContent = "Connected! You can close this tab.";
         try { window.close(); } catch(e) {}
-      }, 1500);
+      }, 3000);
     })();
   </script>
 </body>
