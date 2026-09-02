@@ -546,7 +546,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    if (client?.socialIntegrations) {
+    if (client?.socialIntegrations && Object.keys(socialIntegrationsRef.current).length === 0) {
       setSocialIntegrations(client.socialIntegrations);
       socialIntegrationsRef.current = client.socialIntegrations;
     }
