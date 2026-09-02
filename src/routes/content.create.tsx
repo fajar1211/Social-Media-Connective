@@ -244,7 +244,7 @@ function CreateContent() {
     setMediaType(null);
   };
 
-  const generate = () => {
+  const generate = async () => {
     if (!topic.trim()) {
       toast.error("Enter a topic first.");
       return;
