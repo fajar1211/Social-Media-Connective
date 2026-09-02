@@ -146,12 +146,13 @@ export async function getNextClientId(): Promise<string> {
 }
 
 export async function createClient(
-  client: Omit<Client, "id" | "created_at" | "updated_at">
+  client: Omit<Client, "id" | "created_at" | "updated_at"> & { id?: string }
 ): Promise<Client | null> {
   if (!supabaseConfigured) return null;
+  const insertData = client.id ? { ...client, id: client.id } : { name: client.name, active: client.active };
   const { data, error } = await supabase
     .from("clients")
-    .insert(client)
+    .insert(insertData)
     .select()
     .single();
   if (error) {

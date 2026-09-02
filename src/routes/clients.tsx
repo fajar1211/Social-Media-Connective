@@ -60,6 +60,7 @@ import {
 import { ClientStatusBadge, PlatformBadge } from "@/components/badges";
 import { actions, useStore, counts, type Client, type Platform } from "@/lib/content-store";
 import { useAuth } from "@/lib/auth";
+import { updateProfile } from "@/lib/db";
 
 export const Route = createFileRoute("/clients")({
   head: () => ({
@@ -176,12 +177,22 @@ function ClientsPage() {
 
   const [deleting, setDeleting] = useState<Client | null>(null);
 
+  const { user, refreshProfile } = useAuth();
+
   const handleAddPersonal = async () => {
     setLoadingId(true);
     const id = await actions.getNextClientId();
     setNextClientId(id);
     setLoadingId(false);
     setAdding(true);
+  };
+
+  const handleAdminAddClient = async () => {
+    setLoadingId(true);
+    const id = await actions.getNextClientId();
+    setAdminClientId(id);
+    setLoadingId(false);
+    setAdminAdding(true);
   };
 
   // Client without assigned client - show setup options
@@ -271,10 +282,14 @@ function ClientsPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. My Business"
-                onKeyDown={(e) => {
+                onKeyDown={async (e) => {
                   if (e.key === "Enter" && name.trim() && nextClientId) {
-                    actions.addClient(nextClientId, name.trim(), []);
-                    toast.success("Profile created! Please contact admin to link your account.");
+                    await actions.addClient(nextClientId, name.trim(), []);
+                    if (user) {
+                      await updateProfile(user.id, { client_id: nextClientId });
+                      await refreshProfile();
+                    }
+                    toast.success("Profile created! You can now manage your content.");
                     setAdding(false);
                     setNextClientId("");
                     setName("");
@@ -287,7 +302,7 @@ function ClientsPage() {
                 Cancel
               </Button>
               <Button
-                onClick={() => {
+                onClick={async () => {
                   if (!name.trim()) {
                     toast.error("Enter a profile name.");
                     return;
@@ -296,8 +311,13 @@ function ClientsPage() {
                     toast.error("Client ID not generated.");
                     return;
                   }
-                  actions.addClient(nextClientId, name.trim(), []);
-                  toast.success("Profile created! Please contact admin to link your account.");
+                  await actions.addClient(nextClientId, name.trim(), []);
+                  // Link profile to the new client
+                  if (user) {
+                    await updateProfile(user.id, { client_id: nextClientId });
+                    await refreshProfile();
+                  }
+                  toast.success("Profile created! You can now manage your content.");
                   setAdding(false);
                   setNextClientId("");
                   setName("");
@@ -393,7 +413,11 @@ function ClientsPage() {
       <PageHeader
         title="Clients"
         subtitle={`${clients.length} client${clients.length !== 1 ? "s" : ""} total · ${clients.filter((c) => c.active).length} active`}
-        actions={<Button onClick={() => setAdminAdding(true)}>Add Client</Button>}
+        actions={
+          <Button onClick={handleAdminAddClient} disabled={loadingId}>
+            {loadingId ? "Loading..." : "Add Client"}
+          </Button>
+        }
       />
 
       <div className="space-y-4">
@@ -433,8 +457,8 @@ function ClientsPage() {
                 : "Try adjusting your search or filter."}
             </p>
             {clients.length === 0 && (
-              <Button className="mt-6" onClick={() => setAdminAdding(true)}>
-                Add Client
+              <Button className="mt-6" onClick={handleAdminAddClient} disabled={loadingId}>
+                {loadingId ? "Loading..." : "Add Client"}
               </Button>
             )}
           </div>
@@ -553,7 +577,7 @@ function ClientsPage() {
             <Input
               value={adminClientId}
               onChange={(e) => setAdminClientId(e.target.value)}
-              placeholder="e.g. 435522"
+              placeholder="e.g. S0100"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && adminClientId.trim() && adminName.trim()) {
                   actions.addClient(adminClientId.trim(), adminName.trim(), []);
@@ -565,7 +589,7 @@ function ClientsPage() {
               }}
             />
             <p className="text-xs text-muted-foreground">
-              Unique ID for the client. Used in URL: /clients/{"<this-id>"}
+              Unique ID for the client. Auto-generated or enter custom ID.
             </p>
           </div>
           <div className="space-y-1.5">
