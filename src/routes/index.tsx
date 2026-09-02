@@ -294,11 +294,12 @@ function LandingPage() {
       <section className="relative overflow-hidden pt-16">
         {/* Animated gradient background */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.08] via-background to-cyan-500/[0.06]" />
-          <div className="hero-orb hero-orb-1 absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-primary/20 to-violet-500/15 blur-[100px]" />
-          <div className="hero-orb hero-orb-2 absolute -bottom-32 -right-32 h-[450px] w-[450px] rounded-full bg-gradient-to-br from-cyan-500/15 to-blue-500/15 blur-[100px]" />
-          <div className="hero-orb hero-orb-3 absolute top-1/3 left-1/2 -translate-x-1/2 h-[350px] w-[350px] rounded-full bg-gradient-to-br from-pink-500/10 to-amber-500/10 blur-[80px]" />
-          <div className="hero-orb hero-orb-4 absolute top-10 right-1/4 h-[200px] w-[200px] rounded-full bg-emerald-500/10 blur-[60px]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.1] via-background to-cyan-500/[0.08]" />
+          <div className="hero-orb hero-orb-1 absolute -top-24 -left-24 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-primary/25 to-violet-500/20 blur-[80px]" />
+          <div className="hero-orb hero-orb-2 absolute -bottom-24 -right-24 h-[350px] w-[350px] rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 blur-[80px]" />
+          <div className="hero-orb hero-orb-3 absolute top-1/3 left-1/2 -translate-x-1/2 h-[300px] w-[300px] rounded-full bg-gradient-to-br from-pink-500/15 to-amber-500/12 blur-[70px]" />
+          <div className="hero-orb hero-orb-4 absolute top-8 right-1/4 h-[180px] w-[180px] rounded-full bg-emerald-500/15 blur-[50px]" />
+          <div className="hero-orb hero-orb-5 absolute bottom-8 left-1/4 h-[160px] w-[160px] rounded-full bg-rose-500/12 blur-[50px]" />
           {/* Dot grid pattern */}
           <div
             className="absolute inset-0 opacity-[0.04]"
@@ -310,13 +311,13 @@ function LandingPage() {
           />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-5 pt-12 pb-14 sm:px-8 sm:pt-16 sm:pb-18 lg:pt-20 lg:pb-24">
+        <div className="relative mx-auto max-w-7xl px-5 pt-8 pb-10 sm:px-8 sm:pt-10 sm:pb-14 lg:pt-14 lg:pb-18">
           {/* Badge */}
           <FadeIn className="flex justify-center">
-            <div className="hero-badge group relative mb-8 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/80 px-5 py-2 text-xs font-semibold text-primary shadow-sm backdrop-blur-sm transition-all hover:border-primary/30 hover:shadow-md">
+            <div className="hero-badge group relative mb-6 inline-flex items-center gap-2 rounded-full border border-violet-300/40 bg-gradient-to-r from-violet-500/10 via-white/80 to-cyan-500/10 px-5 py-2 text-xs font-semibold text-violet-700 shadow-sm backdrop-blur-sm transition-all hover:border-violet-400/50 hover:shadow-md">
               <span className="relative flex size-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-primary" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-500 opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-violet-500" />
               </span>
               Social Media Management Platform
               <ChevronRight className="size-3.5 opacity-60 transition-transform group-hover:translate-x-0.5" />
@@ -650,7 +651,14 @@ function LandingPage() {
           </div>
           <p className="text-xs text-muted-foreground">
             Powered by{" "}
-            <span className="font-semibold text-foreground">Marketing Connective</span>
+            <a
+              href="https://marketingconnective.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-foreground hover:text-primary transition-colors"
+            >
+              Marketing Connective
+            </a>
           </p>
         </div>
       </footer>

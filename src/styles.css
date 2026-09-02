@@ -120,6 +120,7 @@
 .hero-orb-2 { animation: hero-orb-float 25s ease-in-out infinite reverse; }
 .hero-orb-3 { animation: hero-orb-float 18s ease-in-out infinite 2s; }
 .hero-orb-4 { animation: hero-orb-float 22s ease-in-out infinite 1s; }
+.hero-orb-5 { animation: hero-orb-float 19s ease-in-out infinite 0.5s; }
 
 /* ── Hero gradient text shimmer ── */
 @keyframes gradient-shimmer {
