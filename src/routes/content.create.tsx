@@ -247,7 +247,7 @@ function CreateContent() {
       toast.error("Client not found.");
       return;
     }
-    actions.addContent({
+    await actions.addContent({
       title: topic.trim(),
       client: client.name,
       clientId: client.id,
@@ -267,7 +267,7 @@ function CreateContent() {
     navigate({ to: "/suggested" });
   };
 
-  const save = (status: "Suggested" | "Submitted") => {
+  const save = async (status: "Suggested" | "Submitted") => {
     if (!topic.trim()) {
       toast.error("Enter a topic first.");
       return;
@@ -276,7 +276,7 @@ function CreateContent() {
       toast.error("Client not found.");
       return;
     }
-    actions.addContent({
+    await actions.addContent({
       title: topic.trim(),
       client: client.name,
       clientId: client.id,
@@ -325,7 +325,7 @@ function CreateContent() {
       const data = await response.json();
 
       if (data.success) {
-        actions.addContent({
+        await actions.addContent({
           title: topic.trim(),
           client: client.name,
       clientId: client.id,
@@ -391,7 +391,7 @@ function CreateContent() {
       const data = await response.json();
 
       if (data.success) {
-        actions.addContent({
+        await actions.addContent({
           title: topic.trim(),
           client: client.name,
       clientId: client.id,
@@ -864,7 +864,7 @@ function CreateContent() {
                           toast.error("Client not found.");
                           return;
                         }
-                        actions.addContent({
+                        await actions.addContent({
                           title: topic.trim(),
                           client: client.name,
       clientId: client.id,

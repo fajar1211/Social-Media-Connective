@@ -266,6 +266,8 @@ export async function loadStoreData(clientId?: string): Promise<void> {
 
 export const actions = {
   async addContent(item: Omit<ContentItem, "id">) {
+    let dbId: string | null = null;
+
     if (supabaseConfigured && item.clientId) {
       const created = await dbCreateContent({
         client_id: item.clientId,
@@ -286,20 +288,14 @@ export const actions = {
         scheduled_time: item.scheduledTime || "",
       });
       if (created) {
-        state.content = [
-          {
-            ...item,
-            id: created.id,
-          },
-          ...state.content,
-        ];
+        dbId = created.id;
       }
-    } else {
-      state.content = [
-        { ...item, id: `c-${Date.now()}${Math.floor(Math.random() * 100)}` },
-        ...state.content,
-      ];
     }
+
+    state.content = [
+      { ...item, id: dbId || `c-${Date.now()}${Math.floor(Math.random() * 100)}` },
+      ...state.content,
+    ];
     emit();
   },
 
