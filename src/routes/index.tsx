@@ -204,42 +204,54 @@ const features = [
     title: "AI Content Creation",
     description:
       "Generate engaging posts with AI. Tailored tone, style, and hashtags for every platform.",
-    gradient: "from-violet-500/10 to-purple-500/10",
+    gradient: "from-violet-500/15 to-purple-500/10",
+    iconBg: "bg-gradient-to-br from-violet-500/15 to-purple-500/10",
+    iconColor: "text-violet-600",
   },
   {
     icon: Globe,
     title: "Multi-Platform Publishing",
     description:
       "One click to publish across Facebook, Instagram, X, LinkedIn, TikTok, and more.",
-    gradient: "from-blue-500/10 to-cyan-500/10",
+    gradient: "from-blue-500/15 to-cyan-500/10",
+    iconBg: "bg-gradient-to-br from-blue-500/15 to-cyan-500/10",
+    iconColor: "text-blue-600",
   },
   {
     icon: Calendar,
     title: "Smart Scheduling",
     description:
       "Plan your content calendar. Schedule posts at optimal times for maximum reach.",
-    gradient: "from-amber-500/10 to-orange-500/10",
+    gradient: "from-amber-500/15 to-orange-500/10",
+    iconBg: "bg-gradient-to-br from-amber-500/15 to-orange-500/10",
+    iconColor: "text-amber-600",
   },
   {
     icon: CheckCircle2,
     title: "Approval Workflow",
     description:
       "Review, approve, and manage content with a streamlined pipeline. Never miss a post.",
-    gradient: "from-emerald-500/10 to-green-500/10",
+    gradient: "from-emerald-500/15 to-green-500/10",
+    iconBg: "bg-gradient-to-br from-emerald-500/15 to-green-500/10",
+    iconColor: "text-emerald-600",
   },
   {
     icon: Users,
     title: "Multi-Client Management",
     description:
       "Manage multiple brands from one dashboard. Each client gets their own workspace.",
-    gradient: "from-pink-500/10 to-rose-500/10",
+    gradient: "from-pink-500/15 to-rose-500/10",
+    iconBg: "bg-gradient-to-br from-pink-500/15 to-rose-500/10",
+    iconColor: "text-pink-600",
   },
   {
     icon: Shield,
     title: "Secure OAuth Connect",
     description:
       "Connect accounts with official OAuth. Your credentials stay safe and encrypted.",
-    gradient: "from-teal-500/10 to-emerald-500/10",
+    gradient: "from-teal-500/15 to-emerald-500/10",
+    iconBg: "bg-gradient-to-br from-teal-500/15 to-emerald-500/10",
+    iconColor: "text-teal-600",
   },
 ];
 
@@ -282,13 +294,14 @@ function LandingPage() {
       <section className="relative overflow-hidden pt-16">
         {/* Animated gradient background */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-background to-primary/[0.03]" />
-          <div className="hero-orb hero-orb-1 absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-primary/[0.07] blur-[120px]" />
-          <div className="hero-orb hero-orb-2 absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-purple-500/[0.06] blur-[100px]" />
-          <div className="hero-orb hero-orb-3 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-blue-500/[0.04] blur-[80px]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.08] via-background to-cyan-500/[0.06]" />
+          <div className="hero-orb hero-orb-1 absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-primary/20 to-violet-500/15 blur-[100px]" />
+          <div className="hero-orb hero-orb-2 absolute -bottom-32 -right-32 h-[450px] w-[450px] rounded-full bg-gradient-to-br from-cyan-500/15 to-blue-500/15 blur-[100px]" />
+          <div className="hero-orb hero-orb-3 absolute top-1/3 left-1/2 -translate-x-1/2 h-[350px] w-[350px] rounded-full bg-gradient-to-br from-pink-500/10 to-amber-500/10 blur-[80px]" />
+          <div className="hero-orb hero-orb-4 absolute top-10 right-1/4 h-[200px] w-[200px] rounded-full bg-emerald-500/10 blur-[60px]" />
           {/* Dot grid pattern */}
           <div
-            className="absolute inset-0 opacity-[0.03]"
+            className="absolute inset-0 opacity-[0.04]"
             style={{
               backgroundImage:
                 "radial-gradient(circle, currentColor 1px, transparent 1px)",
@@ -297,7 +310,7 @@ function LandingPage() {
           />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-5 pt-24 pb-20 sm:px-8 sm:pt-32 sm:pb-28 lg:pt-40 lg:pb-36">
+        <div className="relative mx-auto max-w-7xl px-5 pt-12 pb-14 sm:px-8 sm:pt-16 sm:pb-18 lg:pt-20 lg:pb-24">
           {/* Badge */}
           <FadeIn className="flex justify-center">
             <div className="hero-badge group relative mb-8 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/80 px-5 py-2 text-xs font-semibold text-primary shadow-sm backdrop-blur-sm transition-all hover:border-primary/30 hover:shadow-md">
@@ -369,8 +382,8 @@ function LandingPage() {
           <FadeIn delay={0.4}>
             <div className="hero-floating-icons relative mx-auto mt-20 max-w-3xl">
               {/* Central dashboard preview */}
-              <div className="hero-dashboard-card relative mx-auto max-w-xl overflow-hidden rounded-2xl border border-white/60 bg-white/80 p-1 shadow-2xl shadow-primary/10 backdrop-blur-xl">
-                <div className="rounded-xl bg-gradient-to-br from-primary/5 via-background to-purple-500/5 p-6 sm:p-8">
+              <div className="hero-dashboard-card relative mx-auto max-w-xl overflow-hidden rounded-2xl border border-white/60 bg-white/80 p-1 shadow-2xl shadow-violet-500/10 backdrop-blur-xl">
+                <div className="rounded-xl bg-gradient-to-br from-violet-500/5 via-background to-cyan-500/5 p-6 sm:p-8">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="flex gap-1.5">
                       <div className="size-3 rounded-full bg-red-400" />
@@ -434,7 +447,7 @@ function LandingPage() {
       </section>
 
       {/* ── Marquee Platform Logos ── */}
-      <section className="relative border-y bg-muted/20 overflow-hidden">
+      <section className="relative border-y bg-gradient-to-r from-violet-500/[0.03] via-background to-cyan-500/[0.03] overflow-hidden">
         <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8">
           <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-10">
             Supported Platforms
@@ -481,8 +494,8 @@ function LandingPage() {
               <div className="group relative overflow-hidden rounded-2xl border bg-card p-7 transition-all duration-500 hover:shadow-xl hover:border-primary/20 hover:-translate-y-1">
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity duration-500 group-hover:opacity-100`} />
                 <div className="relative">
-                  <div className="mb-5 flex size-12 items-center justify-center rounded-xl bg-primary/10 transition-all duration-500 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/20">
-                    <feature.icon className="size-5 text-primary transition-colors duration-500 group-hover:text-white" strokeWidth={1.75} />
+                  <div className={`mb-5 flex size-12 items-center justify-center rounded-xl ${feature.iconBg} transition-all duration-500 group-hover:shadow-lg group-hover:shadow-primary/20`}>
+                    <feature.icon className={`size-5 ${feature.iconColor}`} strokeWidth={1.75} />
                   </div>
                   <h3 className="font-semibold text-lg">{feature.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
@@ -496,7 +509,7 @@ function LandingPage() {
       </section>
 
       {/* ── Workflow ── */}
-      <section className="relative border-t bg-muted/20 overflow-hidden">
+      <section className="relative border-t bg-gradient-to-br from-violet-500/[0.03] via-background to-cyan-500/[0.03] overflow-hidden">
         {/* Subtle grid */}
         <div
           className="absolute inset-0 opacity-[0.02]"
@@ -519,37 +532,45 @@ function LandingPage() {
           </FadeIn>
 
           <div className="mt-16 grid gap-6 md:grid-cols-4">
-            {workflow.map((item, i) => (
-              <FadeIn key={item.step} delay={i * 0.12}>
-                <div className="group relative text-center">
-                  {i < workflow.length - 1 && (
-                    <div className="absolute left-[calc(50%+36px)] top-7 hidden h-px w-[calc(100%-72px)] bg-gradient-to-r from-primary/30 to-primary/10 md:block" />
-                  )}
-                  <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/20 transition-all duration-300 group-hover:scale-110 group-hover:shadow-2xl group-hover:shadow-primary/30">
-                    <item.icon className="size-6" />
+            {workflow.map((item, i) => {
+              const colors = [
+                "from-violet-500 to-purple-600",
+                "from-blue-500 to-cyan-500",
+                "from-amber-500 to-orange-500",
+                "from-emerald-500 to-green-500",
+              ];
+              return (
+                <FadeIn key={item.step} delay={i * 0.12}>
+                  <div className="group relative text-center">
+                    {i < workflow.length - 1 && (
+                      <div className="absolute left-[calc(50%+36px)] top-7 hidden h-px w-[calc(100%-72px)] bg-gradient-to-r from-violet-400/30 via-cyan-400/30 to-emerald-400/30 md:block" />
+                    )}
+                    <div className={`mx-auto flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br ${colors[i]} text-white shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-2xl`}>
+                      <item.icon className="size-6" />
+                    </div>
+                    <h3 className="mt-6 font-semibold text-lg">{item.title}</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
                   </div>
-                  <h3 className="mt-6 font-semibold text-lg">{item.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
+                </FadeIn>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* ── Stats ── */}
-      <section className="relative border-t">
+      <section className="relative border-t bg-gradient-to-br from-violet-500/[0.03] via-background to-cyan-500/[0.03]">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-5 py-20 sm:px-8 md:grid-cols-4">
           {[
-            { value: 9, suffix: "+", label: "Platforms", icon: Share2 },
-            { value: 100, suffix: "%", label: "Approval Control", icon: CheckCircle2 },
-            { value: 24, suffix: "/7", label: "Scheduling", icon: Clock },
-            { value: 0, suffix: "$", label: "To Start", icon: Zap },
+            { value: 9, suffix: "+", label: "Platforms", icon: Share2, color: "from-blue-500/15 to-cyan-500/10", iconColor: "text-blue-600" },
+            { value: 100, suffix: "%", label: "Approval Control", icon: CheckCircle2, color: "from-emerald-500/15 to-green-500/10", iconColor: "text-emerald-600" },
+            { value: 24, suffix: "/7", label: "Scheduling", icon: Clock, color: "from-amber-500/15 to-orange-500/10", iconColor: "text-amber-600" },
+            { value: 0, suffix: "$", label: "To Start", icon: Zap, color: "from-violet-500/15 to-purple-500/10", iconColor: "text-violet-600" },
           ].map((stat, i) => (
             <FadeIn key={stat.label} delay={i * 0.1}>
               <div className="group text-center">
-                <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/20">
-                  <stat.icon className="size-5 text-primary transition-colors group-hover:text-white" />
+                <div className={`mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-gradient-to-br ${stat.color} transition-all duration-300 group-hover:shadow-lg`}>
+                  <stat.icon className={`size-5 ${stat.iconColor}`} />
                 </div>
                 <AnimatedCounter target={stat.value} suffix={stat.suffix} />
                 <p className="mt-2 text-sm font-medium text-muted-foreground">{stat.label}</p>
@@ -560,7 +581,7 @@ function LandingPage() {
       </section>
 
       {/* ── Social Proof ── */}
-      <section className="border-t bg-muted/20">
+      <section className="border-t bg-gradient-to-br from-violet-500/[0.03] via-background to-cyan-500/[0.03]">
         <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:py-32">
           <FadeIn>
             <div className="mx-auto max-w-3xl text-center">
@@ -588,9 +609,10 @@ function LandingPage() {
         <FadeIn>
           <div className="cta-card relative overflow-hidden rounded-3xl px-8 py-20 text-center sm:px-16">
             {/* Animated gradient bg */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-purple-600" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_50%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.08),transparent_50%)]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-primary to-cyan-600" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_50%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.1),transparent_50%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
             {/* Animated dots */}
             <div className="cta-dots absolute inset-0 opacity-10" />
             <div className="relative">
