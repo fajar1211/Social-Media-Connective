@@ -9,6 +9,9 @@ import {
   Trash2,
   Inbox,
   Building2,
+  Globe,
+  UserPlus,
+  ExternalLink,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -167,25 +170,59 @@ function ClientsPage() {
 
   const [deleting, setDeleting] = useState<Client | null>(null);
 
-  // Client without assigned client - show setup form
+  // Client without assigned client - show setup options
   if (isClient && !myClientId) {
     return (
       <>
         <PageHeader
-          title="Set Up Your Client"
-          subtitle="Create your client profile to start managing content."
+          title="Set Up Your Profile"
+          subtitle="Choose how you want to get started."
         />
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card px-6 py-20 text-center">
-          <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10">
-            <Building2 className="size-7 text-primary" />
-          </div>
-          <p className="text-base font-medium">No Client Profile</p>
-          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            You need to create a client profile. This will be used to organize your content.
-          </p>
-          <Button className="mt-6" onClick={() => setAdding(true)}>
-            Create My Client
-          </Button>
+
+        <div className="grid gap-5 sm:grid-cols-2 max-w-3xl mx-auto">
+          {/* Option 1: Connect with Marketing Connective */}
+          <a
+            href="https://www.marketingconnective.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative overflow-hidden rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-8 text-center transition-all hover:border-violet-400 hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-1"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-purple-500/5 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="relative">
+              <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25">
+                <Globe className="size-7 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Connect Account</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Sign in with your Marketing Connective account for seamless integration.
+              </p>
+              <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-violet-600 group-hover:text-violet-700">
+                Go to Marketing Connective
+                <ExternalLink className="size-3.5" />
+              </div>
+            </div>
+          </a>
+
+          {/* Option 2: Add Personal */}
+          <button
+            onClick={() => setAdding(true)}
+            className="group relative overflow-hidden rounded-2xl border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-8 text-center transition-all hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="relative">
+              <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25">
+                <UserPlus className="size-7 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Add Personal</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Create a personal profile to start managing your content right away.
+              </p>
+              <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-600 group-hover:text-cyan-700">
+                Create Profile
+                <ExternalLink className="size-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </div>
+          </button>
         </div>
 
         <Dialog
@@ -200,10 +237,10 @@ function ClientsPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Your Client</DialogTitle>
+              <DialogTitle>Create Your Profile</DialogTitle>
             </DialogHeader>
             <div className="space-y-1.5">
-              <Label>Client Name</Label>
+              <Label>Profile Name</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -212,7 +249,7 @@ function ClientsPage() {
                   if (e.key === "Enter" && name.trim()) {
                     const cid = "client-" + Date.now();
                     actions.addClient(cid, name.trim(), []);
-                    toast.success("Client created! Please contact admin to link your account.");
+                    toast.success("Profile created! Please contact admin to link your account.");
                     setAdding(false);
                     setClientId("");
                     setName("");
@@ -227,18 +264,18 @@ function ClientsPage() {
               <Button
                 onClick={() => {
                   if (!name.trim()) {
-                    toast.error("Enter a client name.");
+                    toast.error("Enter a profile name.");
                     return;
                   }
                   const cid = "client-" + Date.now();
                   actions.addClient(cid, name.trim(), []);
-                  toast.success("Client created! Please contact admin to link your account.");
+                  toast.success("Profile created! Please contact admin to link your account.");
                   setAdding(false);
                   setClientId("");
                   setName("");
                 }}
               >
-                Create Client
+                Create Profile
               </Button>
             </DialogFooter>
           </DialogContent>
