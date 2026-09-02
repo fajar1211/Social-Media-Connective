@@ -378,7 +378,7 @@ export const actions = {
 
   async addClient(clientId: string, name: string, platforms: Platform[]) {
     if (supabaseConfigured) {
-      const created = await dbCreateClient({ name, active: true });
+      const created = await dbCreateClient({ id: clientId, name, active: true });
       if (created) {
         state.clients = [...state.clients, { id: created.id, name, active: true, platforms, socialIntegrations: {} }];
       }

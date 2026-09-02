@@ -129,20 +129,28 @@ export async function getClient(clientId: string): Promise<Client | null> {
 
 export async function getNextClientId(): Promise<string> {
   if (!supabaseConfigured) return "S0100";
+  
+  // Get all clients with S-prefixed IDs
   const { data, error } = await supabase
     .from("clients")
     .select("id")
-    .order("id", { ascending: false })
-    .limit(1);
+    .like("id", "S%");
+  
   if (error || !data || data.length === 0) {
     return "S0100";
   }
-  const lastId = data[0].id;
-  // Extract number from ID like "S0100" -> 100
-  const match = lastId.match(/^S(\d+)$/);
-  if (!match) return "S0100";
-  const nextNum = parseInt(match[1], 10) + 1;
-  return `S${String(nextNum).padStart(4, "0")}`;
+  
+  // Find the highest number among S-prefixed IDs
+  let maxNum = 99;
+  for (const row of data) {
+    const match = row.id.match(/^S(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  }
+  
+  return `S${String(maxNum + 1).padStart(4, "0")}`;
 }
 
 export async function createClient(
