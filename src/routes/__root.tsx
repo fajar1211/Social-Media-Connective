@@ -135,7 +135,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const path = window.location.pathname;
-    setIsPublicPage(path === "/" || path === "/auth");
+    setIsPublicPage(path === "/" || path === "/auth" || path.startsWith("/client/"));
     setReady(true);
   }, []);
 
@@ -193,15 +193,24 @@ function StoreLoader({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [isPublicClientRoute, setIsPublicClientRoute] = useState(false);
+
+  useEffect(() => {
+    setIsPublicClientRoute(window.location.pathname.startsWith("/client/"));
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <AuthGuard>
           <StoreLoader>
-            <AppShell>
+            {isPublicClientRoute ? (
               <Outlet />
-            </AppShell>
+            ) : (
+              <AppShell>
+                <Outlet />
+              </AppShell>
+            )}
           </StoreLoader>
         </AuthGuard>
         <Toaster position="top-right" />

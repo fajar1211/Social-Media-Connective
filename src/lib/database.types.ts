@@ -15,6 +15,8 @@ export interface Client {
   id: string;
   name: string;
   active: boolean;
+  magic_link_token: string;
+  magic_link_active: boolean;
   created_at: string;
   updated_at: string;
 }

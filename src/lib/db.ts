@@ -202,6 +202,74 @@ export async function deleteClient(clientId: string): Promise<boolean> {
 }
 
 // ============================================
+// MAGIC LINK QUERIES
+// ============================================
+
+function generateToken(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < 32; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+export async function getOrCreateMagicLinkToken(clientId: string): Promise<string> {
+  if (!supabaseConfigured) return generateToken();
+  
+  const { data } = await supabase
+    .from("clients")
+    .select("magic_link_token")
+    .eq("id", clientId)
+    .single();
+  
+  if (data?.magic_link_token) return data.magic_link_token;
+  
+  const token = generateToken();
+  await supabase
+    .from("clients")
+    .update({ magic_link_token: token })
+    .eq("id", clientId);
+  
+  return token;
+}
+
+export async function getClientByMagicToken(token: string): Promise<{ id: string; name: string; active: boolean } | null> {
+  if (!supabaseConfigured) return null;
+  
+  const { data, error } = await supabase
+    .from("clients")
+    .select("id, name, active, magic_link_active")
+    .eq("magic_link_token", token)
+    .eq("magic_link_active", true)
+    .eq("active", true)
+    .single();
+  
+  if (error || !data) return null;
+  return data;
+}
+
+export async function toggleMagicLinkActive(clientId: string, active: boolean): Promise<boolean> {
+  if (!supabaseConfigured) return false;
+  const { error } = await supabase
+    .from("clients")
+    .update({ magic_link_active: active })
+    .eq("id", clientId);
+  return !error;
+}
+
+export async function regenerateMagicLinkToken(clientId: string): Promise<string | null> {
+  if (!supabaseConfigured) return null;
+  const token = generateToken();
+  const { error } = await supabase
+    .from("clients")
+    .update({ magic_link_token: token })
+    .eq("id", clientId);
+  if (error) return null;
+  return token;
+}
+
+// ============================================
 // CONTENT QUERIES (filtered by client_id via RLS)
 // ============================================
 

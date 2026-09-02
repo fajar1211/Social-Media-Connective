@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -56,6 +56,7 @@ import {
 import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from "@/components/badges";
 import { ContentList } from "@/components/content-list";
 import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem } from "@/lib/content-store";
+import * as db from "@/lib/db";
 
 export const Route = createFileRoute("/clients/$clientId")({
   head: () => ({
@@ -532,7 +533,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const { clients } = useStore();
   const client = clients.find((c) => c.id === clientId);
   const socialIntegrationsRef = useRef(client?.socialIntegrations || {});
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(client?.magicLinkActive === false);
   const [pageSelectorOpen, setPageSelectorOpen] = useState(false);
   const [pendingPages, setPendingPages] = useState<{ id: string; name: string; category?: string; access_token: string }[]>([]);
   const [pendingBusinesses, setPendingBusinesses] = useState<{ id: string; name: string; pages?: { id: string; name: string; category?: string; access_token: string }[] }[]>([]);
@@ -540,12 +541,49 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const [pendingToken, setPendingToken] = useState<{ access_token: string; expires_in: number } | null>(null);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
   const [selectedPageId, setSelectedPageId] = useState<string>("");
+  const [magicToken, setMagicToken] = useState(client?.magicLinkToken || "");
+  const [generating, setGenerating] = useState(false);
 
-  const magicLinkUrl = `https://socmed.marketingconnective.com/client/${clientId}`;
+  useEffect(() => {
+    async function loadToken() {
+      if (!magicToken && clientId) {
+        const token = await db.getOrCreateMagicLinkToken(clientId);
+        setMagicToken(token);
+        actions.updateClient(clientId, { magicLinkToken: token });
+      }
+    }
+    loadToken();
+  }, [clientId, magicToken]);
+
+  const magicLinkUrl = magicToken ? `https://socmed.marketingconnective.com/client/${magicToken}` : "";
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(magicLinkUrl);
     toast.success("Magic link copied to clipboard!");
+  };
+
+  const handleRegenerateToken = async () => {
+    setGenerating(true);
+    const newToken = await db.regenerateMagicLinkToken(clientId);
+    if (newToken) {
+      setMagicToken(newToken);
+      actions.updateClient(clientId, { magicLinkToken: newToken, magicLinkActive: true });
+      setIsPaused(false);
+      toast.success("Magic link regenerated!");
+    } else {
+      toast.error("Failed to regenerate magic link");
+    }
+    setGenerating(false);
+  };
+
+  const handleToggleMagicLink = async () => {
+    const newActive = isPaused;
+    const success = await db.toggleMagicLinkActive(clientId, newActive);
+    if (success) {
+      setIsPaused(!newActive);
+      actions.updateClient(clientId, { magicLinkActive: newActive });
+      toast.success(newActive ? "Magic link activated" : "Magic link paused");
+    }
   };
 
   if (client) {
@@ -829,7 +867,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           <div>
             <h2 className="text-base font-semibold">Client Magic Link</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Share this link with {client.name} to let them submit content directly.
+              Share this link with {client.name} to let them view their content without logging in.
             </p>
           </div>
         </div>
@@ -843,17 +881,22 @@ function SettingsTab({ clientId }: { clientId: string }) {
               className="w-full bg-transparent text-sm text-foreground outline-none"
             />
           </div>
-          <Button size="sm" onClick={handleCopyLink}>
+          <Button size="sm" onClick={handleCopyLink} disabled={!magicLinkUrl}>
             <Link2 className="mr-1.5 size-3.5" />
             Copy
           </Button>
           <Button
             size="sm"
+            variant="outline"
+            onClick={handleRegenerateToken}
+            disabled={generating}
+          >
+            {generating ? "Generating..." : "Regenerate"}
+          </Button>
+          <Button
+            size="sm"
             variant={isPaused ? "default" : "outline"}
-            onClick={() => {
-              setIsPaused(!isPaused);
-              toast.success(isPaused ? "Magic link activated" : "Magic link paused");
-            }}
+            onClick={handleToggleMagicLink}
           >
             {isPaused ? (
               <>
@@ -874,7 +917,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
             {isPaused ? "Paused" : "Active"}
           </span>
           <span className="text-xs text-muted-foreground">
-            {isPaused ? "Link is currently paused" : "Link is active and accepting submissions"}
+            {isPaused ? "Link is currently paused" : "Link is active and accepting views"}
           </span>
         </div>
       </div>

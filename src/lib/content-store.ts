@@ -76,6 +76,8 @@ export type Client = {
   active: boolean;
   platforms: Platform[];
   socialIntegrations: Partial<Record<SocialPlatform, SocialConnection>>;
+  magicLinkToken: string;
+  magicLinkActive: boolean;
 };
 
 type State = {
@@ -112,9 +114,9 @@ const defaultState: State = {
     },
   ],
   clients: [
-    { id: "S0100", name: "Divine Medical Spa", active: true, platforms: ["Instagram", "Facebook"], socialIntegrations: {} },
-    { id: "S0101", name: "Northline Dental", active: true, platforms: ["Facebook", "Blog"], socialIntegrations: {} },
-    { id: "S0102", name: "Harbor Fitness Co.", active: false, platforms: ["Instagram", "LinkedIn"], socialIntegrations: {} },
+    { id: "S0100", name: "Divine Medical Spa", active: true, platforms: ["Instagram", "Facebook"], socialIntegrations: {}, magicLinkToken: "", magicLinkActive: true },
+    { id: "S0101", name: "Northline Dental", active: true, platforms: ["Facebook", "Blog"], socialIntegrations: {}, magicLinkToken: "", magicLinkActive: true },
+    { id: "S0102", name: "Harbor Fitness Co.", active: false, platforms: ["Instagram", "LinkedIn"], socialIntegrations: {}, magicLinkToken: "", magicLinkActive: true },
   ],
   platforms: [
     { name: "Facebook", enabled: true, types: ["Text Post", "Image", "Carousel", "Short Video"] },
@@ -235,6 +237,8 @@ export async function loadStoreData(clientId?: string): Promise<void> {
       active: c.active,
       platforms: [],
       socialIntegrations: {},
+      magicLinkToken: c.magic_link_token || "",
+      magicLinkActive: c.magic_link_active ?? true,
     }));
 
     const mappedPlatforms = platformsData.map((p) => ({
