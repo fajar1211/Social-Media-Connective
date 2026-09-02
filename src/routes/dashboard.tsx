@@ -53,19 +53,19 @@ function Dashboard() {
       <>
         <PageHeader
           title={`Welcome, ${userName}`}
-          subtitle="Set up your client profile to get started."
+          subtitle="Set up your profile to get started."
         />
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card px-6 py-20 text-center">
           <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10">
             <Building2 className="size-7 text-primary" />
           </div>
-          <p className="text-base font-medium">No Client Profile Yet</p>
+          <p className="text-base font-medium">No Profile Yet</p>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            You need to set up your client profile before you can manage content. 
-            Please contact your admin to assign you to a client, or create one below.
+            You need to set up your profile before you can manage content.
+            Please contact your admin to assign you, or create one below.
           </p>
           <Button className="mt-6" asChild>
-            <Link to="/clients">Set Up Client</Link>
+            <Link to="/clients">Set Up Profile</Link>
           </Button>
         </div>
       </>
