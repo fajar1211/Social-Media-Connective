@@ -236,10 +236,10 @@ const features = [
     iconColor: "text-emerald-600",
   },
   {
-    icon: Users,
-    title: "Multi-Client Management",
+    icon: BarChart3,
+    title: "Real-time Analytics",
     description:
-      "Manage multiple brands from one dashboard. Each client gets their own workspace.",
+      "Track post performance, engagement, and reach across every platform in one view.",
     gradient: "from-pink-500/15 to-rose-500/10",
     iconBg: "bg-gradient-to-br from-pink-500/15 to-rose-500/10",
     iconColor: "text-pink-600",
@@ -649,7 +649,8 @@ function LandingPage() {
             <span className="text-sm font-semibold">Social Media Connective</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Simple. Powerful. Multi-platform.
+            Powered by{" "}
+            <span className="font-semibold text-foreground">Marketing Connective</span>
           </p>
         </div>
       </footer>
