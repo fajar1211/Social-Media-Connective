@@ -209,6 +209,12 @@ function CreateContent() {
     (p) => client?.socialIntegrations?.[p]?.connected === true
   );
 
+  useEffect(() => {
+    if (isFacebook && pages.length === 1 && !selectedPage) {
+      setSelectedPage(pages[0].id);
+    }
+  }, [isFacebook, pages, selectedPage]);
+
   const handleImageUpload = (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
@@ -904,8 +910,14 @@ function CreateContent() {
           {platform ? (
             <SocialMediaPreviewCard
               profileName={(() => {
-                if (isFacebook && selectedPage) {
-                  return pages.find((p) => p.id === selectedPage)?.name || fbConnection?.selectedPageName || client?.name || "Your Business";
+                if (isFacebook) {
+                  if (selectedPage) {
+                    return pages.find((p) => p.id === selectedPage)?.name || fbConnection?.selectedPageName || client?.name || "Your Business";
+                  }
+                  if (fbConnection?.selectedPageName) {
+                    return fbConnection.selectedPageName;
+                  }
+                  return client?.name || "Your Business";
                 }
                 if (platform === "Instagram") {
                   return client?.socialIntegrations?.Instagram?.accountName || client?.name || "Your Business";
