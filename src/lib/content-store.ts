@@ -97,6 +97,7 @@ const defaultState: State = {
       id: "c-1001",
       title: "Men's Health: 5 Things You Should Know",
       client: "Divine Medical Spa",
+      clientId: "S0100",
       platform: "Instagram",
       type: "Carousel",
       status: "Submitted",
@@ -111,9 +112,9 @@ const defaultState: State = {
     },
   ],
   clients: [
-    { id: "1001", name: "Divine Medical Spa", active: true, platforms: ["Instagram", "Facebook"], socialIntegrations: {} },
-    { id: "1002", name: "Northline Dental", active: true, platforms: ["Facebook", "Blog"], socialIntegrations: {} },
-    { id: "1003", name: "Harbor Fitness Co.", active: false, platforms: ["Instagram", "LinkedIn"], socialIntegrations: {} },
+    { id: "S0100", name: "Divine Medical Spa", active: true, platforms: ["Instagram", "Facebook"], socialIntegrations: {} },
+    { id: "S0101", name: "Northline Dental", active: true, platforms: ["Facebook", "Blog"], socialIntegrations: {} },
+    { id: "S0102", name: "Harbor Fitness Co.", active: false, platforms: ["Instagram", "LinkedIn"], socialIntegrations: {} },
   ],
   platforms: [
     { name: "Facebook", enabled: true, types: ["Text Post", "Image", "Carousel", "Short Video"] },
