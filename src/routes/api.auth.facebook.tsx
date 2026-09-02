@@ -24,6 +24,7 @@ export const Route = createFileRoute("/api/auth/facebook")({
             "pages_manage_posts",
           ].join(","),
           state: clientId,
+          config_id: "1015151248177076",
         });
 
         return new Response(null, {
