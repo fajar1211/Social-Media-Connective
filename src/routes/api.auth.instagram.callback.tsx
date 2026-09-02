@@ -31,11 +31,13 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
     (function() {
       try {
         localStorage.setItem("socmedconnective-ig-auth", atob("${btoa(errorPayload)}"));
+      } catch(e) {}
+      try {
         if (window.opener && !window.opener.closed) {
           window.opener.postMessage(${errorPayload}, "*");
         }
       } catch(e) {}
-      setTimeout(function() { try { window.close(); } catch(e) {} }, 500);
+      setTimeout(function() { try { window.close(); } catch(e) {} }, 800);
     })();
   </script>
 </body>
@@ -123,20 +125,19 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
     (function() {
       try {
         localStorage.setItem("socmedconnective-ig-auth", atob("${btoa(payload)}"));
+      } catch(e) {}
 
+      try {
         if (window.opener && !window.opener.closed) {
           window.opener.postMessage(${payload}, "*");
         }
+      } catch(e) {}
 
-        setTimeout(function() {
-          try { window.close(); } catch(e) {}
-          var el = document.getElementById("status");
-          if (el) el.textContent = "Connected! You can close this tab.";
-        }, 800);
-      } catch(e) {
+      setTimeout(function() {
         var el = document.getElementById("status");
-        if (el) el.textContent = "Connected! Please close this tab.";
-      }
+        if (el) el.textContent = "Connected! You can close this tab.";
+        try { window.close(); } catch(e) {}
+      }, 1500);
     })();
   </script>
 </body>
@@ -164,11 +165,13 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
     (function() {
       try {
         localStorage.setItem("socmedconnective-ig-auth", atob("${btoa(errorPayload)}"));
+      } catch(e) {}
+      try {
         if (window.opener && !window.opener.closed) {
           window.opener.postMessage(${errorPayload}, "*");
         }
       } catch(e) {}
-      setTimeout(function() { try { window.close(); } catch(e) {} }, 500);
+      setTimeout(function() { try { window.close(); } catch(e) {} }, 800);
     })();
   </script>
 </body>

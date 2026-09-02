@@ -26,7 +26,7 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
                 <p><strong>Error:</strong> ${escapeHtml(error)}</p>
                 <p><strong>Description:</strong> ${escapeHtml(errorDescription || "Unknown error")}</p>
               `,
-              script: `window.opener.postMessage({ type: "facebook-auth-error", clientId: "${escapeJs(clientId)}", error: "${escapeJs(error)}", description: "${escapeJs(errorDescription || "")}" }, "*"); window.close();`,
+              script: `(function(){try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:"facebook-auth-error",clientId:"${escapeJs(clientId)}",error:"${escapeJs(error)}",description:"${escapeJs(errorDescription || "")}" },"*")}}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},800)})()`,
             }),
             { status: 200, headers: { "Content-Type": "text/html" } }
           );
@@ -182,20 +182,19 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
               (function() {
                 try {
                   localStorage.setItem("socmedconnective-fb-auth", atob("${btoa(payload)}"));
+                } catch(e) {}
 
+                try {
                   if (window.opener && !window.opener.closed) {
                     window.opener.postMessage(${payload}, "*");
                   }
+                } catch(e) {}
 
-                  setTimeout(function() {
-                    try { window.close(); } catch(e) {}
-                    var el = document.getElementById("status");
-                    if (el) el.textContent = "Connected! You can close this tab.";
-                  }, 800);
-                } catch(e) {
+                setTimeout(function() {
                   var el = document.getElementById("status");
-                  if (el) el.textContent = "Connected! Please close this tab.";
-                }
+                  if (el) el.textContent = "Connected! You can close this tab.";
+                  try { window.close(); } catch(e) {}
+                }, 1500);
               })();
             `,
           });
@@ -220,9 +219,9 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
                   try {
                     if (window.opener && !window.opener.closed) {
                       window.opener.postMessage({ type: "facebook-auth-error", clientId: "${escapeJs(clientId)}", error: "${escapeJs(msg)}" }, "*");
-                      setTimeout(function() { try { window.close(); } catch(e) {} }, 500);
                     }
                   } catch(e) {}
+                  setTimeout(function() { try { window.close(); } catch(e) {} }, 800);
                 })();
               `,
             }),
