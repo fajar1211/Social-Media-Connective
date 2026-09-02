@@ -82,7 +82,7 @@ function ImportPage() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      const parsed = parseImportFile(text, selectedClient?.name || "Unknown Client");
+      const parsed = parseImportFile(text, selectedClient?.name || "Unknown Client", selectedClient?.id);
       setRows(parsed);
       setUploadProgress(100);
       toast.success(`${file.name} parsed — ${parsed.length} posts found`);

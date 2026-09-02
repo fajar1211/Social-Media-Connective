@@ -250,6 +250,7 @@ function CreateContent() {
     actions.addContent({
       title: topic.trim(),
       client: client.name,
+      clientId: client.id,
       platform: (platform || "Facebook") as any,
       type: (type || "Carousel") as ContentType,
       status: "Suggested",
@@ -278,6 +279,7 @@ function CreateContent() {
     actions.addContent({
       title: topic.trim(),
       client: client.name,
+      clientId: client.id,
       platform: (platform || "Facebook") as any,
       type: (type || "Carousel") as ContentType,
       status,
@@ -326,6 +328,7 @@ function CreateContent() {
         actions.addContent({
           title: topic.trim(),
           client: client.name,
+      clientId: client.id,
           platform: (platform || "Facebook") as any,
           type: (type || "Carousel") as ContentType,
           status: "Approved",
@@ -391,6 +394,7 @@ function CreateContent() {
         actions.addContent({
           title: topic.trim(),
           client: client.name,
+      clientId: client.id,
           platform: (platform || "Facebook") as any,
           type: (type || "Carousel") as ContentType,
           status: "Submitted",
@@ -863,6 +867,7 @@ function CreateContent() {
                         actions.addContent({
                           title: topic.trim(),
                           client: client.name,
+      clientId: client.id,
                           platform: (platform || "Facebook") as any,
                           type: (type || "Carousel") as ContentType,
                           status: "Submitted",

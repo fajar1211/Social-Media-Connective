@@ -192,7 +192,7 @@ const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.React
   },
 };
 
-function ImportSection({ clientName }: { clientName: string }) {
+function ImportSection({ clientName, clientId }: { clientName: string; clientId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -220,7 +220,7 @@ function ImportSection({ clientName }: { clientName: string }) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;
-        const parsed = parseImportFile(text, clientName);
+        const parsed = parseImportFile(text, clientName, clientId);
         setRows(parsed);
         setUploadProgress(100);
         toast.success(`${file.name} parsed — ${parsed.length} posts found`);
@@ -1170,7 +1170,7 @@ function MediaTab({ client }: { client: { id: string; name: string } }) {
   const [filter, setFilter] = useState<"all" | "images" | "videos">("all");
 
   const allMedia = content
-    .filter((c) => c.client === client.name && c.media && c.media.length > 0)
+    .filter((c) => (c.clientId === clientId || c.client === client.name) && c.media && c.media.length > 0)
     .flatMap((c) =>
       (c.media || []).map((url) => ({
         id: `${c.id}-${url}`,
@@ -1414,7 +1414,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   };
 
   const suggestedContent = content.filter(
-    (c) => c.client === client.name && c.status === "Suggested"
+    (c) => (c.clientId === clientId || c.client === client.name) && c.status === "Suggested"
   );
 
   return (
@@ -1668,7 +1668,7 @@ function ClientDetailPage() {
   const [tab, setTab] = useState<Tab>("content");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
 
-  const clientContent = content.filter((c) => c.client === client?.name);
+  const clientContent = content.filter((c) => c.clientId === clientId || c.client === client?.name);
 
   // Auto-update scheduled content status based on date
   const now = new Date();
@@ -1821,7 +1821,7 @@ function ClientDetailPage() {
           </div>
 
           <div className="mt-10">
-            <ImportSection clientName={client.name} />
+            <ImportSection clientName={client.name} clientId={clientId} />
           </div>
 
           <section className="mt-10">
@@ -1837,6 +1837,7 @@ function ClientDetailPage() {
             </div>
             <ContentList
               clientFilter={client.name}
+              clientIdFilter={clientId}
               status={selectedStatusFilter as any}
               showClientFilter={false}
               showStatusFilter={!selectedStatusFilter}

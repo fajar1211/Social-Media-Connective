@@ -454,6 +454,7 @@ export function ContentTable({
 export function ContentList({
   status,
   clientFilter,
+  clientIdFilter,
   emptyMessage,
   showStatusFilter = true,
   showClientFilter = true,
@@ -461,6 +462,7 @@ export function ContentList({
 }: {
   status?: ContentItem["status"];
   clientFilter?: string;
+  clientIdFilter?: string;
   emptyMessage?: string;
   showStatusFilter?: boolean;
   showClientFilter?: boolean;
@@ -481,7 +483,11 @@ export function ContentList({
     let list = content.filter((c) => (status ? c.status === status : c.status !== "Deleted"));
     if (query.trim())
       list = list.filter((c) => c.title.toLowerCase().includes(query.trim().toLowerCase()));
-    if (effectiveClient !== ALL) list = list.filter((c) => c.client === effectiveClient);
+    if (clientIdFilter) {
+      list = list.filter((c) => c.clientId === clientIdFilter);
+    } else if (effectiveClient !== ALL) {
+      list = list.filter((c) => c.client === effectiveClient);
+    }
     if (platform !== ALL) list = list.filter((c) => c.platform === platform);
     if (type !== ALL) list = list.filter((c) => c.type === type);
     if (!status && statusFilter !== ALL) list = list.filter((c) => c.status === statusFilter);
@@ -492,7 +498,7 @@ export function ContentList({
           ? a.date.localeCompare(b.date)
           : a.title.localeCompare(b.title),
     );
-  }, [content, status, query, effectiveClient, platform, type, statusFilter, sort]);
+  }, [content, status, query, clientIdFilter, effectiveClient, platform, type, statusFilter, sort]);
 
   const current = selected ? (content.find((c) => c.id === selected.id) ?? null) : null;
 

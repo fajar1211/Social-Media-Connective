@@ -455,7 +455,7 @@ export function formatDate(iso: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function parseImportFile(content: string, defaultClient: string): Omit<ContentItem, "id">[] {
+export function parseImportFile(content: string, defaultClient: string, clientId?: string): Omit<ContentItem, "id">[] {
   const posts: Omit<ContentItem, "id">[] = [];
   const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const blocks = normalized.split(/(?=^date:\s)/m).filter((b) => b.trim());
@@ -516,6 +516,7 @@ export function parseImportFile(content: string, defaultClient: string): Omit<Co
     const item: Omit<ContentItem, "id"> = {
       title: (meta["title"] as string) || "Untitled",
       client: defaultClient,
+      clientId,
       platform,
       type: contentType,
       status: "Additional",
