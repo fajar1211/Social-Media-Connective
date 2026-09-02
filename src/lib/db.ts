@@ -127,6 +127,24 @@ export async function getClient(clientId: string): Promise<Client | null> {
   return data;
 }
 
+export async function getNextClientId(): Promise<string> {
+  if (!supabaseConfigured) return "S0100";
+  const { data, error } = await supabase
+    .from("clients")
+    .select("id")
+    .order("id", { ascending: false })
+    .limit(1);
+  if (error || !data || data.length === 0) {
+    return "S0100";
+  }
+  const lastId = data[0].id;
+  // Extract number from ID like "S0100" -> 100
+  const match = lastId.match(/^S(\d+)$/);
+  if (!match) return "S0100";
+  const nextNum = parseInt(match[1], 10) + 1;
+  return `S${String(nextNum).padStart(4, "0")}`;
+}
+
 export async function createClient(
   client: Omit<Client, "id" | "created_at" | "updated_at">
 ): Promise<Client | null> {

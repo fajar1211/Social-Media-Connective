@@ -11,6 +11,7 @@ import {
   updateClient as dbUpdateClient,
   deleteClient as dbDeleteClient,
   getPlatforms as dbGetPlatforms,
+  getNextClientId as dbGetNextClientId,
 } from "@/lib/db";
 import type { ContentStatus } from "@/lib/database.types";
 
@@ -385,6 +386,19 @@ export const actions = {
       state.clients = [...state.clients, { id: clientId, name, active: true, platforms, socialIntegrations: {} }];
     }
     emit();
+  },
+
+  async getNextClientId(): Promise<string> {
+    if (supabaseConfigured) {
+      return await dbGetNextClientId();
+    }
+    // Local fallback: find max S-prefixed ID
+    const sIds = state.clients
+      .map((c) => c.id)
+      .filter((id) => /^S\d+$/.test(id))
+      .map((id) => parseInt(id.replace("S", ""), 10));
+    const maxNum = sIds.length > 0 ? Math.max(...sIds) : 99;
+    return `S${String(maxNum + 1).padStart(4, "0")}`;
   },
 
   async updateClient(id: string, patch: Partial<Client>) {

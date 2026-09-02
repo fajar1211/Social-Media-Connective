@@ -159,8 +159,9 @@ function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const [adding, setAdding] = useState(false);
-  const [clientId, setClientId] = useState("");
+  const [nextClientId, setNextClientId] = useState("");
   const [name, setName] = useState("");
+  const [loadingId, setLoadingId] = useState(false);
 
   const [editing, setEditing] = useState<Client | null>(null);
   const [editClientId, setEditClientId] = useState("");
@@ -169,6 +170,14 @@ function ClientsPage() {
   const [viewing, setViewing] = useState<Client | null>(null);
 
   const [deleting, setDeleting] = useState<Client | null>(null);
+
+  const handleAddPersonal = async () => {
+    setLoadingId(true);
+    const id = await actions.getNextClientId();
+    setNextClientId(id);
+    setLoadingId(false);
+    setAdding(true);
+  };
 
   // Client without assigned client - show setup options
   if (isClient && !myClientId) {
@@ -205,8 +214,9 @@ function ClientsPage() {
 
           {/* Option 2: Add Personal */}
           <button
-            onClick={() => setAdding(true)}
-            className="group relative overflow-hidden rounded-2xl border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-8 text-center transition-all hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1"
+            onClick={handleAddPersonal}
+            disabled={loadingId}
+            className="group relative overflow-hidden rounded-2xl border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-8 text-center transition-all hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 disabled:opacity-60"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 opacity-0 transition-opacity group-hover:opacity-100" />
             <div className="relative">
@@ -230,7 +240,7 @@ function ClientsPage() {
           onOpenChange={(o) => {
             if (!o) {
               setAdding(false);
-              setClientId("");
+              setNextClientId("");
               setName("");
             }
           }}
@@ -240,25 +250,35 @@ function ClientsPage() {
               <DialogTitle>Create Your Profile</DialogTitle>
             </DialogHeader>
             <div className="space-y-1.5">
+              <Label>Client ID</Label>
+              <Input
+                value={nextClientId}
+                readOnly
+                className="bg-muted font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Auto-generated unique identifier for your profile.
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label>Profile Name</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. My Business"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && name.trim()) {
-                    const cid = "client-" + Date.now();
-                    actions.addClient(cid, name.trim(), []);
+                  if (e.key === "Enter" && name.trim() && nextClientId) {
+                    actions.addClient(nextClientId, name.trim(), []);
                     toast.success("Profile created! Please contact admin to link your account.");
                     setAdding(false);
-                    setClientId("");
+                    setNextClientId("");
                     setName("");
                   }
                 }}
               />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => { setAdding(false); setClientId(""); setName(""); }}>
+              <Button variant="outline" onClick={() => { setAdding(false); setNextClientId(""); setName(""); }}>
                 Cancel
               </Button>
               <Button
@@ -267,11 +287,14 @@ function ClientsPage() {
                     toast.error("Enter a profile name.");
                     return;
                   }
-                  const cid = "client-" + Date.now();
-                  actions.addClient(cid, name.trim(), []);
+                  if (!nextClientId) {
+                    toast.error("Client ID not generated.");
+                    return;
+                  }
+                  actions.addClient(nextClientId, name.trim(), []);
                   toast.success("Profile created! Please contact admin to link your account.");
                   setAdding(false);
-                  setClientId("");
+                  setNextClientId("");
                   setName("");
                 }}
               >
