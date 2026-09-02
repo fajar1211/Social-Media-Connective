@@ -6,6 +6,7 @@ import {
   createRootRouteWithContext,
   HeadContent,
   Scripts,
+  useLocation,
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -193,16 +194,12 @@ function StoreLoader({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [isPublicPage, setIsPublicPage] = useState(false);
-
-  useEffect(() => {
-    const path = window.location.pathname;
-    setIsPublicPage(
-      path === "/" ||
-      path === "/privacy" ||
-      path.startsWith("/client/")
-    );
-  }, []);
+  const location = useLocation();
+  const path = location.pathname;
+  const isPublicPage =
+    path === "/" ||
+    path === "/privacy" ||
+    path.startsWith("/client/");
 
   return (
     <QueryClientProvider client={queryClient}>
