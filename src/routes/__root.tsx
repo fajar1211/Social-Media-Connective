@@ -135,7 +135,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const path = window.location.pathname;
-    setIsPublicPage(path === "/" || path === "/auth" || path.startsWith("/client/"));
+    setIsPublicPage(path === "/" || path === "/auth" || path === "/privacy" || path.startsWith("/client/"));
     setReady(true);
   }, []);
 
