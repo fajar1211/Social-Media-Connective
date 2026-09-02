@@ -163,6 +163,11 @@ function ClientsPage() {
   const [name, setName] = useState("");
   const [loadingId, setLoadingId] = useState(false);
 
+  // Admin add client state
+  const [adminAdding, setAdminAdding] = useState(false);
+  const [adminClientId, setAdminClientId] = useState("");
+  const [adminName, setAdminName] = useState("");
+
   const [editing, setEditing] = useState<Client | null>(null);
   const [editClientId, setEditClientId] = useState("");
   const [editName, setEditName] = useState("");
@@ -371,8 +376,11 @@ function ClientsPage() {
 
   const resetDialogs = () => {
     setAdding(false);
-    setClientId("");
+    setNextClientId("");
     setName("");
+    setAdminAdding(false);
+    setAdminClientId("");
+    setAdminName("");
     setEditing(null);
     setEditClientId("");
     setEditName("");
@@ -385,7 +393,7 @@ function ClientsPage() {
       <PageHeader
         title="Clients"
         subtitle={`${clients.length} client${clients.length !== 1 ? "s" : ""} total · ${clients.filter((c) => c.active).length} active`}
-        actions={<Button onClick={() => setAdding(true)}>Add Client</Button>}
+        actions={<Button onClick={() => setAdminAdding(true)}>Add Client</Button>}
       />
 
       <div className="space-y-4">
@@ -425,7 +433,7 @@ function ClientsPage() {
                 : "Try adjusting your search or filter."}
             </p>
             {clients.length === 0 && (
-              <Button className="mt-6" onClick={() => setAdding(true)}>
+              <Button className="mt-6" onClick={() => setAdminAdding(true)}>
                 Add Client
               </Button>
             )}
@@ -527,12 +535,12 @@ function ClientsPage() {
       </div>
 
       <Dialog
-        open={adding}
+        open={adminAdding}
         onOpenChange={(o) => {
           if (!o) {
-            setAdding(false);
-            setClientId("");
-            setName("");
+            setAdminAdding(false);
+            setAdminClientId("");
+            setAdminName("");
           }
         }}
       >
@@ -543,16 +551,16 @@ function ClientsPage() {
           <div className="space-y-1.5">
             <Label>Client ID</Label>
             <Input
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+              value={adminClientId}
+              onChange={(e) => setAdminClientId(e.target.value)}
               placeholder="e.g. 435522"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && clientId.trim() && name.trim()) {
-                  actions.addClient(clientId.trim(), name.trim(), []);
+                if (e.key === "Enter" && adminClientId.trim() && adminName.trim()) {
+                  actions.addClient(adminClientId.trim(), adminName.trim(), []);
                   toast.success("Client added");
-                  setAdding(false);
-                  setClientId("");
-                  setName("");
+                  setAdminAdding(false);
+                  setAdminClientId("");
+                  setAdminName("");
                 }
               }}
             />
@@ -563,16 +571,16 @@ function ClientsPage() {
           <div className="space-y-1.5">
             <Label>Client Name</Label>
             <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={adminName}
+              onChange={(e) => setAdminName(e.target.value)}
               placeholder="e.g. Acme Corp"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && clientId.trim() && name.trim()) {
-                  actions.addClient(clientId.trim(), name.trim(), []);
+                if (e.key === "Enter" && adminClientId.trim() && adminName.trim()) {
+                  actions.addClient(adminClientId.trim(), adminName.trim(), []);
                   toast.success("Client added");
-                  setAdding(false);
-                  setClientId("");
-                  setName("");
+                  setAdminAdding(false);
+                  setAdminClientId("");
+                  setAdminName("");
                 }
               }}
             />
@@ -581,32 +589,32 @@ function ClientsPage() {
             <Button
               variant="outline"
               onClick={() => {
-                setAdding(false);
-                setClientId("");
-                setName("");
+                setAdminAdding(false);
+                setAdminClientId("");
+                setAdminName("");
               }}
             >
               Cancel
             </Button>
             <Button
               onClick={() => {
-                if (!clientId.trim()) {
+                if (!adminClientId.trim()) {
                   toast.error("Enter a client ID.");
                   return;
                 }
-                if (!name.trim()) {
+                if (!adminName.trim()) {
                   toast.error("Enter a client name.");
                   return;
                 }
-                if (clients.some((c) => c.id === clientId.trim())) {
+                if (clients.some((c) => c.id === adminClientId.trim())) {
                   toast.error("Client ID already exists.");
                   return;
                 }
-                actions.addClient(clientId.trim(), name.trim(), []);
+                actions.addClient(adminClientId.trim(), adminName.trim(), []);
                 toast.success("Client added");
-                setAdding(false);
-                setClientId("");
-                setName("");
+                setAdminAdding(false);
+                setAdminClientId("");
+                setAdminName("");
               }}
             >
               Add Client
