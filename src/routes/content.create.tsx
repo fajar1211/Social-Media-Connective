@@ -855,7 +855,7 @@ function CreateContent() {
                 <Button
                   className="flex-1"
                   disabled={!!(loading || !platform || !type || !goal || (publishMode === "later" && (!scheduleDate || !scheduleTime)) || (publishMode === "now" && isFacebook && canPublish && !selectedPage))}
-                  onClick={() => {
+                  onClick={async () => {
                     if (publishMode === "now") {
                       if (isFacebook && canPublish) {
                         publishNow();
