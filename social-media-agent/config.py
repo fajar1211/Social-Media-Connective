@@ -11,8 +11,11 @@ FB_APP_SECRET = os.getenv("FB_APP_SECRET", "")
 FB_GRAPH_VERSION = "v21.0"
 FB_GRAPH_BASE = f"https://graph.facebook.com/{FB_GRAPH_VERSION}"
 
+AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma2:9b")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
 AGENT_HOST = os.getenv("AGENT_HOST", "0.0.0.0")
 AGENT_PORT = int(os.getenv("AGENT_PORT", "8000"))
