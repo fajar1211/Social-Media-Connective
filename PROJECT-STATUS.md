@@ -4,14 +4,72 @@
 - **Repository**: https://github.com/fajar1211/Social-Media-Connective
 - **Production**: https://socmed.marketingconnective.com/
 - **Tech Stack**: TanStack Start (React 19), TanStack Router, Tailwind CSS v4, shadcn/ui, Cloudflare Workers
-- **Deployment**: Cloudflare Workers (auto-deploy from GitHub `main` branch via `bun run build` + `npx wrangler deploy`)
-- **Last Updated**: 3 September 2026
+- **Deployment**: Cloudflare Workers (auto-deploy from GitHub `main` branch)
+- **Last Updated**: 5 September 2026
 
 ---
 
-## 🔑 Facebook Developer Console — NEW APP
+## 🏗️ Architecture
 
-### App Baru (Socmed Connective)
+```
+┌─────────────────────────────────────────┐
+│      Social Media Connective App        │
+│    (Cloudflare Workers - Production)     │
+│                                         │
+│  content.create.tsx → AI Generate btn   │
+│         ↓ POST http://localhost:8000    │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────┐
+│     AI Agent Service (Local Server)     │
+│         localhost:8000                   │
+│                                         │
+│  FastAPI + APScheduler + Gemini AI      │
+│  Publisher: Facebook/Instagram Graph API │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+            ┌──────────────┐
+            │   Supabase    │
+            │  (Database)   │
+            └──────────────┘
+```
+
+---
+
+## ✅ Completed Features
+
+### 1. Frontend App (Cloudflare Workers)
+- Client Management (`/clients`)
+- Client Detail with Tabs (Content, AI Content, Media, Settings, Account)
+- Social Integration OAuth (Facebook + Instagram)
+- Content Creation with AI Generate Caption button
+- Facebook Publishing APIs (Post, Photo, Schedule, Edit, Delete)
+- Magic Link System (Public client portal)
+- Landing Page + Privacy Policy Page
+- Dashboard, Analytics, Calendar, Templates, Export, Import, Settings
+
+### 2. AI Agent Service (`social-media-agent/`)
+- **AI Caption Generator** — Gemini API (`gemma-4-26b-a4b-it`) — 100% free
+- **Auto-Scheduler** — APScheduler, checks every 60 seconds
+- **Facebook Publisher** — Text post, Photo, Scheduled post
+- **Instagram Publisher** — 2-step media container → publish
+- **Publish History** — Audit trail in Supabase
+- **Error Handling** — Retry logic, status tracking, error logging
+- **Token Validation** — Check Facebook token expiry
+- 7 API endpoints at `localhost:8000`
+
+### 3. Database (Supabase)
+- Tables: `profiles`, `clients`, `content`, `social_connections`, `platforms`, `publish_history`
+- Agent columns on content: `published_at`, `platform_post_ids`, `agent_status`
+- RLS policies for admin access
+
+---
+
+## 🔑 Credentials
+
+### Facebook Developer Console
 | Item | Value |
 |------|-------|
 | **App ID** | `1109449551768527` |
@@ -19,232 +77,161 @@
 | **Client Token** | `fbe4dbe7441f202984e89b534ea56530` |
 | **App Name** | Socmed Connective |
 | **App Type** | Business |
-| **Business Portfolio** | Marketing Connective ID |
-| **Category** | Business |
 
-### App Settings Status
-| Setting | Status | Value |
-|---------|--------|-------|
-| Domain | ✅ | `socmed.marketingconnective.com` |
-| Privacy Policy URL | ✅ | `https://socmed.marketingconnective.com/privacy` |
-| Terms of Service URL | ⚠️ | `https://www.facebook.com/` → Ganti ke privacy URL |
-| Data Deletion URL | ❌ | Belum diisi |
-| Redirect URIs | ✅ | Facebook + Instagram callback |
+### Gemini AI (Free)
+| Item | Value |
+|------|-------|
+| **API Key** | `AIzaSyAgWl8TdaPheH71WDntMOPDtU-MF9kRh08` |
+| **Model** | `gemma-4-26b-a4b-it` |
 
-### Permissions Status
-| Permission | Status | Keterangan |
-|------------|--------|------------|
-| `email` | ✅ **live** | Sudah aktif |
-| `public_profile` | ✅ **live** | Sudah aktif |
-| `pages_show_list` | ❌ **belum ada** | Belum ditambahkan ke app |
-| `pages_read_engagement` | ❌ **belum ada** | Belum ditambahkan ke app |
-| `pages_manage_posts` | ❌ **belum ada** | Belum ditambahkan ke app |
-| `business_management` | ❌ **belum ada** | Belum ditambahkan ke app |
+### Supabase
+| Item | Value |
+|------|-------|
+| **URL** | `https://jzwmgcldazvuoxvbmkzu.supabase.co` |
+| **Anon Key** | `sb_publishable_g1Z1qWDQELk9jNUkQrE71A_cZES6Y-n` |
 
-### App Roles
-| User ID | Role |
-|---------|------|
-| `10216559544817647` | Administrator |
+### Facebook Login for Business
+| Role | config_id |
+|------|-----------|
+| Admin | `1015151248177076` (Connective User) |
+| Client | No config_id (Standard OAuth) |
 
 ---
 
-## 🔴 Current Issue: "Fitur Tidak Tersedia" Error
+## 🔴 Current Issues
 
-### Error Details
-```
-error_code=1349186
-error_message=Fitur Tidak Tersedia: Fitur ini untuk sementara tidak tersedia
-```
+### 1. Facebook App Review Belum Disubmit
+- App hanya punya permission `email` + `public_profile`
+- Permission `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `business_management` belum ada
+- Error: `"Fitur Tidak Tersedia"` (error_code 1349186)
 
-### Root Cause
-App baru **belum memiliki Pages permissions**. Hanya `email` dan `public_profile` yang aktif. Facebook block login karena app meminta permission yang belum disetujui.
+### 2. Alternatif: Server-Side Token (Dipilih)
+- Client generate Page Access Token dari Graph API Explorer
+- Token disimpan di database per client
+- App publish langsung dengan token client
+- **Tidak perlu App Review**
 
-### Solusi — 2 Opsi
-
-#### Opsi A: Tambah Tester (Testing)
-1. Buka `https://developers.facebook.com/apps/1109449551768527/roles/`
-2. Klik **"Add User"**
-3. Masukkan Facebook ID: `10216559544817647`
-4. Pilih role **"Tester"**
-5. Terima undangan di email Facebook
-6. Tester bisa login meskipun app Development mode
-
-#### Opsi B: Submit App Review (Production)
-1. Buka `https://developers.facebook.com/apps/1109449551768527/app-review/`
-2. Tambah use case **"Kelola Halaman"**
-3. Tambahkan permission:
-   - `pages_show_list`
-   - `pages_read_engagement`
-   - `pages_manage_posts`
-   - `business_management`
-4. Jawab pertanyaan:
-   - "Apakah Anda membuat integrasi untuk memungkinkan beberapa klien bisnis?" → **Ya**
-   - "Apakah Anda membuat integrasi atas nama klien individu?" → **Tidak**
-5. Submit untuk review
-6. Tunggu 1-7 hari approval
+### 3. Instagram Posting API Belum Teruji
+- Flow Instagram butuh 2-step (create container → publish)
+- Sudah diimplementasi di `publisher.py` tapi belum tested end-to-end
 
 ---
 
-## ⏳ Yang Harus Dilakukan Besok
+## 📋 Yang Sudah Dikerjakan (5 September 2026)
 
-### Prioritas 1: Fix App Settings
-1. Buka `https://developers.facebook.com/apps/1109449551768527/settings/basic/`
-2. **Ketentuan Layanan URL**: ganti ke `https://socmed.marketingconnective.com/privacy`
-3. **URL Permintaan Penghapusan Data**: masukkan `https://socmed.marketingconnective.com/privacy`
-4. Klik **Save Changes**
-
-### Prioritas 2: Pilih Opsi Testing/Production
-- **Opsi A (Testing)**: Tambah tester → bisa test sekarang
-- **Opsi B (Production)**: Submit App Review → butuh 1-7 hari
-
-### Prioritas 3: Submit App Review (jika pilih Opsi B)
-1. Buka App Review
-2. Tambah use case "Kelola Halaman"
-3. Tambah permissions
-4. Submit dengan deskripsi dari `APP_REVIEW_SUBMISSION.txt`
-5. Tunggu approval
-
-### Prioritas 4: Update Code (setelah App Review approve)
-- Update `config_id` jika menggunakan Facebook Login for Business
-- Test login sebagai admin dan client
+1. ✅ SQL migration: `agent_status` column + `publish_history` table
+2. ✅ Python agent service: `social-media-agent/` (10 files)
+3. ✅ AI Engine: Support Gemini API (gratis, tanpa Ollama)
+4. ✅ Publisher: Facebook + Instagram Graph API
+5. ✅ Scheduler: APScheduler auto-publish tiap 60 detik
+6. ✅ UI Integration: Tombol "AI Generate Caption" di content creation
+7. ✅ `.env` configured dengan credentials
+8. ✅ Python venv + dependencies installed
+9. ✅ Agent tested: health check OK, AI generate OK
+10. ✅ Pushed to GitHub (commit `eb1f369`)
 
 ---
 
-## 📝 Files Modified (3 September 2026)
+## ⏳ Yang Perlu Dilanjutkan
 
-### 1. Facebook App Migration
-- Migrated from old app (`1513088904188454`) to new app (`1109449551768527`)
-- Updated App ID and Secret in all files:
-  - `api.auth.facebook.tsx`
-  - `api.auth.facebook.callback.tsx`
-  - `api.auth.instagram.tsx`
-  - `api.auth.instagram.callback.tsx`
-  - `APP_REVIEW_DESCRIPTION.md`
-  - `APP_REVIEW_SUBMISSION.txt`
-  - `PROJECT-STATUS.md`
+### Prioritas 1: Facebook Publishing
+1. **Connect Facebook** ke client di dashboard (Social Integration tab)
+2. **Generate Page Access Token** dari Graph API Explorer
+3. **Test publish** via agent: `POST http://localhost:8000/publish/{content_id}`
+4. Fix Terms of Service URL + Data Deletion URL di Facebook Developer Console
 
-### 2. Privacy Page Redesign
-- Modern UI with gradient background
-- Quick summary cards (Data Encrypted, No Tracking, etc.)
-- Contact card with email `info@marketingconnective.com`
-- Footer: "Powered by marketingconnective.com"
+### Prioritas 2: Test End-to-End Flow
+1. Create content di UI → approve → lihat agent auto-publish
+2. Test Facebook post, photo, schedule
+3. Test Instagram 2-step publish
+4. Verify publish_history entries
 
-### 3. Facebook OAuth Role-Based Config
-- Admin: `config_id: "1015151248177076"` (Login for Business)
-- Client: no `config_id` (Standard OAuth)
-- Client sees own pages, not admin's pages
+### Prioritas 3: Multi-Platform
+1. Add LinkedIn posting API
+2. Add X/Twitter posting API
+3. Add TikTok posting API
+4. Add platform selector di UI
 
-### 4. Graph API Update
-- All Facebook endpoints updated v19.0 → v21.0
-
----
-
-## ✅ Completed Features
-
-### 1. Client Management (`/clients`)
-- Search + filter bar
-- Responsive table (desktop) + card (mobile)
-- Add Client with auto-generated S-prefixed IDs
-- Edit/Delete with confirmation
-
-### 2. Client Detail (`/clients/$clientId`)
-- Content Tab with clientIdFilter
-- AI Content Tab
-- Media Tab with grid view
-- Settings Tab with Magic Link + Social Integration
-- Account Tab (UI only)
-
-### 3. Social Integration OAuth
-- Facebook: Role-based config_id
-- Instagram: Standard flow
-- Popup with postMessage + localStorage
-
-### 4. Facebook Publishing APIs
-- Post, Photo, Schedule, Edit, Delete
-
-### 5. Content Creation
-- Auto-select client
-- Publish Now / Schedule For Later
-- Complete timezone list
-
-### 6. Magic Link System
-- Public client portal
-- No auth required
-
-### 7. Landing Page
-- Animated design
-- Professional footer
-
-### 8. Privacy Policy Page
-- Modern redesign
-- Contact info: info@marketingconnective.com
-- Powered by marketingconnective.com
-
----
-
-## 📋 App Review Submission Files
-
-| File | Purpose |
-|------|---------|
-| `APP_REVIEW_DESCRIPTION.md` | Complete documentation (updated with new App ID) |
-| `APP_REVIEW_SUBMISSION.txt` | Short version for form (updated with new App ID) |
+### Prioritas 4: Production Hardening
+1. Token refresh mechanism (Facebook token expired 60 hari)
+2. Error notification system (email/Telegram alert on failure)
+3. Rate limiting per client
+4. Content queue management
 
 ---
 
 ## 📁 Key Files
 
+### Frontend App
 | File | Purpose |
 |------|---------|
-| `src/lib/content-store.ts` | Store: types, actions |
-| `src/lib/db.ts` | Supabase queries |
-| `src/lib/auth.tsx` | AuthProvider |
+| `src/routes/content.create.tsx` | Content creation + AI Generate button |
 | `src/routes/clients.$clientId.tsx` | Client detail (~1860 lines) |
-| `src/routes/content.create.tsx` | Content creation |
 | `src/routes/api.auth.facebook.tsx` | Facebook OAuth |
 | `src/routes/api.auth.facebook.callback.tsx` | Facebook callback |
 | `src/routes/api.auth.instagram.tsx` | Instagram OAuth |
-| `src/routes/api.auth.instagram.callback.tsx` | Instagram callback |
-| `src/routes/privacy.tsx` | Privacy policy page |
-| `src/routes/client.$token.tsx` | Public client portal |
+| `src/routes/api.facebook.post.tsx` | Facebook post API |
+| `src/routes/api.facebook.photo.tsx` | Facebook photo API |
+| `src/routes/api.facebook.schedule.tsx` | Facebook schedule API |
+| `src/lib/content-store.ts` | Store: types, actions |
+| `src/lib/db.ts` | Supabase queries |
+| `src/lib/auth.tsx` | AuthProvider |
+
+### AI Agent Service
+| File | Purpose |
+|------|---------|
+| `social-media-agent/main.py` | FastAPI app (7 endpoints) |
+| `social-media-agent/ai_engine.py` | Gemini AI caption/hashtag generator |
+| `social-media-agent/publisher.py` | Facebook/Instagram Graph API publisher |
+| `social-media-agent/scheduler.py` | APScheduler cron jobs |
+| `social-media-agent/supabase_client.py` | Supabase queries |
+| `social-media-agent/config.py` | Environment variables |
+| `social-media-agent/.env` | Secrets (keys, tokens) |
+
+### Database
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/20260904000000_add_agent_and_publish_history.sql` | Agent columns + history table |
 
 ---
 
 ## 🚀 Dev Commands
 
 ```powershell
-# Start dev server
-powershell -ExecutionPolicy Bypass -Command "cd 'C:\Users\paula\Social Media Connective'; npx vite dev"
+# Start frontend dev server
+cd "C:\Users\paula\Social Media Connective"
+npx vite dev
+
+# Start AI agent
+cd "C:\Users\paula\Social Media Connective\social-media-agent"
+.\venv\Scripts\python.exe main.py
 
 # TypeScript check
 npx tsc --noEmit --pretty
 
-# Push to git (auto-deploys to Cloudflare)
+# Push to git (auto-deploys)
 git add -A; git commit -m "message"; git push origin main
 ```
 
----
+### Agent API
+```powershell
+# Health check
+Invoke-RestMethod -Uri "http://localhost:8000/health"
 
-## 📝 Session Summary (2-3 September 2026)
+# AI generate caption
+Invoke-RestMethod -Uri "http://localhost:8000/ai/generate" -Method POST -ContentType "application/json" -Body '{"topic":"...","platform":"Instagram"}'
 
-### Hari Ini (2 September):
-1. ✅ Facebook OAuth: Role-based config_id (admin vs client)
-2. ✅ Client sees own pages, not admin's pages
-3. ✅ Graph API updated v19.0 → v21.0
-4. ✅ Created App Review description files
-5. ✅ Diagnosed root cause: permissions not approved
-6. ✅ Privacy page redesigned with modern UI
+# Manual publish trigger
+Invoke-RestMethod -Uri "http://localhost:8000/publish/run" -Method POST
 
-### Besok (3 September):
-1. ⏳ Fix Terms of Service URL di Facebook Developer Console
-2. ⏳ Add Data Deletion URL
-3. ⏳ Pilih: Tambah Tester atau Submit App Review
-4. ⏳ Submit App Review jika sudah siap
-5. ⏳ Test login setelah approval
+# Check publish history
+Invoke-RestMethod -Uri "http://localhost:8000/history"
+```
 
 ---
 
 ## 🎯 Target
 
-1. **Minggu ini**: App Review submit + approval
-2. **Minggu depan**: Client bisa connect Facebook
-3. **2 minggu lagi**: Production ready
+1. **Minggu ini**: Test Facebook publishing end-to-end
+2. **Minggu depan**: Multi-platform support (LinkedIn, X/Twitter)
+3. **2 minggu lagi**: Production ready dengan error handling + notifications
