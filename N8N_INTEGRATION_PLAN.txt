@@ -1,0 +1,691 @@
+# ============================================================
+# Social Media Connective — n8n Integration Plan
+# ============================================================
+# Generated: 4 September 2026
+# Target: https://socmed.marketingconnective.com/
+# ============================================================
+
+## OVERVIEW
+============================================================
+Mengintegrasikan n8n (self-hosted, gratis) ke Social Media Connective
+untuk otomasi social media posting dan scheduling.
+
+## ARCHITECTURE
+============================================================
+
+┌─────────────────────┐     ┌─────────────────┐     ┌──────────────────┐
+│  Social Media       │     │     n8n         │     │  Social Media    │
+│  Connective App     │────▶│  (Local Server) │────▶│  Platforms       │
+│                     │     │                 │     │                  │
+│  - Content CRUD     │     │  - Webhooks     │     │  - Facebook      │
+│  - Status Mgmt      │     │  - Scheduling   │     │  - Instagram     │
+│  - Client Portal    │     │  - Multi-post   │     │  - LinkedIn      │
+└─────────────────────┘     └─────────────────┘     │  - X/Twitter     │
+           │                        │               └──────────────────┘
+           │                        │
+           ▼                        ▼
+┌─────────────────────────────────────────┐
+│              Supabase                   │
+│  - content (status: Approved->Published)│
+│  - social_connections (tokens)          │
+│  - clients (settings)                   │
+└─────────────────────────────────────────┘
+
+## PHASE 0: SETUP N8N SERVER (Hari 1)
+============================================================
+
+Task 1: Install n8n
+--------------------
+  Option A (npm):
+    npm install -g n8n
+    n8n start
+
+  Option B (Docker):
+    docker run -it --rm \
+      --name n8n \
+      -p 5678:5678 \
+      -v ~/.n8n:/home/node/.n8n \
+      n8nio/n8n
+
+  Option C (Local dev):
+    cd C:\Users\paula
+    npm install n8n
+    npx n8n start
+
+Task 2: Setup Credentials di n8n
+---------------------------------
+  1. Buka http://localhost:5678
+  2. Buat akun admin
+  3. Tambah credentials:
+     - Supabase: URL + Service Key
+     - Facebook Graph API: Page Access Token
+     - HTTP Header Auth: Untuk webhook security
+
+Task 3: Import Workflow Template
+---------------------------------
+  Download template:
+    https://n8n.io/workflows/
+
+  Atau buat manual:
+    - Webhook trigger
+    - Supabase read node
+    - Facebook/Instagram post node
+    - Status update node
+
+## PHASE 1: WEBHOOK INTEGRATION (Hari 2-3)
+============================================================
+
+Task 1: Buat n8n Webhook Workflow
+----------------------------------
+  Workflow: "Publish Content"
+
+  Nodes:
+    1. Webhook Trigger
+       - Method: POST
+       - Path: /publish
+       - Auth: Header (X-Webhook-Secret)
+
+    2. HTTP Request (Validate)
+       - Check secret header
+       - Validate content ID exists
+
+    3. Supabase (Read Content)
+       - Operation: Get Row
+       - Table: content
+       - ID: {{ $json.contentId }}
+
+    4. Switch (Platform Router)
+       - Facebook -> Facebook Post
+       - Instagram -> Instagram Post
+       - LinkedIn -> LinkedIn Post
+       - X/Twitter -> X Post
+
+    5. Facebook Post Node
+       - Page ID: {{ $json.pageId }}
+       - Message: {{ $json.caption }}
+       - Access Token: {{ $json.accessToken }}
+
+    6. Supabase (Update Status)
+       - Table: content
+       - ID: {{ $json.contentId }}
+       - Status: Published
+
+  Webhook URL: http://localhost:5678/webhook/publish
+
+Task 2: Modifikasi App API Routes
+-----------------------------------
+  File: src/routes/api.facebook.post.tsx
+
+  Sebelum:
+    - Direct fetch ke Facebook Graph API
+    - Menggunakan pageAccessToken dari request body
+
+  Sesudah:
+    - Panggil n8n webhook
+    - Kirim content ID + metadata
+    - n8n handle posting
+
+  Contoh kode:
+    const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "http://localhost:5678/webhook/publish";
+    const N8N_WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET;
+
+    const response = await fetch(N8N_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Webhook-Secret": N8N_WEBHOOK_SECRET,
+      },
+      body: JSON.stringify({
+        contentId: contentId,
+        clientId: clientId,
+        platform: platform,
+        pageId: pageId,
+      }),
+    });
+
+Task 3: Update Environment Variables
+--------------------------------------
+  File: .env
+
+  Tambah:
+    N8N_WEBHOOK_URL=http://localhost:5678/webhook/publish
+    N8N_WEBHOOK_SECRET=your-secret-here
+
+## PHASE 2: CONTENT SYNC (Hari 4-5)
+============================================================
+
+Task 1: Supabase Read Workflow
+-------------------------------
+  Workflow: "Sync Content"
+
+  Nodes:
+    1. Schedule Trigger
+       - Every 1 hour
+
+    2. Supabase (Read Approved)
+       - Table: content
+       - Filter: status = "Approved"
+
+    3. Loop Over Items
+       - For each approved content
+
+    4. Switch (Platform)
+       - Route to correct publisher
+
+    5. Facebook Publisher
+       - Get page access token from social_connections
+       - Post to Facebook
+
+    6. Instagram Publisher
+       - Get business account token
+       - Create media container
+       - Publish to Instagram
+
+    7. LinkedIn Publisher
+       - Get LinkedIn token
+       - Post to LinkedIn
+
+    8. X/Twitter Publisher
+       - Get X API token
+       - Post tweet
+
+    9. Supabase (Update Status)
+       - Set status to "Published"
+
+Task 2: Multi-Platform Posting
+--------------------------------
+  Workflow: "Multi-Platform Publish"
+
+  Nodes:
+    1. Webhook Trigger
+       - Receives content ID
+
+    2. Supabase (Get Content)
+       - Read content details
+
+    3. Supabase (Get Client Platforms)
+       - Read social_connections for client
+
+    4. Split by Platform
+       - Facebook posts
+       - Instagram posts
+       - LinkedIn posts
+       - X posts
+
+    5. Parallel Execution
+       - Post to all platforms simultaneously
+
+    6. Aggregate Results
+       - Collect all platform responses
+
+    7. Supabase (Update with Results)
+       - Store platform-specific post IDs
+
+Task 3: Handle Media Upload
+-----------------------------
+  Workflow: "Upload Media"
+
+  Nodes:
+    1. Webhook Trigger
+       - Receives: media URL, platform, access token
+
+    2. HTTP Request (Download)
+       - Download image/video from URL
+
+    3. Switch (Platform Format)
+       - Facebook: Direct upload
+       - Instagram: Container creation
+       - LinkedIn: Upload media
+
+    4. Upload to Platform
+       - Handle platform-specific requirements
+
+    5. Return Media ID
+       - For use in post creation
+
+## PHASE 3: SCHEDULING (Hari 6-7)
+============================================================
+
+Task 1: Cron Trigger Workflow
+-------------------------------
+  Workflow: "Scheduled Publisher"
+
+  Nodes:
+    1. Schedule Trigger
+       - Every 5 minutes
+
+    2. Supabase (Read Scheduled)
+       - Table: content
+       - Filter: status = "Approved"
+       - Filter: scheduled_date <= NOW()
+       - Filter: scheduled_time <= current time
+
+    3. Loop Over Items
+       - For each scheduled content
+
+    4. Check Time Window
+       - Verify it's time to publish
+
+    5. Publish Content
+       - Call publish workflow
+
+    6. Supabase (Update Status)
+       - Set status to "Published"
+       - Clear scheduled fields
+
+Task 2: Timezone Handling
+---------------------------
+  Workflow: "Timezone Converter"
+
+  Nodes:
+    1. Input Node
+       - scheduled_date
+       - scheduled_time
+       - timezone
+
+    2. Code Node (Convert)
+       const scheduledDateTime = new Date(`${scheduled_date}T${scheduled_time}`);
+       const userTimezone = timezone || 'Asia/Jakarta';
+       const utcTime = scheduledDateTime.toLocaleString("en-US", { timeZone: "UTC" });
+
+    3. Compare with Current Time
+       - If utcTime <= NOW() then publish
+
+Task 3: Status Tracking
+--------------------------
+  Database Fields:
+    - scheduled_date: DATE
+    - scheduled_time: TEXT
+    - timezone: TEXT
+    - published_at: TIMESTAMPTZ (add new)
+    - platform_post_ids: JSONB (add new)
+
+  Migration:
+    ALTER TABLE content ADD COLUMN published_at TIMESTAMPTZ;
+    ALTER TABLE content ADD COLUMN platform_post_ids JSONB DEFAULT '{}'::jsonb;
+
+## PHASE 4: UI UPDATES (Minggu 2)
+============================================================
+
+Task 1: n8n Integration Tab
+-----------------------------
+  File: src/routes/clients.$clientId.tsx
+
+  Tambah tab baru: "n8n Integration"
+
+  Components:
+    - N8nStatusIndicator
+      * Connected/Disconnected
+      * Last sync time
+      * Error count
+
+    - N8nWebhookConfig
+      * Webhook URL display
+      * Test webhook button
+      * Regenerate secret
+
+    - N8nActivityLog
+      * Recent publish attempts
+      * Success/failure status
+      * Error messages
+
+    - N8nManualTrigger
+      * "Publish Now" button
+      * "Sync Content" button
+      * "Test Connection" button
+
+Task 2: Status Dashboard
+---------------------------
+  File: src/components/n8n-dashboard.tsx
+
+  New Component:
+    - PublishQueue
+      * Pending content count
+      * Scheduled content count
+      * Failed content count
+
+    - PlatformStatus
+      * Facebook: Connected/Disconnected
+      * Instagram: Connected/Disconnected
+      * LinkedIn: Connected/Disconnected
+      * X/Twitter: Connected/Disconnected
+
+    - RecentActivity
+      * Last 10 publish attempts
+      * Success/failure indicators
+      * Timestamps
+
+Task 3: Settings Page
+-----------------------
+  File: src/routes/settings.tsx
+
+  New Section: "n8n Configuration"
+
+  Fields:
+    - n8n Server URL (default: http://localhost:5678)
+    - Webhook Secret (hidden, regenerate button)
+    - Auto-publish toggle
+    - Publish queue limit
+    - Error notification email
+
+Task 4: Notification System
+------------------------------
+  Workflow: "Error Notification"
+
+  Nodes:
+    1. Error Trigger
+       - Catch workflow errors
+
+    2. Supabase (Get Admin Email)
+       - Query profiles where role = 'admin'
+
+    3. Send Email
+       - Subject: "n8n Publish Error"
+       - Body: Error details + content info
+
+    4. Optional: Slack/Discord Notification
+       - Webhook to admin channel
+
+## N8N WORKFLOW TEMPLATES
+============================================================
+
+Template 1: Basic Facebook Post
+---------------------------------
+{
+  "name": "Facebook Publisher",
+  "nodes": [
+    {
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "publish-facebook"
+      }
+    },
+    {
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "get",
+        "tableId": "content",
+        "id": "={{ $json.contentId }}"
+      }
+    },
+    {
+      "type": "n8n-nodes-base.facebook",
+      "parameters": {
+        "operation": "post",
+        "pageId": "={{ $json.pageId }}",
+        "message": "={{ $json.caption }}",
+        "accessToken": "={{ $json.accessToken }}"
+      }
+    }
+  ]
+}
+
+Template 2: Multi-Platform Publisher
+--------------------------------------
+{
+  "name": "Multi-Platform Publisher",
+  "nodes": [
+    {
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "publish-multi"
+      }
+    },
+    {
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "social_connections",
+        "filters": {
+          "client_id": "={{ $json.clientId }}"
+        }
+      }
+    },
+    {
+      "type": "n8n-nodes-base.switch",
+      "parameters": {
+        "rules": [
+          { "output": 0, "conditions": { "platform": "Facebook" } },
+          { "output": 1, "conditions": { "platform": "Instagram" } },
+          { "output": 2, "conditions": { "platform": "LinkedIn" } },
+          { "output": 3, "conditions": { "platform": "X / Twitter" } }
+        ]
+      }
+    }
+  ]
+}
+
+Template 3: Scheduled Publisher
+---------------------------------
+{
+  "name": "Scheduled Publisher",
+  "nodes": [
+    {
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+        }
+      }
+    },
+    {
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "content",
+        "filters": {
+          "status": "Approved",
+          "scheduled_date": "lte:{{ $now.toISOString() }}"
+        }
+      }
+    }
+  ]
+}
+
+## ENVIRONMENT VARIABLES
+============================================================
+
+# App Settings
+N8N_WEBHOOK_URL=http://localhost:5678/webhook
+N8N_WEBHOOK_SECRET=your-secure-secret-here
+N8N_SERVER_URL=http://localhost:5678
+
+# Supabase (sudah ada)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+
+# Facebook (sudah ada)
+FACEBOOK_APP_ID=1109449551768527
+FACEBOOK_APP_SECRET=42bc8519cc029ed1e79062a137d57b75
+
+## DATABASE MIGRATIONS
+============================================================
+
+-- Migration: Add n8n support fields
+-- File: supabase/migrations/20260904000000_add_n8n_support.sql
+
+-- Add published_at timestamp
+ALTER TABLE content ADD COLUMN published_at TIMESTAMPTZ;
+
+-- Add platform-specific post IDs
+ALTER TABLE content ADD COLUMN platform_post_ids JSONB DEFAULT '{}'::jsonb;
+
+-- Add n8n integration settings to clients
+ALTER TABLE clients ADD COLUMN n8n_webhook_url TEXT;
+ALTER TABLE clients ADD COLUMN n8n_auto_publish BOOLEAN DEFAULT false;
+
+-- Create publish history table
+CREATE TABLE publish_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  content_id UUID REFERENCES content(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  status TEXT NOT NULL, -- 'success', 'failed', 'pending'
+  platform_post_id TEXT,
+  error_message TEXT,
+  published_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for faster queries
+CREATE INDEX idx_publish_history_content_id ON publish_history(content_id);
+CREATE INDEX idx_publish_history_status ON publish_history(status);
+
+-- RLS policies
+ALTER TABLE publish_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admin full access on publish_history" ON publish_history
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+CREATE POLICY "Client can view own publish_history" ON publish_history
+  FOR SELECT USING (
+    content_id IN (
+      SELECT id FROM content WHERE client_id = (
+        SELECT client_id FROM profiles WHERE id = auth.uid()
+      )
+    )
+  );
+
+## SECURITY CONSIDERATIONS
+============================================================
+
+1. Webhook Authentication
+   - Use secret header (X-Webhook-Secret)
+   - Validate on n8n side
+   - Rotate secrets periodically
+
+2. Token Storage
+   - Store in Supabase (social_connections table)
+   - Never expose in frontend
+   - Use Supabase RLS for access control
+
+3. Rate Limiting
+   - Facebook: 200 calls/hour per user
+   - Instagram: 200 calls/hour per user
+   - LinkedIn: 100 calls/day
+   - X/Twitter: 300 tweets/3 hours
+
+4. Error Handling
+   - Retry failed posts (max 3 attempts)
+   - Log all errors to publish_history
+   - Notify admin on critical failures
+
+## TESTING CHECKLIST
+============================================================
+
+Phase 0:
+  [ ] n8n server running on localhost:5678
+  [ ] Can access n8n UI
+  [ ] Credentials configured
+  [ ] Test webhook responds
+
+Phase 1:
+  [ ] App sends webhook to n8n
+  [ ] n8n receives and validates request
+  [ ] Content data retrieved from Supabase
+  [ ] Facebook post created successfully
+  [ ] Status updated in Supabase
+
+Phase 2:
+  [ ] Multi-platform posting works
+  [ ] Media upload handles all formats
+  [ ] Parallel posting doesn't cause errors
+  [ ] Results aggregated correctly
+
+Phase 3:
+  [ ] Cron triggers at correct times
+  [ ] Timezone conversion works
+  [ ] Scheduled posts publish on time
+  [ ] Status updates after publish
+
+Phase 4:
+  [ ] n8n status shows in UI
+  [ ] Manual trigger works
+  [ ] Activity log displays correctly
+  [ ] Error notifications received
+
+## TIMELINE SUMMARY
+============================================================
+
+Week 1:
+  Day 1: Phase 0 - Setup n8n server
+  Day 2-3: Phase 1 - Webhook integration
+  Day 4-5: Phase 2 - Content sync
+  Day 6-7: Phase 3 - Scheduling
+
+Week 2:
+  Day 8-10: Phase 4 - UI updates
+  Day 11-12: Testing & bug fixes
+  Day 13-14: Documentation & deployment
+
+Total Estimated Time: 2 weeks
+
+## DEPLOYMENT NOTES
+============================================================
+
+1. n8n Production Deployment
+   - Use Docker or PM2 for process management
+   - Setup reverse proxy (nginx) for HTTPS
+   - Configure persistent storage for n8n data
+
+2. Cloudflare Workers
+   - Update wrangler-deploy.json with n8n env vars
+   - Ensure n8n server is accessible from Cloudflare
+
+3. Monitoring
+   - Setup uptime monitoring for n8n server
+   - Monitor publish queue depth
+   - Track error rates
+
+## COMMANDS REFERENCE
+============================================================
+
+# Start n8n
+n8n start
+
+# Start with specific port
+n8n start --port 5678
+
+# Start in background (PM2)
+pm2 start n8n --name "n8n-server"
+
+# View n8n logs
+pm2 logs n8n-server
+
+# Stop n8n
+pm2 stop n8n-server
+
+# Test webhook
+curl -X POST http://localhost:5678/webhook/publish \
+  -H "Content-Type: application/json" \
+  -H "X-Webhook-Secret: your-secret" \
+  -d '{"contentId": "test-123", "platform": "Facebook"}'
+
+# Check n8n status
+curl http://localhost:5678/healthz
+
+## NOTES
+============================================================
+
+- Facebook App Review masih diperlukan meski pakai n8n
+- n8n menggunakan Facebook Graph API yang sama
+- Permissions yang dibutuhkan: pages_manage_posts, pages_show_list
+- Instagram membutuhkan Business Account
+- LinkedIn membutuhkan OAuth 2.0 setup
+- X/Twitter membutuhkan API v2 access
+
+## REFERENCES
+============================================================
+
+- n8n Documentation: https://docs.n8n.io/
+- n8n Facebook Node: https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.facebook/
+- n8n Supabase Node: https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.supabase/
+- Facebook Graph API: https://developers.facebook.com/docs/graph-api/
+- Instagram Graph API: https://developers.facebook.com/docs/instagram-api/
+
+============================================================
+END OF PLAN
+============================================================

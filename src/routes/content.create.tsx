@@ -192,6 +192,8 @@ function CreateContent() {
   const [gbpRedeemLink, setGbpRedeemLink] = useState("");
   const [gbpTerms, setGbpTerms] = useState("");
   const [gbpUrl, setGbpUrl] = useState("");
+  const [aiCaptionLoading, setAiCaptionLoading] = useState(false);
+  const [agentUrl, setAgentUrl] = useState("http://localhost:8000");
 
   const client = clients.find((c) => c.id === selectedClientId);
   const fbConnection = client?.socialIntegrations?.Facebook;
@@ -242,6 +244,39 @@ function CreateContent() {
   const removeMedia = () => {
     setMediaPreview(null);
     setMediaType(null);
+  };
+
+  const generateAiCaption = async () => {
+    if (!topic.trim()) {
+      toast.error("Enter a topic first to generate caption.");
+      return;
+    }
+    setAiCaptionLoading(true);
+    try {
+      const resp = await fetch(`${agentUrl}/ai/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: topic.trim(),
+          body: body.trim(),
+          platform: platform || "Facebook",
+          tone: "professional",
+          client_name: client?.name || "",
+        }),
+      });
+      if (!resp.ok) throw new Error("Agent unreachable");
+      const data = await resp.json();
+      if (data.caption) setBody(data.caption);
+      if (data.hashtags && data.hashtags.length > 0) {
+        const tags = data.hashtags.map((t: string) => `#${t.replace(/^#/, "")}`).join(" ");
+        setBody((prev) => (prev ? `${prev}\n\n${tags}` : tags));
+      }
+      toast.success("AI caption generated!");
+    } catch {
+      toast.error("Could not reach AI agent. Make sure it's running on " + agentUrl);
+    } finally {
+      setAiCaptionLoading(false);
+    }
   };
 
   const generate = async () => {
@@ -555,12 +590,29 @@ function CreateContent() {
           </div>
 
           <Row label="Body (Include Hashtag)">
-            <Textarea
-              rows={6}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Write your content body including hashtags..."
-            />
+            <div className="space-y-2">
+              <Textarea
+                rows={6}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Write your content body including hashtags..."
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={generateAiCaption}
+                disabled={aiCaptionLoading || !topic.trim()}
+                className="w-full"
+              >
+                <svg className="mr-2 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+                {aiCaptionLoading ? "Generating..." : "AI Generate Caption"}
+              </Button>
+            </div>
           </Row>
 
           {isFacebook && canPublish && (
