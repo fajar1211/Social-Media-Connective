@@ -5,7 +5,7 @@
 - **Production**: https://socmed.marketingconnective.com/
 - **Tech Stack**: TanStack Start (React 19), TanStack Router, Tailwind CSS v4, shadcn/ui, Cloudflare Workers
 - **Deployment**: Cloudflare Workers (auto-deploy from GitHub `main` branch)
-- **Last Updated**: 5 September 2026
+- **Last Updated**: 6 September 2026
 
 ---
 
@@ -58,7 +58,24 @@
 - **Publish History** — Audit trail in Supabase
 - **Error Handling** — Retry logic, status tracking, error logging
 - **Token Validation** — Check Facebook token expiry
-- 7 API endpoints at `localhost:8000`
+- 11 API endpoints at `localhost:8000`
+
+### 3. Manual Token Integration (NEW - 6 Sep 2026)
+- Facebook Manual Token — Paste token from Graph API Explorer, fetch pages (incl. Business Manager)
+- Instagram Manual Token — Same flow, fetches pages with `instagram_business_account`
+- English UI — Full guide with correct permissions for each platform
+- Business Manager fallback — `/me/businesses` → `/business_id/owned_pages`
+
+### 4. Permanent Admin Role (NEW - 6 Sep 2026)
+- Admin role protected from UI edit/delete
+- Auto-assign admin on first login, subsequent users = client
+- Add User dialog only allows "Client" role
+- Admin can only be changed via database
+
+### 5. Client Platforms Sync (NEW - 6 Sep 2026)
+- `client.platforms` derived from `socialIntegrations` (was hardcoded `[]`)
+- `/clients` table shows connected platform badges
+- `/clients/[clientId]` header shows platform badges
 
 ### 3. Database (Supabase)
 - Tables: `profiles`, `clients`, `content`, `social_connections`, `platforms`, `publish_history`
@@ -140,15 +157,27 @@
 16. ✅ Fixed auto-connect flow to use page access token
 17. ✅ TypeScript errors fixed in modified files
 
+## 📋 Yang Sudah Dikerjakan (6 September 2026 - Manual Token + Admin Protection)
+
+18. ✅ Manual Token Input for Facebook — paste token, fetch pages (incl. Business Manager)
+19. ✅ Manual Token Input for Instagram — same flow with Instagram permissions
+20. ✅ Business Manager fallback — `/me/businesses` → `/business_id/owned_pages`
+21. ✅ Correct Facebook permissions guide — added `business_management`
+22. ✅ Manual Token dialog translated to English
+23. ✅ Permanent Admin role — protected from UI, auto-assign on first login
+24. ✅ Fixed client platforms display — derived from `socialIntegrations`
+25. ✅ Restored Facebook Connect button alongside Manual Token
+26. ✅ All changes pushed — commits `1bbb032` through `bc62e54`
+
 ---
 
 ## ⏳ Yang Perlu Dilanjutkan
 
 ### Prioritas 1: Facebook Publishing
 1. ~~**Connect Facebook** ke client di dashboard~~ ✅ DONE
-2. ~~**Generate Page Access Token** dari Graph API Explorer~~ ✅ DONE (otomatis via OAuth)
-3. **Test publish** via agent: `POST http://localhost:8000/publish/{content_id}`
-4. Fix Terms of Service URL + Data Deletion URL di Facebook Developer Console
+2. ~~**Generate Page Access Token** dari Graph API Explorer~~ ✅ DONE (Manual Token)
+3. **Generate token baru** dengan permission `business_management` (token lama kurang)
+4. **Test publish** via agent: create content → approve → agent auto-publish
 
 ### Prioritas 2: Test End-to-End Flow
 1. Create content di UI → approve → lihat agent auto-publish

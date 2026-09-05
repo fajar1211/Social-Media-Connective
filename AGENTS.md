@@ -123,14 +123,24 @@ Invoke-RestMethod -Uri "http://localhost:8000/client-token-status/S0100"
 7. Fixed auto-connect flow to use page access token
 8. TypeScript errors fixed in modified files
 
+## What's Been Done (Session 6 September 2026)
+1. **Manual Token Input for Facebook** — Client can paste Page Access Token from Graph API Explorer, fetch pages (including Business Manager pages), and connect
+2. **Manual Token Input for Instagram** — Same flow for Instagram, fetches pages with `instagram_business_account` via Business endpoint
+3. **Fixed `/me/accounts` empty** — Added Business Manager fallback: `/me/businesses` → `/business_id/owned_pages`
+4. **Correct Facebook permissions** — Guide now shows: `pages_show_list`, `pages_manage_posts`, `business_management`, `pages_read_engagement`
+5. **English UI** — Manual Token dialog fully translated to English
+6. **Permanent Admin Role** — Admin role is protected, cannot be edited/deleted from UI, only via database. New users auto-assigned as "client" if admin already exists
+7. **Fixed client platforms display** — `client.platforms` now derived from `socialIntegrations` (was hardcoded to `[]`), both in `/clients` table and `/clients/[clientId]` header
+8. **Restored Facebook Connect button** — OAuth button alongside Manual Token option
+9. **All changes pushed** — Commits `1bbb032`, `3485d35`, `d78fc0f`, `b5a22b4`, `d07a75f`, `bc62e54`
+
 ## What Needs To Be Done Next
-1. Connect Facebook to a client in dashboard
-2. Test Facebook publishing end-to-end
-3. Test Instagram 2-step publish
+1. Test end-to-end: Create content → approve → agent publishes to Facebook/Instagram
+2. Generate new token with `business_management` permission and test Manual Token flow
+3. Token refresh mechanism (short-lived → long-lived exchange)
 4. Fix Facebook App Settings (ToS URL, Data Deletion URL)
 5. Add LinkedIn/X/Twitter support
-6. Add error notifications
-7. Token refresh mechanism
+6. Error notification system
 
 ## Credentials Reference
 - Facebook App ID: `1109449551768527`
