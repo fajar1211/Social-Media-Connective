@@ -1284,7 +1284,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           <DialogHeader>
             <DialogTitle>Connect {manualTokenPlatform} Page</DialogTitle>
             <DialogDescription>
-              Ikuti langkah berikut untuk menghubungkan {manualTokenPlatform} {client.name}.
+              Follow the steps below to connect {manualTokenPlatform} for {client.name}.
             </DialogDescription>
           </DialogHeader>
 
@@ -1293,19 +1293,19 @@ function SettingsTab({ clientId }: { clientId: string }) {
             <div className="rounded-lg border p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
-                <h4 className="font-semibold">Daftar Facebook Developer</h4>
+                <h4 className="font-semibold">Register as a Facebook Developer</h4>
               </div>
               <p className="text-muted-foreground text-xs mb-2">
-                Dibutuhkan untuk mengakses Graph API Explorer dan generate token.
+                Required to access Graph API Explorer and generate tokens.
               </p>
               <ol className="list-decimal list-inside space-y-1 text-xs text-muted-foreground">
-                <li>Buka <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">developers.facebook.com</a></li>
-                <li>Login dengan akun Facebook yang mengelola {manualTokenPlatform} kamu</li>
-                <li>Klik tombol <strong>&quot;Get Started&quot;</strong> atau <strong>&quot;Mulai&quot;</strong></li>
-                <li>Pilih role: <strong>&quot;Developer&quot;</strong> atau <strong>&quot;Pengembang&quot;</strong></li>
-                <li>Isi nama app (boleh sembarang, misal: &quot;SocmedToken&quot;)</li>
-                <li>Klik <strong>&quot;Create App&quot;</strong> atau <strong>&quot;Buat App&quot;</strong></li>
-                <li>Selesai! Kamu sekarang adalah Facebook Developer</li>
+                <li>Go to <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">developers.facebook.com</a></li>
+                <li>Login with the Facebook account that manages your {manualTokenPlatform}</li>
+                <li>Click <strong>&quot;Get Started&quot;</strong></li>
+                <li>Select role: <strong>&quot;Developer&quot;</strong></li>
+                <li>Enter an app name (any name, e.g. &quot;SocmedToken&quot;)</li>
+                <li>Click <strong>&quot;Create App&quot;</strong></li>
+                <li>Done! You are now a Facebook Developer</li>
               </ol>
             </div>
 
@@ -1316,27 +1316,35 @@ function SettingsTab({ clientId }: { clientId: string }) {
                 <h4 className="font-semibold">Generate {manualTokenPlatform === "Instagram" ? "Instagram" : "Page"} Access Token</h4>
               </div>
               <p className="text-muted-foreground text-xs mb-2">
-                Token ini digunakan untuk mengakses {manualTokenPlatform} kamu.
+                This token is used to access your {manualTokenPlatform} account.
               </p>
               <ol className="list-decimal list-inside space-y-1 text-xs text-muted-foreground">
-                <li>Buka <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">Graph API Explorer</a></li>
-                <li>Di dropdown <strong>&quot;Application&quot;</strong>, pilih app yang baru dibuat</li>
-                <li>Klik tombol <strong>&quot;Generate Access Token&quot;</strong></li>
-                <li>Muncul jendela permissions, centang:
-                  <div className="ml-4 mt-1 space-y-0.5">
+                <li>Open <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">Graph API Explorer</a></li>
+                <li>In the <strong>&quot;Application&quot;</strong> dropdown, select the app you just created</li>
+                <li>Click <strong>&quot;Generate Access Token&quot;</strong></li>
+                <li>A permissions dialog will appear, check these:
+                  <div className="ml-4 mt-1.5 space-y-1">
                     {manualTokenPlatform === "Instagram" ? (
                       <>
                         <div className="flex items-center gap-1.5">
                           <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
                           <code className="bg-muted px-1 rounded text-[10px]">instagram_basic</code>
+                          <span className="text-muted-foreground">— read Instagram account</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
                           <code className="bg-muted px-1 rounded text-[10px]">instagram_content_publish</code>
+                          <span className="text-muted-foreground">— publish content</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
                           <code className="bg-muted px-1 rounded text-[10px]">pages_show_list</code>
+                          <span className="text-muted-foreground">— list Facebook Pages</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">pages_read_engagement</code>
+                          <span className="text-muted-foreground">— read page engagement</span>
                         </div>
                       </>
                     ) : (
@@ -1344,19 +1352,31 @@ function SettingsTab({ clientId }: { clientId: string }) {
                         <div className="flex items-center gap-1.5">
                           <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
                           <code className="bg-muted px-1 rounded text-[10px]">pages_show_list</code>
+                          <span className="text-muted-foreground">— list Facebook Pages</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
                           <code className="bg-muted px-1 rounded text-[10px]">pages_manage_posts</code>
+                          <span className="text-muted-foreground">— create and manage posts</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">business_management</code>
+                          <span className="text-muted-foreground">— access Business Manager pages</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">pages_read_engagement</code>
+                          <span className="text-muted-foreground">— read page engagement</span>
                         </div>
                       </>
                     )}
                   </div>
                 </li>
-                <li>Klik <strong>&quot;Generate Access Token&quot;</strong> lagi</li>
-                <li>Jika diminta izin halaman, pilih Page kamu</li>
-                <li>Token akan muncul di kolom <strong>&quot;Access Token&quot;</strong></li>
-                <li>Klik token untuk copy ke clipboard</li>
+                <li>Click <strong>&quot;Generate Access Token&quot;</strong> again</li>
+                <li>If prompted, select your Page to grant access</li>
+                <li>The token will appear in the <strong>&quot;Access Token&quot;</strong> field</li>
+                <li>Click the token to copy it to clipboard</li>
               </ol>
             </div>
 
@@ -1372,7 +1392,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
                   <textarea
                     value={manualToken}
                     onChange={(e) => setManualToken(e.target.value)}
-                    placeholder="Tempel token di sini..."
+                    placeholder="Paste your token here..."
                     className="w-full rounded-lg border bg-background px-3 py-2 text-xs font-mono h-20 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
@@ -1383,17 +1403,17 @@ function SettingsTab({ clientId }: { clientId: string }) {
                   variant="outline"
                   size="sm"
                 >
-                  {manualFetching ? "Mengambil daftar akun..." : "Ambil Daftar Akun"}
+                  {manualFetching ? "Fetching accounts..." : "Fetch Account List"}
                 </Button>
                 {manualPages.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="text-xs">Pilih {manualTokenPlatform === "Instagram" ? "Akun Instagram" : "Halaman"}</Label>
+                    <Label className="text-xs">Select {manualTokenPlatform === "Instagram" ? "Instagram Account" : "Page"}</Label>
                     <Select
                       value={manualSelectedPageId}
                       onValueChange={setManualSelectedPageId}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder={`Pilih ${manualTokenPlatform === "Instagram" ? "akun" : "halaman"}...`} />
+                        <SelectValue placeholder={`Select ${manualTokenPlatform === "Instagram" ? "account" : "page"}...`} />
                       </SelectTrigger>
                       <SelectContent>
                         {manualPages.map((page) => (
@@ -1412,23 +1432,26 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
             {/* Troubleshooting */}
             <details className="rounded-lg border bg-muted/30 p-3">
-              <summary className="text-xs font-medium cursor-pointer">Troubleshooting / Masalah Umum</summary>
+              <summary className="text-xs font-medium cursor-pointer">Troubleshooting</summary>
               <div className="mt-2 space-y-2 text-xs text-muted-foreground">
                 <div>
-                  <p className="font-medium text-foreground">Token tidak bisa generate?</p>
-                  <p>Pastikan kamu sudah login ke Graph API Explorer dengan akun yang sama dengan yang mengelola {manualTokenPlatform}.</p>
+                  <p className="font-medium text-foreground">Cannot generate token?</p>
+                  <p>Make sure you are logged into Graph API Explorer with the same account that manages your {manualTokenPlatform}.</p>
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Tidak ada {manualTokenPlatform === "Instagram" ? "akun" : "halaman"} muncul?</p>
+                  <p className="font-medium text-foreground">No {manualTokenPlatform === "Instagram" ? "accounts" : "pages"} found?</p>
                   {manualTokenPlatform === "Instagram" ? (
-                    <p>Pastikan Instagram Business terhubung ke Facebook Page di Facebook Settings → Instagram.</p>
+                    <p>Make sure Instagram Business is connected to a Facebook Page in Facebook Settings &rarr; Instagram.</p>
                   ) : (
-                    <p>Pastikan kamu adalah Admin dari Facebook Page yang ingin dihubungkan.</p>
+                    <>
+                      <p>Make sure you are an <strong>Admin</strong> of the Facebook Page.</p>
+                      <p>If your page is in Business Manager, ensure the <code>business_management</code> permission is checked.</p>
+                    </>
                   )}
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Token expired?</p>
-                  <p>Token dari Graph API Explorer berlaku ~1-2 jam. Ulangi langkah 2 untuk generate token baru.</p>
+                  <p>Tokens from Graph API Explorer expire in ~1-2 hours. Repeat step 2 to generate a new token.</p>
                 </div>
               </div>
             </details>
@@ -1444,7 +1467,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
                 setManualSelectedPageId("");
               }}
             >
-              Batal
+              Cancel
             </Button>
             <Button
               onClick={handleManualConnect}
