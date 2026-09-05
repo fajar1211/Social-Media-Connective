@@ -522,14 +522,16 @@ function SocialIntegrationCard({
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
-                <Link2 className="mr-1.5 size-3.5" />
-                Connect
-              </Button>
               {onManualConnect && platform === "Facebook" && (
                 <Button size="sm" variant="outline" onClick={onManualConnect}>
                   <Settings className="mr-1.5 size-3.5" />
                   Manual Token
+                </Button>
+              )}
+              {!onManualConnect && (
+                <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
+                  <Link2 className="mr-1.5 size-3.5" />
+                  Connect
                 </Button>
               )}
             </div>
@@ -1176,69 +1178,138 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
       {/* Manual Token Input Dialog */}
       <Dialog open={manualTokenOpen} onOpenChange={setManualTokenOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Manual Facebook Token</DialogTitle>
+            <DialogTitle>Connect Facebook Page</DialogTitle>
             <DialogDescription>
-              Paste your Page Access Token from Facebook Graph API Explorer.
+              Ikuti langkah berikut untuk menghubungkan Facebook Page {client.name}.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground mb-1">How to get your token:</p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Go to <a href="https://business.facebook.com/settings/pages" target="_blank" rel="noopener noreferrer" className="text-primary underline">Facebook Business Suite</a></li>
-                <li>Select your Page from the list</li>
-                <li>Go to <strong>Settings</strong> → <strong>Page Access</strong> or <strong>Integrations</strong></li>
-                <li>Generate or copy your <strong>Page Access Token</strong></li>
-                <li>Make sure token has permissions: <code className="bg-muted px-1 rounded">pages_show_list</code>, <code className="bg-muted px-1 rounded">pages_manage_posts</code></li>
-                <li>Paste the token below</li>
+          <div className="space-y-4 text-sm">
+            {/* Step 1: Register Developer */}
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
+                <h4 className="font-semibold">Daftar Facebook Developer</h4>
+              </div>
+              <p className="text-muted-foreground text-xs mb-2">
+                Dibutuhkan untuk mengakses Graph API Explorer dan generate token.
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-xs text-muted-foreground">
+                <li>Buka <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">developers.facebook.com</a></li>
+                <li>Login dengan akun Facebook yang mengelola Page kamu</li>
+                <li>Klik tombol <strong>&quot;Get Started&quot;</strong> atau <strong>&quot;Mulai&quot;</strong></li>
+                <li>Pilih role: <strong>&quot;Developer&quot;</strong> atau <strong>&quot;Pengembang&quot;</strong></li>
+                <li>Isi nama app (boleh sembarang, misal: &quot;SocmedToken&quot;)</li>
+                <li>Klik <strong>&quot;Create App&quot;</strong> atau <strong>&quot;Buat App&quot;</strong></li>
+                <li>Selesai! Kamu sekarang adalah Facebook Developer</li>
               </ol>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm">Page Access Token</Label>
-              <textarea
-                value={manualToken}
-                onChange={(e) => setManualToken(e.target.value)}
-                placeholder="Paste your Page Access Token here..."
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono h-20 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+            {/* Step 2: Generate Token */}
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span>
+                <h4 className="font-semibold">Generate Page Access Token</h4>
+              </div>
+              <p className="text-muted-foreground text-xs mb-2">
+                Token ini digunakan untuk mengakses Facebook Page kamu.
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-xs text-muted-foreground">
+                <li>Buka <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">Graph API Explorer</a></li>
+                <li>Di dropdown <strong>&quot;Application&quot;</strong>, pilih app yang baru dibuat</li>
+                <li>Klik tombol <strong>&quot;Generate Access Token&quot;</strong></li>
+                <li>Muncul jendela permissions, centang:
+                  <div className="ml-4 mt-1 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                      <code className="bg-muted px-1 rounded text-[10px]">pages_show_list</code>
+                      <span className="text-muted-foreground">— melihat daftar halaman</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                      <code className="bg-muted px-1 rounded text-[10px]">pages_manage_posts</code>
+                      <span className="text-muted-foreground">— mengelola postingan</span>
+                    </div>
+                  </div>
+                </li>
+                <li>Klik <strong>&quot;Generate Access Token&quot;</strong> lagi</li>
+                <li>Jika diminta izin halaman, pilih Page kamu</li>
+                <li>Token akan muncul di kolom <strong>&quot;Access Token&quot;</strong></li>
+                <li>Klik token untuk copy ke clipboard</li>
+              </ol>
             </div>
 
-            <Button
-              onClick={handleManualFetchPages}
-              disabled={!manualToken.trim() || manualFetching}
-              className="w-full"
-              variant="outline"
-            >
-              {manualFetching ? "Fetching pages..." : "Fetch Pages"}
-            </Button>
-
-            {manualPages.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-sm">Select Page</Label>
-                <Select
-                  value={manualSelectedPageId}
-                  onValueChange={setManualSelectedPageId}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a page..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {manualPages.map((page) => (
-                      <SelectItem key={page.id} value={page.id}>
-                        {page.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Step 3: Paste Token */}
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">3</span>
+                <h4 className="font-semibold">Paste Token &amp; Connect</h4>
               </div>
-            )}
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Page Access Token</Label>
+                  <textarea
+                    value={manualToken}
+                    onChange={(e) => setManualToken(e.target.value)}
+                    placeholder="Tempel token di sini..."
+                    className="w-full rounded-lg border bg-background px-3 py-2 text-xs font-mono h-20 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <Button
+                  onClick={handleManualFetchPages}
+                  disabled={!manualToken.trim() || manualFetching}
+                  className="w-full"
+                  variant="outline"
+                  size="sm"
+                >
+                  {manualFetching ? "Mengambil daftar halaman..." : "Ambil Daftar Halaman"}
+                </Button>
+                {manualPages.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Pilih Halaman</Label>
+                    <Select
+                      value={manualSelectedPageId}
+                      onValueChange={setManualSelectedPageId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Pilih halaman..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {manualPages.map((page) => (
+                          <SelectItem key={page.id} value={page.id}>
+                            {page.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Troubleshooting */}
+            <details className="rounded-lg border bg-muted/30 p-3">
+              <summary className="text-xs font-medium cursor-pointer">Troubleshooting / Masalah Umum</summary>
+              <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+                <div>
+                  <p className="font-medium text-foreground">Token tidak bisa generate?</p>
+                  <p>Pastikan kamu sudah login ke Graph API Explorer dengan akun yang sama dengan yang mengelola Facebook Page.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Tidak ada halaman muncul?</p>
+                  <p>Pastikan kamu adalah Admin dari Facebook Page yang ingin dihubungkan.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Token expired?</p>
+                  <p>Token dari Graph API Explorer berlaku ~1-2 jam. Ulangi langkah 2 untuk generate token baru.</p>
+                </div>
+              </div>
+            </details>
           </div>
 
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex justify-end gap-2 mt-4 sticky bottom-0 bg-card pt-2">
             <Button
               variant="outline"
               onClick={() => {
@@ -1248,7 +1319,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
                 setManualSelectedPageId("");
               }}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               onClick={handleManualConnect}
