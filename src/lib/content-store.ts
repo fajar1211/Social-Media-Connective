@@ -235,15 +235,23 @@ export async function loadStoreData(clientId?: string): Promise<void> {
       scheduledTime: c.scheduled_time || undefined,
     }));
 
-    const mappedClients: Client[] = clientsData.map((c) => ({
-      id: c.id,
-      name: c.name,
-      active: c.active,
-      platforms: [],
-      socialIntegrations: (c as any).social_integrations || (c as any).socialIntegrations || {},
-      magicLinkToken: c.magic_link_token || "",
-      magicLinkActive: c.magic_link_active ?? true,
-    }));
+    const mappedClients: Client[] = clientsData.map((c) => {
+      const integrations = (c as any).social_integrations || (c as any).socialIntegrations || {};
+      const derivedPlatforms: Platform[] = [];
+      if (integrations.Facebook?.connected) derivedPlatforms.push("Facebook");
+      if (integrations.Instagram?.connected) derivedPlatforms.push("Instagram");
+      if (integrations.LinkedIn?.connected) derivedPlatforms.push("LinkedIn");
+      if (integrations.Blog?.connected) derivedPlatforms.push("Blog");
+      return {
+        id: c.id,
+        name: c.name,
+        active: c.active,
+        platforms: derivedPlatforms,
+        socialIntegrations: integrations,
+        magicLinkToken: c.magic_link_token || "",
+        magicLinkActive: c.magic_link_active ?? true,
+      };
+    });
 
     const mappedPlatforms = platformsData.map((p) => ({
       name: p.name as Platform,
@@ -407,6 +415,15 @@ export const actions = {
   },
 
   async updateClient(id: string, patch: Partial<Client>) {
+    if (patch.socialIntegrations !== undefined) {
+      const derivedPlatforms: Platform[] = [];
+      if (patch.socialIntegrations.Facebook?.connected) derivedPlatforms.push("Facebook");
+      if (patch.socialIntegrations.Instagram?.connected) derivedPlatforms.push("Instagram");
+      if (patch.socialIntegrations.LinkedIn?.connected) derivedPlatforms.push("LinkedIn");
+      if (patch.socialIntegrations.Blog?.connected) derivedPlatforms.push("Blog");
+      patch.platforms = derivedPlatforms;
+    }
+
     state.clients = state.clients.map((c) => (c.id === id ? { ...c, ...patch } : c));
     emit();
 
