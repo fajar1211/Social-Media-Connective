@@ -1188,11 +1188,12 @@ function SettingsTab({ clientId }: { clientId: string }) {
             <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
               <p className="font-medium text-foreground mb-1">How to get your token:</p>
               <ol className="list-decimal list-inside space-y-1">
-                <li>Go to <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Graph API Explorer</a></li>
-                <li>Select your App from the dropdown</li>
-                <li>Click &quot;Generate Access Token&quot;</li>
-                <li>Select permissions: <code className="bg-muted px-1 rounded">pages_show_list</code>, <code className="bg-muted px-1 rounded">pages_manage_posts</code></li>
-                <li>Copy the token and paste below</li>
+                <li>Go to <a href="https://business.facebook.com/settings/pages" target="_blank" rel="noopener noreferrer" className="text-primary underline">Facebook Business Suite</a></li>
+                <li>Select your Page from the list</li>
+                <li>Go to <strong>Settings</strong> → <strong>Page Access</strong> or <strong>Integrations</strong></li>
+                <li>Generate or copy your <strong>Page Access Token</strong></li>
+                <li>Make sure token has permissions: <code className="bg-muted px-1 rounded">pages_show_list</code>, <code className="bg-muted px-1 rounded">pages_manage_posts</code></li>
+                <li>Paste the token below</li>
               </ol>
             </div>
 
