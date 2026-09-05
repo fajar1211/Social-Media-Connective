@@ -532,6 +532,12 @@ function SocialIntegrationCard({
                   Manual Token
                 </Button>
               )}
+              {onManualConnect && platform === "Instagram" && (
+                <Button size="sm" variant="outline" onClick={onManualConnect}>
+                  <Settings className="mr-1.5 size-3.5" />
+                  Manual Token
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -558,8 +564,9 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const [magicToken, setMagicToken] = useState(client?.magicLinkToken || "");
   const [generating, setGenerating] = useState(false);
   const [manualTokenOpen, setManualTokenOpen] = useState(false);
+  const [manualTokenPlatform, setManualTokenPlatform] = useState<"Facebook" | "Instagram">("Facebook");
   const [manualToken, setManualToken] = useState("");
-  const [manualPages, setManualPages] = useState<Array<{ id: string; name: string; category: string; access_token: string }>>([]);
+  const [manualPages, setManualPages] = useState<Array<{ id: string; name: string; category: string; access_token: string; instagram_business_account?: { id: string; name: string } }>>([]);
   const [manualSelectedPageId, setManualSelectedPageId] = useState("");
   const [manualFetching, setManualFetching] = useState(false);
 
@@ -915,48 +922,94 @@ function SettingsTab({ clientId }: { clientId: string }) {
     }
     setManualFetching(true);
     try {
-      // Step 1: Try /me/accounts first
-      const accountsResponse = await fetch(
-        `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,category,access_token&access_token=${manualToken.trim()}`
-      );
-      const accountsData = await accountsResponse.json();
-      if (accountsData.error) {
-        toast.error(`Invalid token: ${accountsData.error.message}`);
-        setManualPages([]);
-        return;
-      }
-      let pages = (accountsData.data || []).filter(
-        (p: { category?: string }) => !p.category?.toLowerCase().includes("instagram")
-      );
-
-      // Step 2: If no pages, try business pages
-      if (pages.length === 0) {
-        const bizResponse = await fetch(
-          `https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${manualToken.trim()}`
+      if (manualTokenPlatform === "Instagram") {
+        // Fetch pages with Instagram Business Account
+        const accountsResponse = await fetch(
+          `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,category,instagram_business_account&access_token=${manualToken.trim()}`
         );
-        const bizData = await bizResponse.json();
-        if (bizData.data && bizData.data.length > 0) {
-          for (const biz of bizData.data) {
-            const bizPagesResponse = await fetch(
-              `https://graph.facebook.com/v21.0/${biz.id}/owned_pages?fields=id,name,category,access_token&access_token=${manualToken.trim()}`
-            );
-            const bizPagesData = await bizPagesResponse.json();
-            if (bizPagesData.data) {
-              const bizPages = bizPagesData.data.filter(
-                (p: { category?: string }) => !p.category?.toLowerCase().includes("instagram")
+        const accountsData = await accountsResponse.json();
+        if (accountsData.error) {
+          toast.error(`Invalid token: ${accountsData.error.message}`);
+          setManualPages([]);
+          return;
+        }
+        let pages = (accountsData.data || []).filter(
+          (p: { instagram_business_account?: unknown }) => p.instagram_business_account
+        );
+
+        // If no pages, try business pages
+        if (pages.length === 0) {
+          const bizResponse = await fetch(
+            `https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${manualToken.trim()}`
+          );
+          const bizData = await bizResponse.json();
+          if (bizData.data && bizData.data.length > 0) {
+            for (const biz of bizData.data) {
+              const bizPagesResponse = await fetch(
+                `https://graph.facebook.com/v21.0/${biz.id}/owned_pages?fields=id,name,category,instagram_business_account&access_token=${manualToken.trim()}`
               );
-              pages = [...pages, ...bizPages];
+              const bizPagesData = await bizPagesResponse.json();
+              if (bizPagesData.data) {
+                const bizPages = bizPagesData.data.filter(
+                  (p: { instagram_business_account?: unknown }) => p.instagram_business_account
+                );
+                pages = [...pages, ...bizPages];
+              }
             }
           }
         }
-      }
 
-      setManualPages(pages);
-      if (pages.length === 0) {
-        toast.error("Tidak ada Facebook Page ditemukan. Pastikan kamu adalah Admin dari Page tersebut.");
+        setManualPages(pages);
+        if (pages.length === 0) {
+          toast.error("Tidak ada Instagram Account ditemukan. Pastikan Instagram Business terhubung ke Facebook Page.");
+        } else {
+          toast.success(`Ditemukan ${pages.length} akun Instagram`);
+          setManualSelectedPageId(pages[0]?.id || "");
+        }
       } else {
-        toast.success(`Ditemukan ${pages.length} halaman`);
-        setManualSelectedPageId(pages[0]?.id || "");
+        // Facebook: existing logic
+        const accountsResponse = await fetch(
+          `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,category,access_token&access_token=${manualToken.trim()}`
+        );
+        const accountsData = await accountsResponse.json();
+        if (accountsData.error) {
+          toast.error(`Invalid token: ${accountsData.error.message}`);
+          setManualPages([]);
+          return;
+        }
+        let pages = (accountsData.data || []).filter(
+          (p: { category?: string }) => !p.category?.toLowerCase().includes("instagram")
+        );
+
+        // If no pages, try business pages
+        if (pages.length === 0) {
+          const bizResponse = await fetch(
+            `https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${manualToken.trim()}`
+          );
+          const bizData = await bizResponse.json();
+          if (bizData.data && bizData.data.length > 0) {
+            for (const biz of bizData.data) {
+              const bizPagesResponse = await fetch(
+                `https://graph.facebook.com/v21.0/${biz.id}/owned_pages?fields=id,name,category,access_token&access_token=${manualToken.trim()}`
+              );
+              const bizPagesData = await bizPagesResponse.json();
+              if (bizPagesData.data) {
+                const bizPages = bizPagesData.data.filter(
+                  (p: { category?: string }) => !p.category?.toLowerCase().includes("instagram")
+                );
+                pages = [...pages, ...bizPages];
+              }
+            }
+          }
+        }
+
+        setManualPages(pages);
+        if (pages.length === 0) {
+          toast.error("Tidak ada Facebook Page ditemukan. Pastikan kamu adalah Admin dari Page tersebut.");
+        } else {
+          toast.success(`Ditemukan ${pages.length} halaman`);
+          setManualSelectedPageId(pages[0]?.id || "");
+        }
       }
     } catch {
       toast.error("Gagal mengambil halaman. Periksa token kamu.");
@@ -971,28 +1024,52 @@ function SettingsTab({ clientId }: { clientId: string }) {
     const selectedPage = manualPages.find((p) => p.id === manualSelectedPageId);
     if (!selectedPage) return;
 
-    const newIntegrations: Partial<Record<SocialPlatform, SocialConnection>> = {
-      ...socialIntegrationsRef.current,
-      Facebook: {
-        connected: true,
-        accountName: selectedPage.name,
-        accountId: selectedPage.id,
-        connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        accessToken: manualToken.trim(),
-        tokenExpiresIn: 0,
-        pages: [{ id: selectedPage.id, name: selectedPage.name, access_token: manualToken.trim(), category: selectedPage.category }],
-        selectedBusinessId: "",
-        selectedBusinessName: "",
-        selectedPageId: selectedPage.id,
-        selectedPageName: selectedPage.name,
-      },
-    };
-    setSocialIntegrations(newIntegrations);
-    socialIntegrationsRef.current = newIntegrations;
-    actions.updateClient(clientId, { socialIntegrations: newIntegrations });
-    forceUpdate();
+    if (manualTokenPlatform === "Instagram") {
+      const igAccount = selectedPage.instagram_business_account;
+      if (!igAccount) {
+        toast.error("Instagram Business Account tidak ditemukan di halaman ini");
+        return;
+      }
+      const newIntegrations: Partial<Record<SocialPlatform, SocialConnection>> = {
+        ...socialIntegrationsRef.current,
+        Instagram: {
+          connected: true,
+          accountName: igAccount.name || selectedPage.name,
+          accountId: igAccount.id,
+          connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          accessToken: manualToken.trim(),
+          tokenExpiresIn: 0,
+        },
+      };
+      setSocialIntegrations(newIntegrations);
+      socialIntegrationsRef.current = newIntegrations;
+      actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+      forceUpdate();
+      toast.success(`Instagram connected to "${igAccount.name || selectedPage.name}" successfully!`);
+    } else {
+      const newIntegrations: Partial<Record<SocialPlatform, SocialConnection>> = {
+        ...socialIntegrationsRef.current,
+        Facebook: {
+          connected: true,
+          accountName: selectedPage.name,
+          accountId: selectedPage.id,
+          connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          accessToken: manualToken.trim(),
+          tokenExpiresIn: 0,
+          pages: [{ id: selectedPage.id, name: selectedPage.name, access_token: manualToken.trim(), category: selectedPage.category }],
+          selectedBusinessId: "",
+          selectedBusinessName: "",
+          selectedPageId: selectedPage.id,
+          selectedPageName: selectedPage.name,
+        },
+      };
+      setSocialIntegrations(newIntegrations);
+      socialIntegrationsRef.current = newIntegrations;
+      actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+      forceUpdate();
+      toast.success(`Facebook connected to "${selectedPage.name}" successfully!`);
+    }
 
-    toast.success(`Facebook connected to "${selectedPage.name}" successfully!`);
     setManualTokenOpen(false);
     setManualToken("");
     setManualPages([]);
@@ -1090,7 +1167,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
               selectedPageName={socialIntegrations[platform]?.selectedPageName}
               onConnect={() => handleConnect(platform)}
               onDisconnect={() => handleDisconnect(platform)}
-              onManualConnect={platform === "Facebook" ? () => setManualTokenOpen(true) : undefined}
+              onManualConnect={(platform === "Facebook" || platform === "Instagram") ? () => {
+                setManualTokenPlatform(platform as "Facebook" | "Instagram");
+                setManualTokenOpen(true);
+              } : undefined}
             />
           ))}
         </div>
@@ -1202,9 +1282,9 @@ function SettingsTab({ clientId }: { clientId: string }) {
       <Dialog open={manualTokenOpen} onOpenChange={setManualTokenOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Connect Facebook Page</DialogTitle>
+            <DialogTitle>Connect {manualTokenPlatform} Page</DialogTitle>
             <DialogDescription>
-              Ikuti langkah berikut untuk menghubungkan Facebook Page {client.name}.
+              Ikuti langkah berikut untuk menghubungkan {manualTokenPlatform} {client.name}.
             </DialogDescription>
           </DialogHeader>
 
@@ -1220,7 +1300,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               </p>
               <ol className="list-decimal list-inside space-y-1 text-xs text-muted-foreground">
                 <li>Buka <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">developers.facebook.com</a></li>
-                <li>Login dengan akun Facebook yang mengelola Page kamu</li>
+                <li>Login dengan akun Facebook yang mengelola {manualTokenPlatform} kamu</li>
                 <li>Klik tombol <strong>&quot;Get Started&quot;</strong> atau <strong>&quot;Mulai&quot;</strong></li>
                 <li>Pilih role: <strong>&quot;Developer&quot;</strong> atau <strong>&quot;Pengembang&quot;</strong></li>
                 <li>Isi nama app (boleh sembarang, misal: &quot;SocmedToken&quot;)</li>
@@ -1233,10 +1313,10 @@ function SettingsTab({ clientId }: { clientId: string }) {
             <div className="rounded-lg border p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span>
-                <h4 className="font-semibold">Generate Page Access Token</h4>
+                <h4 className="font-semibold">Generate {manualTokenPlatform === "Instagram" ? "Instagram" : "Page"} Access Token</h4>
               </div>
               <p className="text-muted-foreground text-xs mb-2">
-                Token ini digunakan untuk mengakses Facebook Page kamu.
+                Token ini digunakan untuk mengakses {manualTokenPlatform} kamu.
               </p>
               <ol className="list-decimal list-inside space-y-1 text-xs text-muted-foreground">
                 <li>Buka <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">Graph API Explorer</a></li>
@@ -1244,16 +1324,33 @@ function SettingsTab({ clientId }: { clientId: string }) {
                 <li>Klik tombol <strong>&quot;Generate Access Token&quot;</strong></li>
                 <li>Muncul jendela permissions, centang:
                   <div className="ml-4 mt-1 space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
-                      <code className="bg-muted px-1 rounded text-[10px]">pages_show_list</code>
-                      <span className="text-muted-foreground">— melihat daftar halaman</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
-                      <code className="bg-muted px-1 rounded text-[10px]">pages_manage_posts</code>
-                      <span className="text-muted-foreground">— mengelola postingan</span>
-                    </div>
+                    {manualTokenPlatform === "Instagram" ? (
+                      <>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">instagram_basic</code>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">instagram_content_publish</code>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">pages_show_list</code>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">pages_show_list</code>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">pages_manage_posts</code>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </li>
                 <li>Klik <strong>&quot;Generate Access Token&quot;</strong> lagi</li>
@@ -1271,7 +1368,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               </div>
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label className="text-xs">Page Access Token</Label>
+                  <Label className="text-xs">{manualTokenPlatform} Access Token</Label>
                   <textarea
                     value={manualToken}
                     onChange={(e) => setManualToken(e.target.value)}
@@ -1286,22 +1383,24 @@ function SettingsTab({ clientId }: { clientId: string }) {
                   variant="outline"
                   size="sm"
                 >
-                  {manualFetching ? "Mengambil daftar halaman..." : "Ambil Daftar Halaman"}
+                  {manualFetching ? "Mengambil daftar akun..." : "Ambil Daftar Akun"}
                 </Button>
                 {manualPages.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="text-xs">Pilih Halaman</Label>
+                    <Label className="text-xs">Pilih {manualTokenPlatform === "Instagram" ? "Akun Instagram" : "Halaman"}</Label>
                     <Select
                       value={manualSelectedPageId}
                       onValueChange={setManualSelectedPageId}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih halaman..." />
+                        <SelectValue placeholder={`Pilih ${manualTokenPlatform === "Instagram" ? "akun" : "halaman"}...`} />
                       </SelectTrigger>
                       <SelectContent>
                         {manualPages.map((page) => (
                           <SelectItem key={page.id} value={page.id}>
-                            {page.name}
+                            {manualTokenPlatform === "Instagram" && page.instagram_business_account
+                              ? `${page.instagram_business_account.name} (${page.name})`
+                              : page.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1317,11 +1416,15 @@ function SettingsTab({ clientId }: { clientId: string }) {
               <div className="mt-2 space-y-2 text-xs text-muted-foreground">
                 <div>
                   <p className="font-medium text-foreground">Token tidak bisa generate?</p>
-                  <p>Pastikan kamu sudah login ke Graph API Explorer dengan akun yang sama dengan yang mengelola Facebook Page.</p>
+                  <p>Pastikan kamu sudah login ke Graph API Explorer dengan akun yang sama dengan yang mengelola {manualTokenPlatform}.</p>
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Tidak ada halaman muncul?</p>
-                  <p>Pastikan kamu adalah Admin dari Facebook Page yang ingin dihubungkan.</p>
+                  <p className="font-medium text-foreground">Tidak ada {manualTokenPlatform === "Instagram" ? "akun" : "halaman"} muncul?</p>
+                  {manualTokenPlatform === "Instagram" ? (
+                    <p>Pastikan Instagram Business terhubung ke Facebook Page di Facebook Settings → Instagram.</p>
+                  ) : (
+                    <p>Pastikan kamu adalah Admin dari Facebook Page yang ingin dihubungkan.</p>
+                  )}
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Token expired?</p>
