@@ -915,27 +915,51 @@ function SettingsTab({ clientId }: { clientId: string }) {
     }
     setManualFetching(true);
     try {
-      const response = await fetch(
+      // Step 1: Try /me/accounts first
+      const accountsResponse = await fetch(
         `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,category,access_token&access_token=${manualToken.trim()}`
       );
-      const data = await response.json();
-      if (data.error) {
-        toast.error(`Invalid token: ${data.error.message}`);
+      const accountsData = await accountsResponse.json();
+      if (accountsData.error) {
+        toast.error(`Invalid token: ${accountsData.error.message}`);
         setManualPages([]);
         return;
       }
-      const pages = (data.data || []).filter(
+      let pages = (accountsData.data || []).filter(
         (p: { category?: string }) => !p.category?.toLowerCase().includes("instagram")
       );
+
+      // Step 2: If no pages, try business pages
+      if (pages.length === 0) {
+        const bizResponse = await fetch(
+          `https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${manualToken.trim()}`
+        );
+        const bizData = await bizResponse.json();
+        if (bizData.data && bizData.data.length > 0) {
+          for (const biz of bizData.data) {
+            const bizPagesResponse = await fetch(
+              `https://graph.facebook.com/v21.0/${biz.id}/owned_pages?fields=id,name,category,access_token&access_token=${manualToken.trim()}`
+            );
+            const bizPagesData = await bizPagesResponse.json();
+            if (bizPagesData.data) {
+              const bizPages = bizPagesData.data.filter(
+                (p: { category?: string }) => !p.category?.toLowerCase().includes("instagram")
+              );
+              pages = [...pages, ...bizPages];
+            }
+          }
+        }
+      }
+
       setManualPages(pages);
       if (pages.length === 0) {
-        toast.error("No Facebook Pages found with this token");
+        toast.error("Tidak ada Facebook Page ditemukan. Pastikan kamu adalah Admin dari Page tersebut.");
       } else {
-        toast.success(`Found ${pages.length} page(s)`);
+        toast.success(`Ditemukan ${pages.length} halaman`);
         setManualSelectedPageId(pages[0]?.id || "");
       }
     } catch {
-      toast.error("Failed to fetch pages. Check your token.");
+      toast.error("Gagal mengambil halaman. Periksa token kamu.");
       setManualPages([]);
     } finally {
       setManualFetching(false);
