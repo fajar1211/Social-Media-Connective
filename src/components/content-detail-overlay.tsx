@@ -250,7 +250,7 @@ export function ContentDetailOverlay({
         return;
       }
 
-      const page = pages[0];
+      const page = pages[0]!;
       const unixTimestamp = Math.floor(scheduledDateTime.getTime() / 1000);
       const message = (item.body || item.caption || "").trim();
 
@@ -283,20 +283,37 @@ export function ContentDetailOverlay({
         setScheduling(false);
       }
     } else if (canPublish) {
-      const page = pages[0];
+      const page = pages[0]!;
       const message = (item.body || item.caption || "").trim();
+      const hasImage = item.media && item.media.length > 0 && item.media[0];
 
       setScheduling(true);
       try {
-        const response = await fetch("/api/facebook/post", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pageId: page.id,
-            pageAccessToken: page.access_token,
-            message,
-          }),
-        });
+        let response;
+        if (hasImage) {
+          // Use photo endpoint for image posts
+          response = await fetch("/api/facebook/photo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageId: page.id,
+              pageAccessToken: page.access_token,
+              message,
+              imageUrl: item.media![0],
+            }),
+          });
+        } else {
+          // Use text post endpoint
+          response = await fetch("/api/facebook/post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageId: page.id,
+              pageAccessToken: page.access_token,
+              message,
+            }),
+          });
+        }
         const data = await response.json();
         if (data.success) {
           actions.update(item.id, {

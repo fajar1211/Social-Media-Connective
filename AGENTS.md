@@ -60,6 +60,18 @@ Invoke-RestMethod -Uri "http://localhost:8000/health"
 
 # AI generate
 Invoke-RestMethod -Uri "http://localhost:8000/ai/generate" -Method POST -ContentType "application/json" -Body '{"topic":"...","platform":"Instagram"}'
+
+# Validate a Facebook token
+Invoke-RestMethod -Uri "http://localhost:8000/check-token" -Method POST -ContentType "application/json" -Body '{"page_access_token":"..."}'
+
+# Exchange short-lived token for long-lived
+Invoke-RestMethod -Uri "http://localhost:8000/exchange-token" -Method POST -ContentType "application/json" -Body '{"short_token":"..."}'
+
+# Get page access token from user token
+Invoke-RestMethod -Uri "http://localhost:8000/get-page-token" -Method POST -ContentType "application/json" -Body '{"user_token":"...","page_id":"..."}'
+
+# Check client's Facebook token status
+Invoke-RestMethod -Uri "http://localhost:8000/client-token-status/S0100"
 ```
 
 ## Common Issues
@@ -69,6 +81,8 @@ Invoke-RestMethod -Uri "http://localhost:8000/ai/generate" -Method POST -Content
 4. **Content not showing**: Check clientId filter
 5. **AI generation fails**: Check Gemini API key in .env
 6. **Agent not publishing**: Check Facebook token is valid + page connected
+7. **Publish fails with "Invalid token"**: Token may have expired - reconnect Facebook
+8. **Photo posts failing**: Ensure image URL is publicly accessible
 
 ## File Locations
 
@@ -98,6 +112,16 @@ Invoke-RestMethod -Uri "http://localhost:8000/ai/generate" -Method POST -Content
 4. Database migration for agent_status + publish_history
 5. Tested: health check OK, AI generate OK
 6. Pushed to GitHub (commit `eb1f369`)
+
+## What's Been Done (Session 5 September 2026 - Facebook Publishing Fix)
+1. Fixed Facebook OAuth callback to exchange user token → page access token
+2. Added token validation in publisher.py before every publish
+3. Added `/exchange-token` and `/get-page-token` endpoints to agent
+4. Added `/client-token-status/{client_id}` endpoint for token health check
+5. Fixed `handleApprove` in content-detail-overlay to use photo endpoint for image posts
+6. Fixed page token storage in frontend (uses page.access_token, not user token)
+7. Fixed auto-connect flow to use page access token
+8. TypeScript errors fixed in modified files
 
 ## What Needs To Be Done Next
 1. Connect Facebook to a client in dashboard

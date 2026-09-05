@@ -1,5 +1,105 @@
 import httpx
-from config import FB_GRAPH_BASE
+import logging
+from config import FB_GRAPH_BASE, FB_APP_ID, FB_APP_SECRET
+
+logger = logging.getLogger("publisher")
+
+
+async def validate_facebook_token(page_access_token: str) -> dict:
+    """Validate a Facebook access token and return its info.
+
+    Returns: {"valid": bool, "expires_in": int, "scopes": list[str], "error": str}
+    """
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(
+            f"{FB_GRAPH_BASE}/debug_token",
+            params={
+                "input_token": page_access_token,
+                "access_token": f"{FB_APP_ID}|{FB_APP_SECRET}",
+            },
+        )
+        data = resp.json()
+
+    if "data" in data:
+        token_data = data["data"]
+        return {
+            "valid": token_data.get("is_valid", False),
+            "expires_in": token_data.get("expires_at", 0),
+            "scopes": token_data.get("scopes", []),
+            "error": "",
+        }
+    else:
+        error = data.get("error", {})
+        return {
+            "valid": False,
+            "expires_in": 0,
+            "scopes": [],
+            "error": error.get("message", str(data)),
+        }
+
+
+async def exchange_for_long_lived_token(short_token: str) -> dict:
+    """Exchange a short-lived user token for a long-lived user token.
+
+    Returns: {"success": bool, "access_token": str, "expires_in": int, "error": str}
+    """
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(
+            f"{FB_GRAPH_BASE}/oauth/access_token",
+            params={
+                "grant_type": "fb_exchange_token",
+                "client_id": FB_APP_ID,
+                "client_secret": FB_APP_SECRET,
+                "fb_exchange_token": short_token,
+            },
+        )
+        data = resp.json()
+
+    if "access_token" in data:
+        return {
+            "success": True,
+            "access_token": data["access_token"],
+            "expires_in": data.get("expires_in", 0),
+            "error": "",
+        }
+    else:
+        error = data.get("error", {})
+        return {
+            "success": False,
+            "access_token": "",
+            "expires_in": 0,
+            "error": error.get("message", str(data)),
+        }
+
+
+async def get_page_access_token(user_token: str, page_id: str) -> dict:
+    """Get a page access token from a user token.
+
+    Returns: {"success": bool, "page_access_token": str, "error": str}
+    """
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(
+            f"{FB_GRAPH_BASE}/{page_id}",
+            params={
+                "fields": "access_token",
+                "access_token": user_token,
+            },
+        )
+        data = resp.json()
+
+    if "access_token" in data:
+        return {
+            "success": True,
+            "page_access_token": data["access_token"],
+            "error": "",
+        }
+    else:
+        error = data.get("error", {})
+        return {
+            "success": False,
+            "page_access_token": "",
+            "error": error.get("message", str(data)),
+        }
 
 
 async def publish_facebook_post(page_id: str, page_access_token: str, message: str, link: str = "") -> dict:
@@ -7,6 +107,15 @@ async def publish_facebook_post(page_id: str, page_access_token: str, message: s
 
     Returns: {"success": bool, "post_id": str, "error": str}
     """
+    # Validate token first
+    validation = await validate_facebook_token(page_access_token)
+    if not validation["valid"]:
+        return {
+            "success": False,
+            "post_id": "",
+            "error": f"Invalid or expired token: {validation['error'] or 'Token validation failed'}",
+        }
+
     payload = {"message": message, "access_token": page_access_token}
     if link:
         payload["link"] = link
@@ -34,6 +143,15 @@ async def publish_facebook_photo(page_id: str, page_access_token: str, image_url
 
     Returns: {"success": bool, "post_id": str, "error": str}
     """
+    # Validate token first
+    validation = await validate_facebook_token(page_access_token)
+    if not validation["valid"]:
+        return {
+            "success": False,
+            "post_id": "",
+            "error": f"Invalid or expired token: {validation['error'] or 'Token validation failed'}",
+        }
+
     payload = {
         "url": image_url,
         "access_token": page_access_token,
@@ -70,6 +188,16 @@ async def publish_facebook_scheduled(
 
     Returns: {"success": bool, "post_id": str, "scheduled_publish_time": int, "error": str}
     """
+    # Validate token first
+    validation = await validate_facebook_token(page_access_token)
+    if not validation["valid"]:
+        return {
+            "success": False,
+            "post_id": "",
+            "scheduled_publish_time": 0,
+            "error": f"Invalid or expired token: {validation['error'] or 'Token validation failed'}",
+        }
+
     payload = {
         "message": message,
         "published": "false",
@@ -210,26 +338,4 @@ async def check_facebook_token(page_access_token: str) -> dict:
 
     Returns: {"valid": bool, "expires_in": int, "scopes": list[str], "error": str}
     """
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(
-            f"{FB_GRAPH_BASE}/debug_token",
-            params={"input_token": page_access_token, "access_token": page_access_token},
-        )
-        data = resp.json()
-
-    if "data" in data:
-        token_data = data["data"]
-        return {
-            "valid": token_data.get("is_valid", False),
-            "expires_in": token_data.get("expires_at", 0),
-            "scopes": token_data.get("scopes", []),
-            "error": "",
-        }
-    else:
-        error = data.get("error", {})
-        return {
-            "valid": False,
-            "expires_in": 0,
-            "scopes": [],
-            "error": error.get("message", str(data)),
-        }
+    return await validate_facebook_token(page_access_token)

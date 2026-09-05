@@ -17,7 +17,7 @@ from supabase_client import (
     insert_publish_history,
     get_publish_history,
 )
-from publisher import check_facebook_token
+from publisher import check_facebook_token, validate_facebook_token, exchange_for_long_lived_token, get_page_access_token
 
 logging.basicConfig(
     level=logging.INFO,
@@ -145,6 +145,58 @@ class TokenCheckRequest(BaseModel):
 async def check_token(req: TokenCheckRequest):
     result = await check_facebook_token(req.page_access_token)
     return result
+
+
+class TokenExchangeRequest(BaseModel):
+    short_token: str
+
+
+@app.post("/exchange-token")
+async def exchange_token(req: TokenExchangeRequest):
+    """Exchange a short-lived user token for a long-lived user token."""
+    result = await exchange_for_long_lived_token(req.short_token)
+    return result
+
+
+class PageTokenRequest(BaseModel):
+    user_token: str
+    page_id: str
+
+
+@app.post("/get-page-token")
+async def get_page_token(req: PageTokenRequest):
+    """Get a page access token from a user token and page ID."""
+    result = await get_page_access_token(req.user_token, req.page_id)
+    return result
+
+
+@app.get("/client-token-status/{client_id}")
+async def client_token_status(client_id: str):
+    """Check the token status for a client's Facebook integration."""
+    client = await get_client(client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    social_ints = client.get("social_integrations", {})
+    fb_integration = social_ints.get("Facebook", {})
+
+    if not fb_integration or not fb_integration.get("connected"):
+        return {"connected": False, "error": "Facebook not connected"}
+
+    token = fb_integration.get("accessToken", "")
+    if not token:
+        return {"connected": True, "valid": False, "error": "No access token found"}
+
+    validation = await validate_facebook_token(token)
+    return {
+        "connected": True,
+        "valid": validation["valid"],
+        "expires_in": validation["expires_in"],
+        "scopes": validation["scopes"],
+        "error": validation["error"],
+        "page_id": fb_integration.get("selectedPageId", ""),
+        "page_name": fb_integration.get("selectedPageName", ""),
+    }
 
 
 # ── History ─────────────────────────────────────────────

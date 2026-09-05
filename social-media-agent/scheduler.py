@@ -64,7 +64,7 @@ async def publish_single_content(content: dict):
     media = content.get("media", [])
     hashtags = content.get("hashtags", [])
 
-    logger.info(f"Processing content {content_id} for {platform}")
+    logger.info(f"Processing content {content_id} for {platform} (client: {client_id})")
 
     await update_content_agent_status(content_id, "publishing")
 
@@ -90,21 +90,27 @@ async def publish_single_content(content: dict):
     if platform == "Facebook":
         page_id, page_token = await _get_page_token(integration)
         if not page_id or not page_token:
-            result = {"success": False, "post_id": "", "error": "No Facebook page token"}
-        elif media and media[0]:
-            result = await publish_facebook_photo(page_id, page_token, media[0], full_caption)
+            result = {"success": False, "post_id": "", "error": "No Facebook page token found. Please reconnect Facebook."}
+            logger.error(f"No page token for client {client_id}")
         else:
-            result = await publish_facebook_post(page_id, page_token, full_caption)
+            logger.info(f"Publishing to Facebook page {page_id}")
+            if media and media[0]:
+                result = await publish_facebook_photo(page_id, page_token, media[0], full_caption)
+            else:
+                result = await publish_facebook_post(page_id, page_token, full_caption)
 
     elif platform == "Instagram":
         ig_id = integration.get("accountId", "")
         token = integration.get("accessToken", "")
         if not ig_id or not token:
-            result = {"success": False, "post_id": "", "error": "No Instagram account token"}
-        elif media and media[0]:
-            result = await publish_instagram_media(ig_id, token, media[0], full_caption)
+            result = {"success": False, "post_id": "", "error": "No Instagram account token found. Please reconnect Instagram."}
+            logger.error(f"No Instagram token for client {client_id}")
         else:
-            result = {"success": False, "post_id": "", "error": "Instagram requires an image"}
+            logger.info(f"Publishing to Instagram account {ig_id}")
+            if media and media[0]:
+                result = await publish_instagram_media(ig_id, token, media[0], full_caption)
+            else:
+                result = {"success": False, "post_id": "", "error": "Instagram requires an image"}
 
     else:
         result = {"success": False, "post_id": "", "error": f"Platform {platform} not yet supported"}

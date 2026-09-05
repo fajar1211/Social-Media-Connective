@@ -456,6 +456,7 @@ function SocialIntegrationCard({
   selectedPageName,
   onConnect,
   onDisconnect,
+  onManualConnect,
 }: {
   platform: SocialPlatform;
   connected: boolean;
@@ -464,6 +465,7 @@ function SocialIntegrationCard({
   selectedPageName?: string | undefined;
   onConnect: () => void;
   onDisconnect: () => void;
+  onManualConnect?: () => void;
 }) {
   const config = PLATFORM_CONFIG[platform];
   const isComingSoon = config.comingSoon === true;
@@ -519,10 +521,18 @@ function SocialIntegrationCard({
               </Button>
             </div>
           ) : (
-            <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
-              <Link2 className="mr-1.5 size-3.5" />
-              Connect
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
+                <Link2 className="mr-1.5 size-3.5" />
+                Connect
+              </Button>
+              {onManualConnect && platform === "Facebook" && (
+                <Button size="sm" variant="outline" onClick={onManualConnect}>
+                  <Settings className="mr-1.5 size-3.5" />
+                  Manual Token
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -547,6 +557,11 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const [selectedPageId, setSelectedPageId] = useState<string>("");
   const [magicToken, setMagicToken] = useState(client?.magicLinkToken || "");
   const [generating, setGenerating] = useState(false);
+  const [manualTokenOpen, setManualTokenOpen] = useState(false);
+  const [manualToken, setManualToken] = useState("");
+  const [manualPages, setManualPages] = useState<Array<{ id: string; name: string; category: string; access_token: string }>>([]);
+  const [manualSelectedPageId, setManualSelectedPageId] = useState("");
+  const [manualFetching, setManualFetching] = useState(false);
 
   useEffect(() => {
     if (client?.socialIntegrations && Object.keys(socialIntegrationsRef.current).length === 0) {
@@ -618,14 +633,17 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
       const processFacebookAuth = (eventData: Record<string, unknown>) => {
         authSuccessful = true;
-        const user = eventData.user as { id: string; name: string };
-        const businesses = (eventData.businesses || []) as Array<{ id: string; name: string; pages?: Array<{ id: string; name: string; category: string; access_token: string }> }>;
-        const pages = (eventData.pages || []) as Array<{ id: string; name: string; category: string; access_token: string }>;
-        const autoConnect = eventData.auto_connect === true;
+        const user = eventData['user'] as { id: string; name: string };
+        const businesses = (eventData['businesses'] || []) as Array<{ id: string; name: string; pages?: Array<{ id: string; name: string; category: string; access_token: string }> }>;
+        const pages = (eventData['pages'] || []) as Array<{ id: string; name: string; category: string; access_token: string }>;
+        const autoConnect = eventData['auto_connect'] === true;
 
         if (autoConnect && businesses.length === 1 && pages.length === 1) {
-          const biz = businesses[0];
-          const page = pages[0];
+          const biz = businesses[0]!;
+          const page = pages[0]!;
+
+          // Use the PAGE access token (not user token)
+          const pageAccessToken = page.access_token || (eventData['access_token'] as string);
 
           const newIntegrations = {
             ...socialIntegrationsRef.current,
@@ -634,8 +652,8 @@ function SettingsTab({ clientId }: { clientId: string }) {
               accountName: user.name,
               accountId: user.id,
               connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-              accessToken: eventData.access_token as string,
-              tokenExpiresIn: eventData.expires_in as number,
+              accessToken: pageAccessToken,
+              tokenExpiresIn: eventData['expires_in'] as number,
               pages: [page],
               selectedBusinessId: biz.id,
               selectedBusinessName: biz.name,
@@ -740,14 +758,14 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
       const processInstagramAuth = (eventData: Record<string, unknown>) => {
         igAuthSuccessful = true;
-        const instagramAccounts = (eventData.instagram_accounts || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string } }>;
-        const pages = (eventData.pages || []) as Array<{ id: string; name: string }>;
-        const user = eventData.user as { id: string; name: string };
+        const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string } }>;
+        const pages = (eventData['pages'] || []) as Array<{ id: string; name: string }>;
+        const user = eventData['user'] as { id: string; name: string };
 
         if (instagramAccounts.length === 1) {
-          const account = instagramAccounts[0];
-          const page = pages.find((p) => p.instagram_business_account);
-          const igAccount = page?.instagram_business_account;
+          const account = instagramAccounts[0]!;
+          const page = pages.find((p) => (p as Record<string, unknown>).instagram_business_account);
+          const igAccount = page ? (page as Record<string, unknown>).instagram_business_account as { id: string; name: string } | undefined : undefined;
 
           const newIntegrations = {
             ...socialIntegrationsRef.current,
@@ -756,8 +774,8 @@ function SettingsTab({ clientId }: { clientId: string }) {
               accountName: igAccount?.name || account.name,
               accountId: igAccount?.id || account.id,
               connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-              accessToken: eventData.access_token as string,
-              tokenExpiresIn: eventData.expires_in as number,
+              accessToken: eventData['access_token'] as string,
+              tokenExpiresIn: eventData['expires_in'] as number,
             },
           };
           setSocialIntegrations(newIntegrations);
@@ -844,14 +862,17 @@ function SettingsTab({ clientId }: { clientId: string }) {
     const selectedBusiness = pendingBusinesses.find((b) => b.id === selectedBusinessId);
     if (!selectedPage) return;
 
-    const newIntegrations = {
+    // Use the PAGE access token (not user token) for publishing
+    const pageAccessToken = selectedPage.access_token || pendingToken.access_token;
+
+    const newIntegrations: Partial<Record<SocialPlatform, SocialConnection>> = {
       ...socialIntegrationsRef.current,
       Facebook: {
         connected: true,
         accountName: pendingUser.name,
         accountId: pendingUser.id,
         connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        accessToken: pendingToken.access_token,
+        accessToken: pageAccessToken,
         tokenExpiresIn: pendingToken.expires_in,
         pages: [selectedPage],
         selectedBusinessId: selectedBusiness?.id || "",
@@ -885,6 +906,73 @@ function SettingsTab({ clientId }: { clientId: string }) {
     actions.updateClient(clientId, { socialIntegrations: newIntegrations });
     forceUpdate();
     toast.success(`${platform} disconnected`);
+  };
+
+  const handleManualFetchPages = async () => {
+    if (!manualToken.trim()) {
+      toast.error("Please enter a Page Access Token");
+      return;
+    }
+    setManualFetching(true);
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,category,access_token&access_token=${manualToken.trim()}`
+      );
+      const data = await response.json();
+      if (data.error) {
+        toast.error(`Invalid token: ${data.error.message}`);
+        setManualPages([]);
+        return;
+      }
+      const pages = (data.data || []).filter(
+        (p: { category?: string }) => !p.category?.toLowerCase().includes("instagram")
+      );
+      setManualPages(pages);
+      if (pages.length === 0) {
+        toast.error("No Facebook Pages found with this token");
+      } else {
+        toast.success(`Found ${pages.length} page(s)`);
+        setManualSelectedPageId(pages[0]?.id || "");
+      }
+    } catch {
+      toast.error("Failed to fetch pages. Check your token.");
+      setManualPages([]);
+    } finally {
+      setManualFetching(false);
+    }
+  };
+
+  const handleManualConnect = () => {
+    if (!manualSelectedPageId || !manualToken) return;
+    const selectedPage = manualPages.find((p) => p.id === manualSelectedPageId);
+    if (!selectedPage) return;
+
+    const newIntegrations: Partial<Record<SocialPlatform, SocialConnection>> = {
+      ...socialIntegrationsRef.current,
+      Facebook: {
+        connected: true,
+        accountName: selectedPage.name,
+        accountId: selectedPage.id,
+        connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        accessToken: manualToken.trim(),
+        tokenExpiresIn: 0,
+        pages: [{ id: selectedPage.id, name: selectedPage.name, access_token: manualToken.trim(), category: selectedPage.category }],
+        selectedBusinessId: "",
+        selectedBusinessName: "",
+        selectedPageId: selectedPage.id,
+        selectedPageName: selectedPage.name,
+      },
+    };
+    setSocialIntegrations(newIntegrations);
+    socialIntegrationsRef.current = newIntegrations;
+    actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+    forceUpdate();
+
+    toast.success(`Facebook connected to "${selectedPage.name}" successfully!`);
+    setManualTokenOpen(false);
+    setManualToken("");
+    setManualPages([]);
+    setManualSelectedPageId("");
   };
 
   const connectedCount = SOCIAL_PLATFORMS.filter(
@@ -978,6 +1066,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               selectedPageName={socialIntegrations[platform]?.selectedPageName}
               onConnect={() => handleConnect(platform)}
               onDisconnect={() => handleDisconnect(platform)}
+              onManualConnect={platform === "Facebook" ? () => setManualTokenOpen(true) : undefined}
             />
           ))}
         </div>
@@ -1078,6 +1167,91 @@ function SettingsTab({ clientId }: { clientId: string }) {
             <Button
               onClick={handleConfirmPageSelection}
               disabled={!selectedBusinessId || !selectedPageId}
+            >
+              Connect
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Token Input Dialog */}
+      <Dialog open={manualTokenOpen} onOpenChange={setManualTokenOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manual Facebook Token</DialogTitle>
+            <DialogDescription>
+              Paste your Page Access Token from Facebook Graph API Explorer.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground mb-1">How to get your token:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Go to <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Graph API Explorer</a></li>
+                <li>Select your App from the dropdown</li>
+                <li>Click &quot;Generate Access Token&quot;</li>
+                <li>Select permissions: <code className="bg-muted px-1 rounded">pages_show_list</code>, <code className="bg-muted px-1 rounded">pages_manage_posts</code></li>
+                <li>Copy the token and paste below</li>
+              </ol>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">Page Access Token</Label>
+              <textarea
+                value={manualToken}
+                onChange={(e) => setManualToken(e.target.value)}
+                placeholder="Paste your Page Access Token here..."
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono h-20 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <Button
+              onClick={handleManualFetchPages}
+              disabled={!manualToken.trim() || manualFetching}
+              className="w-full"
+              variant="outline"
+            >
+              {manualFetching ? "Fetching pages..." : "Fetch Pages"}
+            </Button>
+
+            {manualPages.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm">Select Page</Label>
+                <Select
+                  value={manualSelectedPageId}
+                  onValueChange={setManualSelectedPageId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a page..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {manualPages.map((page) => (
+                      <SelectItem key={page.id} value={page.id}>
+                        {page.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setManualTokenOpen(false);
+                setManualToken("");
+                setManualPages([]);
+                setManualSelectedPageId("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleManualConnect}
+              disabled={!manualSelectedPageId || manualPages.length === 0}
             >
               Connect
             </Button>

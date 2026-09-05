@@ -130,13 +130,23 @@
 9. ✅ Agent tested: health check OK, AI generate OK
 10. ✅ Pushed to GitHub (commit `eb1f369`)
 
+## 📋 Yang Sudah Dikerjakan (5 September 2026 - Facebook Publishing Fix)
+
+11. ✅ Fixed Facebook OAuth callback: exchange user token → page access token
+12. ✅ Added token validation in `publisher.py` before every publish
+13. ✅ Added `/exchange-token`, `/get-page-token`, `/client-token-status` endpoints
+14. ✅ Fixed `handleApprove` to use photo endpoint for image posts
+15. ✅ Fixed page token storage: uses `page.access_token` (not user token)
+16. ✅ Fixed auto-connect flow to use page access token
+17. ✅ TypeScript errors fixed in modified files
+
 ---
 
 ## ⏳ Yang Perlu Dilanjutkan
 
 ### Prioritas 1: Facebook Publishing
-1. **Connect Facebook** ke client di dashboard (Social Integration tab)
-2. **Generate Page Access Token** dari Graph API Explorer
+1. ~~**Connect Facebook** ke client di dashboard~~ ✅ DONE
+2. ~~**Generate Page Access Token** dari Graph API Explorer~~ ✅ DONE (otomatis via OAuth)
 3. **Test publish** via agent: `POST http://localhost:8000/publish/{content_id}`
 4. Fix Terms of Service URL + Data Deletion URL di Facebook Developer Console
 
@@ -180,9 +190,9 @@
 ### AI Agent Service
 | File | Purpose |
 |------|---------|
-| `social-media-agent/main.py` | FastAPI app (7 endpoints) |
+| `social-media-agent/main.py` | FastAPI app (11 endpoints) |
 | `social-media-agent/ai_engine.py` | Gemini AI caption/hashtag generator |
-| `social-media-agent/publisher.py` | Facebook/Instagram Graph API publisher |
+| `social-media-agent/publisher.py` | Facebook/Instagram Graph API publisher + token validation |
 | `social-media-agent/scheduler.py` | APScheduler cron jobs |
 | `social-media-agent/supabase_client.py` | Supabase queries |
 | `social-media-agent/config.py` | Environment variables |

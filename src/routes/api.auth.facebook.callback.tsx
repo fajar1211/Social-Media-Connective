@@ -155,14 +155,65 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
             );
           }
 
-          const autoConnect = businesses.length === 1 && allBusinessPages.length === 1;
+          // Exchange each page's short-lived token for a long-lived page access token
+          const longLivedPages: Array<{
+            id: string;
+            name: string;
+            category: string;
+            access_token: string;
+          }> = [];
+
+          for (const page of allBusinessPages) {
+            try {
+              // Try to get a long-lived page access token
+              const exchangeResponse = await fetch(
+                `https://graph.facebook.com/${GRAPH_API_VERSION}/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&fb_exchange_token=${page.access_token}`
+              );
+              const exchangeData = await exchangeResponse.json();
+
+              if (exchangeData.access_token) {
+                // Now get the page access token using the long-lived user token
+                const pageTokenResponse = await fetch(
+                  `https://graph.facebook.com/${GRAPH_API_VERSION}/${page.id}?fields=access_token&access_token=${exchangeData.access_token}`
+                );
+                const pageTokenData = await pageTokenResponse.json();
+
+                if (pageTokenData.access_token) {
+                  longLivedPages.push({
+                    id: page.id,
+                    name: page.name,
+                    category: page.category,
+                    access_token: pageTokenData.access_token,
+                  });
+                } else {
+                  // Fallback: use the original page token
+                  longLivedPages.push(page);
+                }
+              } else {
+                // Fallback: use the original page token
+                longLivedPages.push(page);
+              }
+            } catch {
+              // Fallback: use the original page token
+              longLivedPages.push(page);
+            }
+          }
+
+          // Update businesses with long-lived page tokens
+          for (const biz of businesses) {
+            biz.pages = longLivedPages.filter((p) =>
+              biz.pages.some((bp) => bp.id === p.id)
+            );
+          }
+
+          const autoConnect = businesses.length === 1 && longLivedPages.length === 1;
 
           const payload = JSON.stringify({
             type: "facebook-auth-success",
             clientId: clientId,
             user: userData,
             businesses: businesses,
-            pages: allBusinessPages,
+            pages: longLivedPages,
             access_token: accessToken,
             token_type: tokenData.token_type || "bearer",
             expires_in: tokenData.expires_in || 0,
