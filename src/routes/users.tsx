@@ -72,11 +72,11 @@ export const Route = createFileRoute("/users")({
   component: UsersPage,
 });
 
-function RoleBadge({ role }: { role: string }) {
+function RoleBadge({ role, isProtected }: { role: string; isProtected?: boolean }) {
   return (
     <Badge variant={role === "admin" ? "default" : "secondary"} className="gap-1">
       {role === "admin" ? <Shield className="size-3" /> : <User className="size-3" />}
-      {role === "admin" ? "Admin" : "Client"}
+      {role === "admin" ? (isProtected ? "Admin (Protected)" : "Admin") : "Client"}
     </Badge>
   );
 }
@@ -241,7 +241,7 @@ function UsersPage() {
     <>
       <PageHeader
         title="Users"
-        subtitle={`${users.length} user${users.length !== 1 ? "s" : ""} total · ${users.filter((u) => u.role === "admin").length} admin${users.filter((u) => u.role === "admin").length !== 1 ? "s" : ""}`}
+        subtitle={`${users.length} user${users.length !== 1 ? "s" : ""} total · ${users.filter((u) => u.role === "admin").length} admin (protected) · ${users.filter((u) => u.role === "client").length} client${users.filter((u) => u.role === "client").length !== 1 ? "s" : ""}`}
         actions={
           <Button onClick={() => setAdding(true)}>
             <UserPlus className="mr-2 size-4" />
@@ -311,18 +311,23 @@ function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((u) => (
+                {filtered.map((u) => {
+                  const isAdminUser = u.role === "admin";
+                  return (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.email}</TableCell>
                     <TableCell>{u.full_name || "—"}</TableCell>
                     <TableCell>
-                      <RoleBadge role={u.role} />
+                      <RoleBadge role={u.role} isProtected={isAdminUser} />
                     </TableCell>
                     <TableCell>{getClientName(u.client_id)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(u.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
+                      {isAdminUser ? (
+                        <span className="text-xs text-muted-foreground italic">Protected</span>
+                      ) : (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -348,9 +353,11 @@ function UsersPage() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -409,10 +416,10 @@ function UsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="client">Client</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">Admin role is permanent and can only be changed via database.</p>
             </div>
             {newRole === "client" && (
               <div className="space-y-1.5">

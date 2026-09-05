@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
-import { getProfile, createProfile, hasExistingProfiles } from "@/lib/db";
+import { getProfile, createProfile, hasExistingProfiles, hasAdmin } from "@/lib/db";
 import type { User, Session } from "@supabase/supabase-js";
 import type { UserRole } from "@/lib/database.types";
 
@@ -62,10 +62,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fullName: p.full_name,
       });
     } else {
-      // Only create profile if user metadata has role (from signup trigger)
-      // or if this is genuinely the first user
-      const isFirstUser = !(await hasExistingProfiles());
-      const userRole = isFirstUser ? "admin" : "client";
+      // Profile not found — create one
+      // If no admin exists yet, this user becomes admin
+      // If admin already exists, this user is always client
+      const adminExists = await hasAdmin();
+      const userRole = adminExists ? "client" : "admin";
 
       const newProfile = await createProfile({
         id: userId,

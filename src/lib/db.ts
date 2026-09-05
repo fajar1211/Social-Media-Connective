@@ -46,6 +46,16 @@ export async function hasExistingProfiles(): Promise<boolean> {
   return (rows?.length ?? 0) > 0;
 }
 
+export async function hasAdmin(): Promise<boolean> {
+  if (!supabaseConfigured) return false;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("role", "admin");
+  if (error) return true; // assume admin exists to be safe
+  return (data?.length ?? 0) > 0;
+}
+
 export async function createProfile(
   profile: Omit<Profile, "created_at" | "updated_at">
 ): Promise<Profile | null> {
