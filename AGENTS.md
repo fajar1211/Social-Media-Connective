@@ -22,9 +22,9 @@
 7. **Agent runs locally**: Not on Cloudflare (needs cron scheduler)
 
 ## Facebook Login for Business
-- Admin config_id: `1015151248177076` (Connective User)
-- Client: No config_id (standard OAuth)
-- This allows clients to see their own pages, not admin's pages
+- Config ID: `2308260646667688` (Facebook Business Login)
+- App ID: `1109449551768527` (Socmed Connective)
+- Used for both Facebook and Instagram OAuth
 
 ## AI Agent Architecture
 - **Engine**: FastAPI + APScheduler

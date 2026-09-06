@@ -108,10 +108,11 @@
 | **Anon Key** | `sb_publishable_g1Z1qWDQELk9jNUkQrE71A_cZES6Y-n` |
 
 ### Facebook Login for Business
-| Role | config_id |
-|------|-----------|
-| Admin | `1015151248177076` (Connective User) |
-| Client | No config_id (Standard OAuth) |
+| Item | Nilai |
+|------|-------|
+| **App ID** | `1109449551768527` (Socmed Connective) |
+| **Config ID** | `2308260646667688` (Facebook Business Login) |
+| **Used for** | Facebook & Instagram OAuth |
 
 ---
 
