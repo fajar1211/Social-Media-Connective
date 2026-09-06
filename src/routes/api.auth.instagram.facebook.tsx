@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const META_APP_ID = "1109449551768527";
-const REDIRECT_URI = "https://socmed.marketingconnective.com/api/auth/instagram/callback";
+const REDIRECT_URI =
+  "https://socmed.marketingconnective.com/api/auth/instagram/facebook/callback";
 
-export const Route = createFileRoute("/api/auth/instagram")({
+export const Route = createFileRoute("/api/auth/instagram/facebook")({
   server: {
     handlers: {
       GET: async ({ request }) => {
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/api/auth/instagram")({
           client_id: META_APP_ID,
           redirect_uri: REDIRECT_URI,
           response_type: "code",
-          scope: "instagram_basic,instagram_content_publish,pages_show_list",
+          scope: "public_profile,email,business_management,pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish",
           state: clientId,
         });
 

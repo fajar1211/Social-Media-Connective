@@ -455,7 +455,6 @@ function SocialIntegrationCard({
   selectedBusinessName,
   selectedPageName,
   onConnect,
-  onConnectWithFacebook,
   onDisconnect,
   onManualConnect,
 }: {
@@ -465,7 +464,6 @@ function SocialIntegrationCard({
   selectedBusinessName?: string | undefined;
   selectedPageName?: string | undefined;
   onConnect: () => void;
-  onConnectWithFacebook?: () => void;
   onDisconnect: () => void;
   onManualConnect?: () => void;
 }) {
@@ -524,23 +522,10 @@ function SocialIntegrationCard({
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {platform === "Instagram" && onConnectWithFacebook ? (
-                <>
-                  <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
-                    <Link2 className="mr-1.5 size-3.5" />
-                    Login with Instagram
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={onConnectWithFacebook}>
-                    <Link2 className="mr-1.5 size-3.5" />
-                    Login with Facebook
-                  </Button>
-                </>
-              ) : (
-                <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
-                  <Link2 className="mr-1.5 size-3.5" />
-                  Connect
-                </Button>
-              )}
+              <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
+                <Link2 className="mr-1.5 size-3.5" />
+                Connect
+              </Button>
               {onManualConnect && (platform === "Facebook" || platform === "Instagram") && (
                 <Button size="sm" variant="outline" onClick={onManualConnect}>
                   <Settings className="mr-1.5 size-3.5" />
@@ -578,6 +563,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
   const [manualPages, setManualPages] = useState<Array<{ id: string; name: string; category: string; access_token: string; instagram_business_account?: { id: string; name: string } }>>([]);
   const [manualSelectedPageId, setManualSelectedPageId] = useState("");
   const [manualFetching, setManualFetching] = useState(false);
+  const [igLoginDialogOpen, setIgLoginDialogOpen] = useState(false);
 
   useEffect(() => {
     if (client?.socialIntegrations && Object.keys(socialIntegrationsRef.current).length === 0) {
@@ -757,131 +743,136 @@ function SettingsTab({ clientId }: { clientId: string }) {
         }, 4000);
       }
     } else if (platform === "Instagram") {
-      const width = 600;
-      const height = 700;
-      const left = (window.innerWidth - width) / 2;
-      const top = (window.innerHeight - height) / 2;
-
-      const authUrl = `/api/auth/instagram?client_id=${clientId}`;
-
-      const popup = window.open(
-        authUrl,
-        `instagram_oauth_${clientId}`,
-        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
-      );
-
-      let igAuthSuccessful = false;
-
-      const processInstagramAuth = (eventData: Record<string, unknown>) => {
-        igAuthSuccessful = true;
-        const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string } }>;
-        const pages = (eventData['pages'] || []) as Array<{ id: string; name: string }>;
-        const user = eventData['user'] as { id: string; name: string };
-
-        if (instagramAccounts.length === 1) {
-          const account = instagramAccounts[0]!;
-          const page = pages.find((p) => (p as Record<string, unknown>).instagram_business_account);
-          const igAccount = page ? (page as Record<string, unknown>).instagram_business_account as { id: string; name: string } | undefined : undefined;
-
-          const newIntegrations = {
-            ...socialIntegrationsRef.current,
-            Instagram: {
-              connected: true,
-              accountName: igAccount?.name || account.name,
-              accountId: igAccount?.id || account.id,
-              connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-              accessToken: eventData['access_token'] as string,
-              tokenExpiresIn: eventData['expires_in'] as number,
-            },
-          };
-          setSocialIntegrations(newIntegrations);
-          socialIntegrationsRef.current = newIntegrations;
-          actions.updateClient(clientId, { socialIntegrations: newIntegrations });
-          forceUpdate();
-
-          toast.success(`Instagram connected to "${igAccount?.name || account.name}" successfully!`);
-        } else if (instagramAccounts.length > 1) {
-          toast.info(`Found ${instagramAccounts.length} Instagram accounts. Select one.`);
-        } else {
-          toast.error("No Instagram Business accounts found. Please connect an Instagram Business account to a Facebook Page first.");
-        }
-      };
-
-      const handler = (event: MessageEvent) => {
-        if (event.data?.type === "instagram-auth-success" && event.data.clientId === clientId) {
-          processInstagramAuth(event.data);
-          window.removeEventListener("message", handler);
-        } else if (event.data?.type === "instagram-auth-error" && event.data.clientId === clientId) {
-          toast.error(`Failed to connect Instagram: ${event.data.error}`);
-          window.removeEventListener("message", handler);
-        }
-      };
-
-      window.addEventListener("message", handler);
-
-      const handleStorage = (e: StorageEvent) => {
-        if (e.key === "socmedconnective-ig-auth" && e.newValue) {
-          try {
-            const data = JSON.parse(e.newValue);
-            if (data.type === "instagram-auth-success" && data.clientId === clientId) {
-              processInstagramAuth(data);
-              localStorage.removeItem("socmedconnective-ig-auth");
-            }
-          } catch {}
-        }
-      };
-      window.addEventListener("storage", handleStorage);
-
-      const checkExisting = setInterval(() => {
-        try {
-          const raw = localStorage.getItem("socmedconnective-ig-auth");
-          if (raw) {
-            const data = JSON.parse(raw);
-            if (data.type === "instagram-auth-success" && data.clientId === clientId) {
-              processInstagramAuth(data);
-              localStorage.removeItem("socmedconnective-ig-auth");
-            }
-          }
-        } catch {}
-      }, 300);
-
-      if (popup) {
-        const check = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(check);
-            clearInterval(checkExisting);
-            window.removeEventListener("message", handler);
-            window.removeEventListener("storage", handleStorage);
-
-            if (!igAuthSuccessful) {
-              const newIntegrations = {
-                ...socialIntegrationsRef.current,
-                Instagram: { connected: false },
-              };
-              setSocialIntegrations(newIntegrations);
-              socialIntegrationsRef.current = newIntegrations;
-              actions.updateClient(clientId, { socialIntegrations: newIntegrations });
-              forceUpdate();
-            }
-          }
-        }, 4000);
-      }
+      setIgLoginDialogOpen(true);
     } else {
       toast.info(`${platform} is coming soon!`);
     }
   };
 
-  const handleConnectWithFacebook = () => {
+  const handleConnectInstagramDirect = () => {
+    setIgLoginDialogOpen(false);
     const width = 600;
     const height = 700;
     const left = (window.innerWidth - width) / 2;
     const top = (window.innerHeight - height) / 2;
 
-    const authUrl = `/api/auth/facebook?client_id=${clientId}&role=${profile?.role || 'client'}&connect_instagram=true`;
+    const authUrl = `/api/auth/instagram?client_id=${clientId}`;
 
     const popup = window.open(
       authUrl,
-      `facebook_ig_oauth_${clientId}`,
+      `instagram_oauth_${clientId}`,
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+    );
+
+    let igAuthSuccessful = false;
+
+    const processInstagramAuth = (eventData: Record<string, unknown>) => {
+      igAuthSuccessful = true;
+      const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string } }>;
+      const pages = (eventData['pages'] || []) as Array<{ id: string; name: string }>;
+
+      if (instagramAccounts.length === 1) {
+        const account = instagramAccounts[0]!;
+        const page = pages.find((p) => (p as Record<string, unknown>).instagram_business_account);
+        const igAccount = page ? (page as Record<string, unknown>).instagram_business_account as { id: string; name: string } | undefined : undefined;
+
+        const newIntegrations = {
+          ...socialIntegrationsRef.current,
+          Instagram: {
+            connected: true,
+            accountName: igAccount?.name || account.name,
+            accountId: igAccount?.id || account.id,
+            connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+            accessToken: eventData['access_token'] as string,
+            tokenExpiresIn: eventData['expires_in'] as number,
+          },
+        };
+        setSocialIntegrations(newIntegrations);
+        socialIntegrationsRef.current = newIntegrations;
+        actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+        forceUpdate();
+
+        toast.success(`Instagram connected to "${igAccount?.name || account.name}" successfully!`);
+      } else if (instagramAccounts.length > 1) {
+        toast.info(`Found ${instagramAccounts.length} Instagram accounts. Select one.`);
+      } else {
+        toast.error("No Instagram Business accounts found. Please connect an Instagram Business account to a Facebook Page first.");
+      }
+    };
+
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "instagram-auth-success" && event.data.clientId === clientId) {
+        processInstagramAuth(event.data);
+        window.removeEventListener("message", handler);
+      } else if (event.data?.type === "instagram-auth-error" && event.data.clientId === clientId) {
+        toast.error(`Failed to connect Instagram: ${event.data.error}`);
+        window.removeEventListener("message", handler);
+      }
+    };
+
+    window.addEventListener("message", handler);
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "socmedconnective-ig-auth" && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          if (data.type === "instagram-auth-success" && data.clientId === clientId) {
+            processInstagramAuth(data);
+            localStorage.removeItem("socmedconnective-ig-auth");
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    const checkExisting = setInterval(() => {
+      try {
+        const raw = localStorage.getItem("socmedconnective-ig-auth");
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data.type === "instagram-auth-success" && data.clientId === clientId) {
+            processInstagramAuth(data);
+            localStorage.removeItem("socmedconnective-ig-auth");
+          }
+        }
+      } catch {}
+    }, 300);
+
+    if (popup) {
+      const check = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(check);
+          clearInterval(checkExisting);
+          window.removeEventListener("message", handler);
+          window.removeEventListener("storage", handleStorage);
+
+          if (!igAuthSuccessful) {
+            const newIntegrations = {
+              ...socialIntegrationsRef.current,
+              Instagram: { connected: false },
+            };
+            setSocialIntegrations(newIntegrations);
+            socialIntegrationsRef.current = newIntegrations;
+            actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+            forceUpdate();
+          }
+        }
+      }, 4000);
+    }
+  };
+
+  const handleConnectInstagramViaFacebook = () => {
+    setIgLoginDialogOpen(false);
+    const width = 600;
+    const height = 700;
+    const left = (window.innerWidth - width) / 2;
+    const top = (window.innerHeight - height) / 2;
+
+    const authUrl = `/api/auth/instagram/facebook?client_id=${clientId}`;
+
+    const popup = window.open(
+      authUrl,
+      `instagram_fb_oauth_${clientId}`,
       `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
     );
 
@@ -1278,7 +1269,6 @@ function SettingsTab({ clientId }: { clientId: string }) {
               selectedBusinessName={socialIntegrations[platform]?.selectedBusinessName}
               selectedPageName={socialIntegrations[platform]?.selectedPageName}
               onConnect={() => handleConnect(platform)}
-              onConnectWithFacebook={platform === "Instagram" ? handleConnectWithFacebook : undefined}
               onDisconnect={() => handleDisconnect(platform)}
               onManualConnect={(platform === "Facebook" || platform === "Instagram") ? () => {
                 setManualTokenPlatform(platform as "Facebook" | "Instagram");
@@ -1587,6 +1577,60 @@ function SettingsTab({ clientId }: { clientId: string }) {
               disabled={!manualSelectedPageId || manualPages.length === 0}
             >
               Connect
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Instagram Login Dialog - 2 Options */}
+      <Dialog open={igLoginDialogOpen} onOpenChange={setIgLoginDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Connect Instagram</DialogTitle>
+            <DialogDescription>
+              Choose how you want to connect Instagram for {client.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <button
+              onClick={handleConnectInstagramDirect}
+              className="w-full rounded-xl border border-dashed p-5 text-left transition-all hover:border-primary/50 hover:bg-primary/5"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400">
+                  <svg className="size-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">Login with Instagram</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Connect directly with your Instagram account</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={handleConnectInstagramViaFacebook}
+              className="w-full rounded-xl border border-dashed p-5 text-left transition-all hover:border-primary/50 hover:bg-primary/5"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-[#1877F2]">
+                  <svg className="size-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">Login with Facebook</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Connect via Facebook Business & select Instagram account</p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={() => setIgLoginDialogOpen(false)}>
+              Cancel
             </Button>
           </div>
         </DialogContent>
