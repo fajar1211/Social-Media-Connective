@@ -27,8 +27,6 @@ export const Route = createFileRoute("/api/auth/facebook")({
           state: clientId,
         });
 
-        params.set("config_id", "1015151248177076");
-
         return new Response(null, {
           status: 302,
           headers: {
