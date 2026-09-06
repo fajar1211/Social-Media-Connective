@@ -18,6 +18,8 @@ export const Route = createFileRoute("/api/auth/instagram")({
           state: clientId,
         });
 
+        params.set("config_id", "2308260646667688");
+
         return new Response(null, {
           status: 302,
           headers: {
