@@ -522,20 +522,15 @@ function SocialIntegrationCard({
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
-                <Link2 className="mr-1.5 size-3.5" />
-                Connect
-              </Button>
-              {onManualConnect && platform === "Facebook" && (
-                <Button size="sm" variant="outline" onClick={onManualConnect}>
-                  <Settings className="mr-1.5 size-3.5" />
-                  Manual Token
+              {(platform === "Facebook" || platform === "Instagram") && onManualConnect ? (
+                <Button size="sm" onClick={onManualConnect} className="bg-primary hover:bg-primary/90">
+                  <Link2 className="mr-1.5 size-3.5" />
+                  Connect
                 </Button>
-              )}
-              {onManualConnect && platform === "Instagram" && (
-                <Button size="sm" variant="outline" onClick={onManualConnect}>
-                  <Settings className="mr-1.5 size-3.5" />
-                  Manual Token
+              ) : (
+                <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
+                  <Link2 className="mr-1.5 size-3.5" />
+                  Connect
                 </Button>
               )}
             </div>
