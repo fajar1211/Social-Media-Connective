@@ -455,6 +455,7 @@ function SocialIntegrationCard({
   selectedBusinessName,
   selectedPageName,
   onConnect,
+  onConnectWithFacebook,
   onDisconnect,
   onManualConnect,
 }: {
@@ -464,6 +465,7 @@ function SocialIntegrationCard({
   selectedBusinessName?: string | undefined;
   selectedPageName?: string | undefined;
   onConnect: () => void;
+  onConnectWithFacebook?: () => void;
   onDisconnect: () => void;
   onManualConnect?: () => void;
 }) {
@@ -522,10 +524,23 @@ function SocialIntegrationCard({
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
-                <Link2 className="mr-1.5 size-3.5" />
-                Connect
-              </Button>
+              {platform === "Instagram" && onConnectWithFacebook ? (
+                <>
+                  <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
+                    <Link2 className="mr-1.5 size-3.5" />
+                    Login with Instagram
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={onConnectWithFacebook}>
+                    <Link2 className="mr-1.5 size-3.5" />
+                    Login with Facebook
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" onClick={onConnect} className="bg-primary hover:bg-primary/90">
+                  <Link2 className="mr-1.5 size-3.5" />
+                  Connect
+                </Button>
+              )}
               {onManualConnect && (platform === "Facebook" || platform === "Instagram") && (
                 <Button size="sm" variant="outline" onClick={onManualConnect}>
                   <Settings className="mr-1.5 size-3.5" />
@@ -856,6 +871,109 @@ function SettingsTab({ clientId }: { clientId: string }) {
     }
   };
 
+  const handleConnectWithFacebook = () => {
+    const width = 600;
+    const height = 700;
+    const left = (window.innerWidth - width) / 2;
+    const top = (window.innerHeight - height) / 2;
+
+    const authUrl = `/api/auth/facebook?client_id=${clientId}&role=${profile?.role || 'client'}&connect_instagram=true`;
+
+    const popup = window.open(
+      authUrl,
+      `facebook_ig_oauth_${clientId}`,
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+    );
+
+    let authSuccessful = false;
+
+    const processFacebookForInstagram = (eventData: Record<string, unknown>) => {
+      authSuccessful = true;
+      const pages = (eventData['pages'] || []) as Array<{ id: string; name: string; category: string; access_token: string; instagram_business_account?: { id: string; name: string } }>;
+
+      const igPages = pages.filter((p) => p.instagram_business_account);
+
+      if (igPages.length === 0) {
+        toast.error("No Instagram Business accounts found on your Facebook Pages. Please connect an Instagram Business account to a Facebook Page first.");
+        return;
+      }
+
+      if (igPages.length === 1) {
+        const page = igPages[0]!;
+        const igAccount = page.instagram_business_account!;
+
+        const newIntegrations = {
+          ...socialIntegrationsRef.current,
+          Instagram: {
+            connected: true,
+            accountName: igAccount.name,
+            accountId: igAccount.id,
+            connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+            accessToken: page.access_token,
+            tokenExpiresIn: eventData['expires_in'] as number,
+          },
+        };
+        setSocialIntegrations(newIntegrations);
+        socialIntegrationsRef.current = newIntegrations;
+        actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+        forceUpdate();
+
+        toast.success(`Instagram connected to "${igAccount.name}" via Facebook!`);
+      } else {
+        toast.info(`Found ${igPages.length} Instagram accounts. Please select one.`);
+      }
+    };
+
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "facebook-auth-success" && event.data.clientId === clientId) {
+        processFacebookForInstagram(event.data);
+        window.removeEventListener("message", handler);
+      } else if (event.data?.type === "facebook-auth-error" && event.data.clientId === clientId) {
+        toast.error(`Failed to connect Instagram via Facebook: ${event.data.error}`);
+        window.removeEventListener("message", handler);
+      }
+    };
+
+    window.addEventListener("message", handler);
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "socmedconnective-fb-auth" && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          if (data.type === "facebook-auth-success" && data.clientId === clientId) {
+            processFacebookForInstagram(data);
+            localStorage.removeItem("socmedconnective-fb-auth");
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    const checkExisting = setInterval(() => {
+      try {
+        const raw = localStorage.getItem("socmedconnective-fb-auth");
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data.type === "facebook-auth-success" && data.clientId === clientId) {
+            processFacebookForInstagram(data);
+            localStorage.removeItem("socmedconnective-fb-auth");
+          }
+        }
+      } catch {}
+    }, 300);
+
+    if (popup) {
+      const check = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(check);
+          clearInterval(checkExisting);
+          window.removeEventListener("message", handler);
+          window.removeEventListener("storage", handleStorage);
+        }
+      }, 4000);
+    }
+  };
+
   const handleConfirmPageSelection = () => {
     if (!selectedPageId || !pendingUser || !pendingToken) return;
 
@@ -1160,6 +1278,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               selectedBusinessName={socialIntegrations[platform]?.selectedBusinessName}
               selectedPageName={socialIntegrations[platform]?.selectedPageName}
               onConnect={() => handleConnect(platform)}
+              onConnectWithFacebook={platform === "Instagram" ? handleConnectWithFacebook : undefined}
               onDisconnect={() => handleDisconnect(platform)}
               onManualConnect={(platform === "Facebook" || platform === "Instagram") ? () => {
                 setManualTokenPlatform(platform as "Facebook" | "Instagram");
