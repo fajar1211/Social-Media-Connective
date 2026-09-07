@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const INSTAGRAM_APP_ID = "2421970934879169";
+const META_APP_ID = "1109449551768527";
 const REDIRECT_URI = "https://socmed.marketingconnective.com/api/auth/instagram-direct/callback";
 
 export const Route = createFileRoute("/api/auth/instagram-direct")({
@@ -15,14 +15,14 @@ export const Route = createFileRoute("/api/auth/instagram-direct")({
           response_type: "code",
           scope: "instagram_business_basic,instagram_business_content_publish",
           enable_fb_login: "1",
-          client_id: INSTAGRAM_APP_ID,
+          client_id: META_APP_ID,
         });
 
         const nextUrl = `/oauth/authorize/third_party/?${oauthParams.toString()}`;
 
         const loginUrl = new URL("https://www.instagram.com/accounts/login/");
         loginUrl.searchParams.set("force_authentication", "1");
-        loginUrl.searchParams.set("platform_app_id", INSTAGRAM_APP_ID);
+        loginUrl.searchParams.set("platform_app_id", META_APP_ID);
         loginUrl.searchParams.set("next", nextUrl);
 
         return new Response(null, {

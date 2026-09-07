@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const META_APP_ID = "2421970934879169";
-const META_APP_SECRET = "80572ef976b4d23ff4cc455af54763d1";
+const META_APP_ID = "1109449551768527";
+const META_APP_SECRET = "42bc8519cc029ed1e79062a137d57b75";
 const REDIRECT_URI = "https://socmed.marketingconnective.com/api/auth/instagram-direct/callback";
 const GRAPH_API_VERSION = "v21.0";
 
