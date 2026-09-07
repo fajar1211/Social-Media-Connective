@@ -11,34 +11,41 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdditionalRouteImport } from './routes/additional'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ApprovedRouteImport } from './routes/approved'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ClientsRouteImport } from './routes/clients'
-import { Route as DeletedRouteImport } from './routes/deleted'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DeletedRouteImport } from './routes/deleted'
+import { Route as ExportRouteImport } from './routes/export'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as PlatformsRouteImport } from './routes/platforms'
 import { Route as PreviewDemoRouteImport } from './routes/preview-demo'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubmittedRouteImport } from './routes/submitted'
 import { Route as SuggestedRouteImport } from './routes/suggested'
-import { Route as UsersRouteImport } from './routes/users'
-import { Route as AnalyticsRouteImport } from './routes/analytics'
-import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as TemplatesRouteImport } from './routes/templates'
-import { Route as ExportRouteImport } from './routes/export'
+import { Route as UsersRouteImport } from './routes/users'
+import { Route as ClientTokenRouteImport } from './routes/client.$token'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 import { Route as ContentIndexRouteImport } from './routes/content.index'
 import { Route as ContentCreateRouteImport } from './routes/content.create'
 import { Route as ApiAuthFacebookRouteImport } from './routes/api.auth.facebook'
 import { Route as ApiAuthInstagramRouteImport } from './routes/api.auth.instagram'
+import { Route as ApiAuthInstagramDirectRouteImport } from './routes/api.auth.instagram-direct'
 import { Route as ApiFacebookDeleteRouteImport } from './routes/api.facebook.delete'
 import { Route as ApiFacebookEditRouteImport } from './routes/api.facebook.edit'
 import { Route as ApiFacebookPhotoRouteImport } from './routes/api.facebook.photo'
 import { Route as ApiFacebookPostRouteImport } from './routes/api.facebook.post'
 import { Route as ApiFacebookScheduleRouteImport } from './routes/api.facebook.schedule'
+import { Route as ApiWebhookInstagramRouteImport } from './routes/api.webhook.instagram'
 import { Route as ApiAuthFacebookCallbackRouteImport } from './routes/api.auth.facebook.callback'
+import { Route as ApiAuthInstagramDirectCallbackRouteImport } from './routes/api.auth.instagram-direct.callback'
 import { Route as ApiAuthInstagramCallbackRouteImport } from './routes/api.auth.instagram.callback'
+import { Route as ApiAuthInstagramFacebookRouteImport } from './routes/api.auth.instagram.facebook'
+import { Route as ApiAuthInstagramFacebookCallbackRouteImport } from './routes/api.auth.instagram.facebook.callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -48,6 +55,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdditionalRoute = AdditionalRouteImport.update({
   id: '/additional',
   path: '/additional',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApprovedRoute = ApprovedRouteImport.update({
@@ -60,9 +72,19 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientsRoute = ClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeletedRoute = DeletedRouteImport.update({
@@ -70,9 +92,9 @@ const DeletedRoute = DeletedRouteImport.update({
   path: '/deleted',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const ExportRoute = ExportRouteImport.update({
+  id: '/export',
+  path: '/export',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImportRoute = ImportRouteImport.update({
@@ -90,6 +112,11 @@ const PreviewDemoRoute = PreviewDemoRouteImport.update({
   path: '/preview-demo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -105,29 +132,19 @@ const SuggestedRoute = SuggestedRouteImport.update({
   path: '/suggested',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UsersRoute = UsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnalyticsRoute = AnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TemplatesRoute = TemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ExportRoute = ExportRouteImport.update({
-  id: '/export',
-  path: '/export',
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientTokenRoute = ClientTokenRouteImport.update({
+  id: '/client/$token',
+  path: '/client/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsClientIdRoute = ClientsClientIdRouteImport.update({
@@ -155,6 +172,11 @@ const ApiAuthInstagramRoute = ApiAuthInstagramRouteImport.update({
   path: '/api/auth/instagram',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthInstagramDirectRoute = ApiAuthInstagramDirectRouteImport.update({
+  id: '/api/auth/instagram-direct',
+  path: '/api/auth/instagram-direct',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFacebookDeleteRoute = ApiFacebookDeleteRouteImport.update({
   id: '/api/facebook/delete',
   path: '/api/facebook/delete',
@@ -180,242 +202,311 @@ const ApiFacebookScheduleRoute = ApiFacebookScheduleRouteImport.update({
   path: '/api/facebook/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhookInstagramRoute = ApiWebhookInstagramRouteImport.update({
+  id: '/api/webhook/instagram',
+  path: '/api/webhook/instagram',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthFacebookCallbackRoute = ApiAuthFacebookCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
   getParentRoute: () => ApiAuthFacebookRoute,
 } as any)
+const ApiAuthInstagramDirectCallbackRoute =
+  ApiAuthInstagramDirectCallbackRouteImport.update({
+    id: '/callback',
+    path: '/callback',
+    getParentRoute: () => ApiAuthInstagramDirectRoute,
+  } as any)
 const ApiAuthInstagramCallbackRoute =
   ApiAuthInstagramCallbackRouteImport.update({
     id: '/callback',
     path: '/callback',
     getParentRoute: () => ApiAuthInstagramRoute,
   } as any)
+const ApiAuthInstagramFacebookRoute =
+  ApiAuthInstagramFacebookRouteImport.update({
+    id: '/facebook',
+    path: '/facebook',
+    getParentRoute: () => ApiAuthInstagramRoute,
+  } as any)
+const ApiAuthInstagramFacebookCallbackRoute =
+  ApiAuthInstagramFacebookCallbackRouteImport.update({
+    id: '/callback',
+    path: '/callback',
+    getParentRoute: () => ApiAuthInstagramFacebookRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/additional': typeof AdditionalRoute
+  '/analytics': typeof AnalyticsRoute
   '/approved': typeof ApprovedRoute
   '/auth': typeof AuthRoute
+  '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRouteWithChildren
-  '/deleted': typeof DeletedRoute
   '/dashboard': typeof DashboardRoute
+  '/deleted': typeof DeletedRoute
+  '/export': typeof ExportRoute
   '/import': typeof ImportRoute
   '/platforms': typeof PlatformsRoute
   '/preview-demo': typeof PreviewDemoRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
-  '/users': typeof UsersRoute
-  '/analytics': typeof AnalyticsRoute
-  '/calendar': typeof CalendarRoute
   '/templates': typeof TemplatesRoute
-  '/export': typeof ExportRoute
+  '/users': typeof UsersRoute
+  '/client/$token': typeof ClientTokenRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
   '/api/auth/facebook': typeof ApiAuthFacebookRouteWithChildren
   '/api/auth/instagram': typeof ApiAuthInstagramRouteWithChildren
+  '/api/auth/instagram-direct': typeof ApiAuthInstagramDirectRouteWithChildren
   '/api/facebook/delete': typeof ApiFacebookDeleteRoute
   '/api/facebook/edit': typeof ApiFacebookEditRoute
   '/api/facebook/photo': typeof ApiFacebookPhotoRoute
   '/api/facebook/post': typeof ApiFacebookPostRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
+  '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
   '/api/auth/facebook/callback': typeof ApiAuthFacebookCallbackRoute
+  '/api/auth/instagram-direct/callback': typeof ApiAuthInstagramDirectCallbackRoute
   '/api/auth/instagram/callback': typeof ApiAuthInstagramCallbackRoute
+  '/api/auth/instagram/facebook': typeof ApiAuthInstagramFacebookRouteWithChildren
+  '/api/auth/instagram/facebook/callback': typeof ApiAuthInstagramFacebookCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/additional': typeof AdditionalRoute
+  '/analytics': typeof AnalyticsRoute
   '/approved': typeof ApprovedRoute
   '/auth': typeof AuthRoute
+  '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRouteWithChildren
-  '/deleted': typeof DeletedRoute
   '/dashboard': typeof DashboardRoute
+  '/deleted': typeof DeletedRoute
+  '/export': typeof ExportRoute
   '/import': typeof ImportRoute
   '/platforms': typeof PlatformsRoute
   '/preview-demo': typeof PreviewDemoRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
-  '/users': typeof UsersRoute
-  '/analytics': typeof AnalyticsRoute
-  '/calendar': typeof CalendarRoute
   '/templates': typeof TemplatesRoute
-  '/export': typeof ExportRoute
+  '/users': typeof UsersRoute
+  '/client/$token': typeof ClientTokenRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content': typeof ContentIndexRoute
   '/api/auth/facebook': typeof ApiAuthFacebookRouteWithChildren
   '/api/auth/instagram': typeof ApiAuthInstagramRouteWithChildren
+  '/api/auth/instagram-direct': typeof ApiAuthInstagramDirectRouteWithChildren
   '/api/facebook/delete': typeof ApiFacebookDeleteRoute
   '/api/facebook/edit': typeof ApiFacebookEditRoute
   '/api/facebook/photo': typeof ApiFacebookPhotoRoute
   '/api/facebook/post': typeof ApiFacebookPostRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
+  '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
   '/api/auth/facebook/callback': typeof ApiAuthFacebookCallbackRoute
+  '/api/auth/instagram-direct/callback': typeof ApiAuthInstagramDirectCallbackRoute
   '/api/auth/instagram/callback': typeof ApiAuthInstagramCallbackRoute
+  '/api/auth/instagram/facebook': typeof ApiAuthInstagramFacebookRouteWithChildren
+  '/api/auth/instagram/facebook/callback': typeof ApiAuthInstagramFacebookCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/additional': typeof AdditionalRoute
+  '/analytics': typeof AnalyticsRoute
   '/approved': typeof ApprovedRoute
   '/auth': typeof AuthRoute
+  '/calendar': typeof CalendarRoute
   '/clients': typeof ClientsRouteWithChildren
-  '/deleted': typeof DeletedRoute
   '/dashboard': typeof DashboardRoute
+  '/deleted': typeof DeletedRoute
+  '/export': typeof ExportRoute
   '/import': typeof ImportRoute
   '/platforms': typeof PlatformsRoute
   '/preview-demo': typeof PreviewDemoRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
-  '/users': typeof UsersRoute
-  '/analytics': typeof AnalyticsRoute
-  '/calendar': typeof CalendarRoute
   '/templates': typeof TemplatesRoute
-  '/export': typeof ExportRoute
+  '/users': typeof UsersRoute
+  '/client/$token': typeof ClientTokenRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
   '/api/auth/facebook': typeof ApiAuthFacebookRouteWithChildren
   '/api/auth/instagram': typeof ApiAuthInstagramRouteWithChildren
+  '/api/auth/instagram-direct': typeof ApiAuthInstagramDirectRouteWithChildren
   '/api/facebook/delete': typeof ApiFacebookDeleteRoute
   '/api/facebook/edit': typeof ApiFacebookEditRoute
   '/api/facebook/photo': typeof ApiFacebookPhotoRoute
   '/api/facebook/post': typeof ApiFacebookPostRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
+  '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
   '/api/auth/facebook/callback': typeof ApiAuthFacebookCallbackRoute
+  '/api/auth/instagram-direct/callback': typeof ApiAuthInstagramDirectCallbackRoute
   '/api/auth/instagram/callback': typeof ApiAuthInstagramCallbackRoute
+  '/api/auth/instagram/facebook': typeof ApiAuthInstagramFacebookRouteWithChildren
+  '/api/auth/instagram/facebook/callback': typeof ApiAuthInstagramFacebookCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/additional'
+    | '/analytics'
     | '/approved'
     | '/auth'
+    | '/calendar'
     | '/clients'
-    | '/deleted'
     | '/dashboard'
+    | '/deleted'
+    | '/export'
     | '/import'
     | '/platforms'
     | '/preview-demo'
+    | '/privacy'
     | '/settings'
     | '/submitted'
     | '/suggested'
-    | '/users'
-    | '/analytics'
-    | '/calendar'
     | '/templates'
-    | '/export'
+    | '/users'
+    | '/client/$token'
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
     | '/api/auth/facebook'
     | '/api/auth/instagram'
+    | '/api/auth/instagram-direct'
     | '/api/facebook/delete'
     | '/api/facebook/edit'
     | '/api/facebook/photo'
     | '/api/facebook/post'
     | '/api/facebook/schedule'
+    | '/api/webhook/instagram'
     | '/api/auth/facebook/callback'
+    | '/api/auth/instagram-direct/callback'
     | '/api/auth/instagram/callback'
+    | '/api/auth/instagram/facebook'
+    | '/api/auth/instagram/facebook/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/additional'
+    | '/analytics'
     | '/approved'
     | '/auth'
+    | '/calendar'
     | '/clients'
-    | '/deleted'
     | '/dashboard'
+    | '/deleted'
+    | '/export'
     | '/import'
     | '/platforms'
     | '/preview-demo'
+    | '/privacy'
     | '/settings'
     | '/submitted'
     | '/suggested'
-    | '/users'
-    | '/analytics'
-    | '/calendar'
     | '/templates'
-    | '/export'
+    | '/users'
+    | '/client/$token'
     | '/clients/$clientId'
     | '/content/create'
     | '/content'
     | '/api/auth/facebook'
     | '/api/auth/instagram'
+    | '/api/auth/instagram-direct'
     | '/api/facebook/delete'
     | '/api/facebook/edit'
     | '/api/facebook/photo'
     | '/api/facebook/post'
     | '/api/facebook/schedule'
+    | '/api/webhook/instagram'
     | '/api/auth/facebook/callback'
+    | '/api/auth/instagram-direct/callback'
     | '/api/auth/instagram/callback'
+    | '/api/auth/instagram/facebook'
+    | '/api/auth/instagram/facebook/callback'
   id:
     | '__root__'
     | '/'
     | '/additional'
+    | '/analytics'
     | '/approved'
     | '/auth'
+    | '/calendar'
     | '/clients'
-    | '/deleted'
     | '/dashboard'
+    | '/deleted'
+    | '/export'
     | '/import'
     | '/platforms'
     | '/preview-demo'
+    | '/privacy'
     | '/settings'
     | '/submitted'
     | '/suggested'
-    | '/users'
-    | '/analytics'
-    | '/calendar'
     | '/templates'
-    | '/export'
+    | '/users'
+    | '/client/$token'
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
     | '/api/auth/facebook'
     | '/api/auth/instagram'
+    | '/api/auth/instagram-direct'
     | '/api/facebook/delete'
     | '/api/facebook/edit'
     | '/api/facebook/photo'
     | '/api/facebook/post'
     | '/api/facebook/schedule'
+    | '/api/webhook/instagram'
     | '/api/auth/facebook/callback'
+    | '/api/auth/instagram-direct/callback'
     | '/api/auth/instagram/callback'
+    | '/api/auth/instagram/facebook'
+    | '/api/auth/instagram/facebook/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdditionalRoute: typeof AdditionalRoute
+  AnalyticsRoute: typeof AnalyticsRoute
   ApprovedRoute: typeof ApprovedRoute
   AuthRoute: typeof AuthRoute
+  CalendarRoute: typeof CalendarRoute
   ClientsRoute: typeof ClientsRouteWithChildren
-  DeletedRoute: typeof DeletedRoute
   DashboardRoute: typeof DashboardRoute
+  DeletedRoute: typeof DeletedRoute
+  ExportRoute: typeof ExportRoute
   ImportRoute: typeof ImportRoute
   PlatformsRoute: typeof PlatformsRoute
   PreviewDemoRoute: typeof PreviewDemoRoute
+  PrivacyRoute: typeof PrivacyRoute
   SettingsRoute: typeof SettingsRoute
   SubmittedRoute: typeof SubmittedRoute
   SuggestedRoute: typeof SuggestedRoute
-  UsersRoute: typeof UsersRoute
-  AnalyticsRoute: typeof AnalyticsRoute
-  CalendarRoute: typeof CalendarRoute
   TemplatesRoute: typeof TemplatesRoute
-  ExportRoute: typeof ExportRoute
+  UsersRoute: typeof UsersRoute
+  ClientTokenRoute: typeof ClientTokenRoute
   ContentCreateRoute: typeof ContentCreateRoute
   ContentIndexRoute: typeof ContentIndexRoute
   ApiAuthFacebookRoute: typeof ApiAuthFacebookRouteWithChildren
   ApiAuthInstagramRoute: typeof ApiAuthInstagramRouteWithChildren
+  ApiAuthInstagramDirectRoute: typeof ApiAuthInstagramDirectRouteWithChildren
   ApiFacebookDeleteRoute: typeof ApiFacebookDeleteRoute
   ApiFacebookEditRoute: typeof ApiFacebookEditRoute
   ApiFacebookPhotoRoute: typeof ApiFacebookPhotoRoute
   ApiFacebookPostRoute: typeof ApiFacebookPostRoute
   ApiFacebookScheduleRoute: typeof ApiFacebookScheduleRoute
+  ApiWebhookInstagramRoute: typeof ApiWebhookInstagramRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -434,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdditionalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/approved': {
       id: '/approved'
       path: '/approved'
@@ -448,11 +546,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clients': {
       id: '/clients'
       path: '/clients'
       fullPath: '/clients'
       preLoaderRoute: typeof ClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deleted': {
@@ -462,11 +574,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeletedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+    '/export': {
+      id: '/export'
+      path: '/export'
+      fullPath: '/export'
+      preLoaderRoute: typeof ExportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/import': {
@@ -490,6 +602,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -511,27 +630,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuggestedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/users': {
-      id: '/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof UsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analytics': {
-      id: '/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AnalyticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/templates': {
       id: '/templates'
       path: '/templates'
@@ -539,11 +637,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/export': {
-      id: '/export'
-      path: '/export'
-      fullPath: '/export'
-      preLoaderRoute: typeof ExportRouteImport
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/client/$token': {
+      id: '/client/$token'
+      path: '/client/$token'
+      fullPath: '/client/$token'
+      preLoaderRoute: typeof ClientTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients/$clientId': {
@@ -581,6 +686,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthInstagramRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/instagram-direct': {
+      id: '/api/auth/instagram-direct'
+      path: '/api/auth/instagram-direct'
+      fullPath: '/api/auth/instagram-direct'
+      preLoaderRoute: typeof ApiAuthInstagramDirectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/facebook/delete': {
       id: '/api/facebook/delete'
       path: '/api/facebook/delete'
@@ -616,6 +728,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFacebookScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhook/instagram': {
+      id: '/api/webhook/instagram'
+      path: '/api/webhook/instagram'
+      fullPath: '/api/webhook/instagram'
+      preLoaderRoute: typeof ApiWebhookInstagramRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/facebook/callback': {
       id: '/api/auth/facebook/callback'
       path: '/callback'
@@ -623,12 +742,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthFacebookCallbackRouteImport
       parentRoute: typeof ApiAuthFacebookRoute
     }
+    '/api/auth/instagram-direct/callback': {
+      id: '/api/auth/instagram-direct/callback'
+      path: '/callback'
+      fullPath: '/api/auth/instagram-direct/callback'
+      preLoaderRoute: typeof ApiAuthInstagramDirectCallbackRouteImport
+      parentRoute: typeof ApiAuthInstagramDirectRoute
+    }
     '/api/auth/instagram/callback': {
       id: '/api/auth/instagram/callback'
       path: '/callback'
       fullPath: '/api/auth/instagram/callback'
       preLoaderRoute: typeof ApiAuthInstagramCallbackRouteImport
       parentRoute: typeof ApiAuthInstagramRoute
+    }
+    '/api/auth/instagram/facebook': {
+      id: '/api/auth/instagram/facebook'
+      path: '/facebook'
+      fullPath: '/api/auth/instagram/facebook'
+      preLoaderRoute: typeof ApiAuthInstagramFacebookRouteImport
+      parentRoute: typeof ApiAuthInstagramRoute
+    }
+    '/api/auth/instagram/facebook/callback': {
+      id: '/api/auth/instagram/facebook/callback'
+      path: '/callback'
+      fullPath: '/api/auth/instagram/facebook/callback'
+      preLoaderRoute: typeof ApiAuthInstagramFacebookCallbackRouteImport
+      parentRoute: typeof ApiAuthInstagramFacebookRoute
     }
   }
 }
@@ -656,45 +796,80 @@ const ApiAuthFacebookRouteWithChildren = ApiAuthFacebookRoute._addFileChildren(
   ApiAuthFacebookRouteChildren,
 )
 
+interface ApiAuthInstagramFacebookRouteChildren {
+  ApiAuthInstagramFacebookCallbackRoute: typeof ApiAuthInstagramFacebookCallbackRoute
+}
+
+const ApiAuthInstagramFacebookRouteChildren: ApiAuthInstagramFacebookRouteChildren =
+  {
+    ApiAuthInstagramFacebookCallbackRoute:
+      ApiAuthInstagramFacebookCallbackRoute,
+  }
+
+const ApiAuthInstagramFacebookRouteWithChildren =
+  ApiAuthInstagramFacebookRoute._addFileChildren(
+    ApiAuthInstagramFacebookRouteChildren,
+  )
+
 interface ApiAuthInstagramRouteChildren {
   ApiAuthInstagramCallbackRoute: typeof ApiAuthInstagramCallbackRoute
+  ApiAuthInstagramFacebookRoute: typeof ApiAuthInstagramFacebookRouteWithChildren
 }
 
 const ApiAuthInstagramRouteChildren: ApiAuthInstagramRouteChildren = {
   ApiAuthInstagramCallbackRoute: ApiAuthInstagramCallbackRoute,
+  ApiAuthInstagramFacebookRoute: ApiAuthInstagramFacebookRouteWithChildren,
 }
 
 const ApiAuthInstagramRouteWithChildren =
   ApiAuthInstagramRoute._addFileChildren(ApiAuthInstagramRouteChildren)
 
+interface ApiAuthInstagramDirectRouteChildren {
+  ApiAuthInstagramDirectCallbackRoute: typeof ApiAuthInstagramDirectCallbackRoute
+}
+
+const ApiAuthInstagramDirectRouteChildren: ApiAuthInstagramDirectRouteChildren =
+  {
+    ApiAuthInstagramDirectCallbackRoute: ApiAuthInstagramDirectCallbackRoute,
+  }
+
+const ApiAuthInstagramDirectRouteWithChildren =
+  ApiAuthInstagramDirectRoute._addFileChildren(
+    ApiAuthInstagramDirectRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdditionalRoute: AdditionalRoute,
+  AnalyticsRoute: AnalyticsRoute,
   ApprovedRoute: ApprovedRoute,
   AuthRoute: AuthRoute,
+  CalendarRoute: CalendarRoute,
   ClientsRoute: ClientsRouteWithChildren,
-  DeletedRoute: DeletedRoute,
   DashboardRoute: DashboardRoute,
+  DeletedRoute: DeletedRoute,
+  ExportRoute: ExportRoute,
   ImportRoute: ImportRoute,
   PlatformsRoute: PlatformsRoute,
   PreviewDemoRoute: PreviewDemoRoute,
+  PrivacyRoute: PrivacyRoute,
   SettingsRoute: SettingsRoute,
   SubmittedRoute: SubmittedRoute,
   SuggestedRoute: SuggestedRoute,
-  UsersRoute: UsersRoute,
-  AnalyticsRoute: AnalyticsRoute,
-  CalendarRoute: CalendarRoute,
   TemplatesRoute: TemplatesRoute,
-  ExportRoute: ExportRoute,
+  UsersRoute: UsersRoute,
+  ClientTokenRoute: ClientTokenRoute,
   ContentCreateRoute: ContentCreateRoute,
   ContentIndexRoute: ContentIndexRoute,
   ApiAuthFacebookRoute: ApiAuthFacebookRouteWithChildren,
   ApiAuthInstagramRoute: ApiAuthInstagramRouteWithChildren,
+  ApiAuthInstagramDirectRoute: ApiAuthInstagramDirectRouteWithChildren,
   ApiFacebookDeleteRoute: ApiFacebookDeleteRoute,
   ApiFacebookEditRoute: ApiFacebookEditRoute,
   ApiFacebookPhotoRoute: ApiFacebookPhotoRoute,
   ApiFacebookPostRoute: ApiFacebookPostRoute,
   ApiFacebookScheduleRoute: ApiFacebookScheduleRoute,
+  ApiWebhookInstagramRoute: ApiWebhookInstagramRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

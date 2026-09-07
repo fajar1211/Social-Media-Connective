@@ -141,14 +141,34 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
             (p) => p.instagram_business_account
           );
 
+          // Build pages with business info for frontend hierarchy display
+          const pagesWithBusiness = allBusinessPages.map((page) => {
+            const parentBusiness = businesses.find((biz) =>
+              biz.pages?.some((bp) => bp.id === page.id)
+            );
+            return {
+              ...page,
+              business_id: parentBusiness?.id || "",
+              business_name: parentBusiness?.name || "",
+            };
+          });
+
           const payload = JSON.stringify({
             type: "instagram-auth-success",
             clientId: clientId,
             user: userData,
-            pages: allBusinessPages,
+            businesses: businesses.map((biz) => ({
+              id: biz.id,
+              name: biz.name,
+            })),
+            pages: pagesWithBusiness,
             instagram_accounts: instagramAccounts.map((p) => ({
               id: p.instagram_business_account!.id,
               name: p.instagram_business_account!.name,
+              page_id: p.id,
+              page_name: p.name,
+              business_id: pagesWithBusiness.find((pw) => pw.id === p.id)?.business_id || "",
+              business_name: pagesWithBusiness.find((pw) => pw.id === p.id)?.business_name || "",
             })),
             access_token: accessToken,
             token_type: tokenData.token_type || "bearer",
