@@ -1697,7 +1697,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
       {/* Instagram Login Dialog - 2 Options */}
       <Dialog open={igLoginDialogOpen} onOpenChange={setIgLoginDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Connect Instagram</DialogTitle>
             <DialogDescription>
