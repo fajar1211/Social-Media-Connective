@@ -804,11 +804,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
         actions.updateClient(clientId, { socialIntegrations: newIntegrations });
         forceUpdate();
 
-        toast.success(
-          `Instagram Connected\n` +
-          `Account: ${igAccount.name}\n` +
-          `Page: ${page?.name || "N/A"}`
-        );
+        toast.success(`Instagram connected to "${igAccount.name}" successfully!`);
       } else if (instagramAccounts.length > 1) {
         // Build account list with page info
         const accountsWithPage = instagramAccounts.map((acc) => {
@@ -961,12 +957,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
         actions.updateClient(clientId, { socialIntegrations: newIntegrations });
         forceUpdate();
 
-        toast.success(
-          `Instagram Connected\n` +
-          `Account: ${igAccount.name}\n` +
-          `Business: ${account.business_name || "N/A"}\n` +
-          `Page: ${account.page_name || page?.name || "N/A"}`
-        );
+        toast.success(`Instagram connected to "${igAccount.name}" via Facebook!`);
       } else if (instagramAccounts.length > 1) {
         // Build account list with page and business info for selector
         const accountsWithDetails = instagramAccounts.map((acc) => ({
@@ -1109,12 +1100,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     actions.updateClient(clientId, { socialIntegrations: newIntegrations });
     forceUpdate();
 
-    toast.success(
-          `Instagram Connected\n` +
-          `Account: ${selectedAccount.name}\n` +
-          `Business: ${selectedAccount.businessName || "N/A"}\n` +
-          `Page: ${selectedAccount.pageName || "N/A"}`
-        );
+    toast.success(`Instagram connected to "${selectedAccount.name}" successfully!`);
     setIgAccountSelectorOpen(false);
     setIgPendingAccounts([]);
     setIgSelectedAccountId("");
@@ -1262,11 +1248,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
       socialIntegrationsRef.current = newIntegrations;
       actions.updateClient(clientId, { socialIntegrations: newIntegrations });
       forceUpdate();
-      toast.success(
-          `Instagram Connected\n` +
-          `Account: ${igAccount.name || selectedPage.name}\n` +
-          `Page: ${selectedPage.name}`
-        );
+      toast.success(`Instagram connected to "${igAccount.name || selectedPage.name}" successfully!`);
     } else {
       const newIntegrations: Partial<Record<SocialPlatform, SocialConnection>> = {
         ...socialIntegrationsRef.current,
