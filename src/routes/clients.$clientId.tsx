@@ -793,7 +793,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           ...socialIntegrationsRef.current,
           Instagram: {
             connected: true,
-            accountName: igAccount.name,
+            accountName: igAccount.name || page?.name || "Instagram Account",
             accountId: igAccount.id,
             connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
             accessToken: page?.access_token || accessToken,
@@ -805,7 +805,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
         actions.updateClient(clientId, { socialIntegrations: newIntegrations });
         forceUpdate();
 
-        toast.success(`Instagram connected to "${igAccount.name}" successfully!`);
+        toast.success(`Instagram connected to "${igAccount.name || page?.name}" successfully!`);
       } else if (instagramAccounts.length > 1) {
         // Build account list with page info
         const accountsWithPage = instagramAccounts.map((acc) => {
@@ -942,7 +942,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           ...socialIntegrationsRef.current,
           Instagram: {
             connected: true,
-            accountName: igAccount.name,
+            accountName: igAccount.name || page?.name || "Instagram Account",
             accountId: igAccount.id,
             connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
             accessToken: page?.access_token || accessToken,
@@ -958,7 +958,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
         actions.updateClient(clientId, { socialIntegrations: newIntegrations });
         forceUpdate();
 
-        toast.success(`Instagram connected to "${igAccount.name}" via Facebook!`);
+        toast.success(`Instagram connected to "${igAccount.name || page?.name}" via Facebook!`);
       } else if (instagramAccounts.length > 1) {
         // Build account list with page and business info for selector
         const accountsWithDetails = instagramAccounts.map((acc) => ({
