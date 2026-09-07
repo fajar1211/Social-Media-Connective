@@ -959,17 +959,13 @@ function CreateContent() {
             This is how your post will appear on the platform.
           </p>
 
-          {/* Visible debug info for Instagram preview */}
-          {platform === "Instagram" && (
-            <div className="rounded bg-yellow-50 border border-yellow-200 p-2 text-[10px] font-mono text-yellow-800 space-y-0.5">
-              <div>clientId: {selectedClientId}</div>
-              <div>client found: {client ? "yes" : "NO"} {client?.name}</div>
-              <div>socialIntegrations keys: {client?.socialIntegrations ? Object.keys(client.socialIntegrations).join(", ") : "none"}</div>
-              <div>IG connected: {String(client?.socialIntegrations?.Instagram?.connected)}</div>
-              <div>IG accountName: {client?.socialIntegrations?.Instagram?.accountName || "(empty)"}</div>
-              <div>IG profilePicture: {client?.socialIntegrations?.Instagram?.profilePicture ? "HAS VALUE" : "(empty)"}</div>
-            </div>
-          )}
+          {/* Debug info - always visible */}
+          <div className="rounded bg-yellow-50 border border-yellow-200 p-2 text-[10px] font-mono text-yellow-800 space-y-0.5">
+            <div>clientId: {selectedClientId} | client: {client?.name || "NOT FOUND"}</div>
+            <div>platform: "{platform}" | isIG: {platform === "Instagram" ? "YES" : "no"}</div>
+            <div>IG keys: {client?.socialIntegrations ? Object.keys(client.socialIntegrations).join(", ") : "none"}</div>
+            <div>IG connected: {String(client?.socialIntegrations?.Instagram?.connected)} | accountName: {client?.socialIntegrations?.Instagram?.accountName || "(empty)"} | pic: {client?.socialIntegrations?.Instagram?.profilePicture ? "YES" : "NO"}</div>
+          </div>
 
           {platform ? (
             <SocialMediaPreviewCard
