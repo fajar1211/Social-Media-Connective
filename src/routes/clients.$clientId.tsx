@@ -785,8 +785,25 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
     const processInstagramAuth = (eventData: Record<string, unknown>) => {
       igAuthSuccessful = true;
-      const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{ id: string; name: string; profile_picture?: string }>;
-      const pages = (eventData['pages'] || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string }; access_token: string }>;
+      const userData = eventData['user'] as { id: string; name: string; email?: string } | undefined;
+      const facebookUserName = userData?.name || "";
+      const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{
+        id: string;
+        name: string;
+        profile_picture?: string;
+        page_id?: string;
+        page_name?: string;
+        business_id?: string;
+        business_name?: string;
+      }>;
+      const pages = (eventData['pages'] || []) as Array<{
+        id: string;
+        name: string;
+        access_token?: string;
+        instagram_business_account?: { id: string; name: string };
+        business_id?: string;
+        business_name?: string;
+      }>;
       const accessToken = eventData['access_token'] as string;
       const expiresIn = eventData['expires_in'] as number;
 
@@ -799,11 +816,16 @@ function SettingsTab({ clientId }: { clientId: string }) {
           ...socialIntegrationsRef.current,
           Instagram: {
             connected: true,
-            accountName: igAccount.name || page?.name || "Instagram Account",
+            accountName: igAccount.name || page?.name || account.name || "Instagram Account",
             accountId: igAccount.id,
             connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
             accessToken: page?.access_token || accessToken,
             tokenExpiresIn: expiresIn,
+            selectedBusinessId: account.business_id || page?.business_id || "",
+            selectedBusinessName: account.business_name || page?.business_name || "",
+            selectedPageId: account.page_id || page?.id || "",
+            selectedPageName: account.page_name || page?.name || "",
+            facebookUserName: facebookUserName,
             profilePicture: account.profile_picture || "",
           },
         };
@@ -812,24 +834,21 @@ function SettingsTab({ clientId }: { clientId: string }) {
         actions.updateClient(clientId, { socialIntegrations: newIntegrations });
         forceUpdate();
 
-        toast.success(`Instagram connected to "${igAccount.name || page?.name}" successfully!`);
+        toast.success(`Instagram connected to "${igAccount.name || page?.name}" via Instagram direct!`);
       } else if (instagramAccounts.length > 1) {
-        // Build account list with page info
-        const accountsWithPage = instagramAccounts.map((acc) => {
-          const page = pages.find((p) => p.instagram_business_account?.id === acc.id);
-          return {
-            id: acc.id,
-            name: acc.name,
-            pageId: page?.id || "",
-            pageName: page?.name || "",
-            businessId: "",
-            businessName: "",
-            accessToken: page?.access_token || accessToken,
-            expiresIn,
-          };
-        });
-        setIgPendingAccounts(accountsWithPage);
-        setIgSelectedAccountId(accountsWithPage[0]?.id || "");
+        const accountsWithDetails = instagramAccounts.map((acc) => ({
+          id: acc.id,
+          name: acc.name,
+          profilePicture: acc.profile_picture || "",
+          pageId: acc.page_id || "",
+          pageName: acc.page_name || "",
+          businessId: acc.business_id || "",
+          businessName: acc.business_name || "",
+          accessToken: pages.find((p) => p.id === acc.page_id)?.access_token || accessToken,
+          expiresIn,
+        }));
+        setIgPendingAccounts(accountsWithDetails);
+        setIgSelectedAccountId(accountsWithDetails[0]?.id || "");
         setIgAccountSelectorOpen(true);
       } else {
         toast.error("No Instagram Business accounts found. Please connect an Instagram Business account to a Facebook Page first.");

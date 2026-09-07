@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const META_APP_ID = "1109449551768527";
+const INSTAGRAM_APP_ID = "2421970934879169";
 const REDIRECT_URI = "https://socmed.marketingconnective.com/api/auth/instagram-direct/callback";
 
 export const Route = createFileRoute("/api/auth/instagram-direct")({
@@ -11,11 +11,10 @@ export const Route = createFileRoute("/api/auth/instagram-direct")({
         const clientId = url.searchParams.get("client_id") || "unknown";
 
         const params = new URLSearchParams({
-          client_id: META_APP_ID,
+          client_id: INSTAGRAM_APP_ID,
           redirect_uri: REDIRECT_URI,
           response_type: "code",
-          scope: "instagram_business_basic,instagram_business_content_publish",
-          enable_fb_login: "1",
+          scope: "instagram_basic,instagram_content_publish",
           state: clientId,
         });
 
