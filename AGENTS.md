@@ -88,6 +88,7 @@ Invoke-RestMethod -Uri "http://localhost:8000/client-token-status/S0100"
 
 ### Frontend App
 - OAuth files: `src/routes/api.auth.*.tsx`
+- Webhook: `src/routes/api.webhook.instagram.tsx`
 - Publishing: `src/routes/api.facebook.*.tsx`
 - Client detail: `src/routes/clients.$clientId.tsx`
 - Content creation: `src/routes/content.create.tsx`
@@ -134,17 +135,35 @@ Invoke-RestMethod -Uri "http://localhost:8000/client-token-status/S0100"
 8. **Restored Facebook Connect button** — OAuth button alongside Manual Token option
 9. **All changes pushed** — Commits `1bbb032`, `3485d35`, `d78fc0f`, `b5a22b4`, `d07a75f`, `bc62e54`
 
+## Instagram Webhook Configuration
+- **Webhook Endpoint**: `https://socmed.marketingconnective.com/api/webhook/instagram`
+- **Verification Token**: `socmed_webhook_2026`
+- **File**: `src/routes/api.webhook.instagram.tsx`
+- **Status**: Created (needs deployment)
+
+### Facebook Developer Console Setup
+1. Buka: https://developers.facebook.com/apps/1109449551768527/instagram-graph-api/settings/
+2. Cari **"Webhooks"**
+3. Klik **"Callback URL"** → Isi: `https://socmed.marketingconnective.com/api/webhook/instagram`
+4. Isi **"Verify Token"**: `socmed_webhook_2026`
+5. Klik **"Verify and Save"**
+
 ## What Needs To Be Done Next
-1. Test end-to-end: Create content → approve → agent publishes to Facebook/Instagram
-2. Generate new token with `business_management` permission and test Manual Token flow
-3. Token refresh mechanism (short-lived → long-lived exchange)
-4. Fix Facebook App Settings (ToS URL, Data Deletion URL)
-5. Add LinkedIn/X/Twitter support
-6. Error notification system
+1. Deploy webhook endpoint to Cloudflare Workers
+2. Register redirect URI for Instagram OAuth: `https://socmed.marketingconnective.com/api/auth/instagram-direct/callback`
+3. Test end-to-end: Create content → approve → agent publishes to Facebook/Instagram
+4. Generate new token with `business_management` permission and test Manual Token flow
+5. Token refresh mechanism (short-lived → long-lived exchange)
+6. Fix Facebook App Settings (ToS URL, Data Deletion URL)
+7. Add LinkedIn/X/Twitter support
+8. Error notification system
 
 ## Credentials Reference
 - Facebook App ID: `1109449551768527`
 - Facebook App Secret: `42bc8519cc029ed1e79062a137d57b75`
+- Instagram App ID: `2421970934879169` (Instagram Basic Display - not used for publishing)
+- Instagram App Secret: `80572ef976b4d23ff4cc455af54763d1`
+- Instagram Webhook Verify Token: `socmed_webhook_2026`
 - Gemini API Key: `AIzaSyAgWl8TdaPheH71WDntMOPDtU-MF9kRh08`
 - Gemini Model: `gemma-4-26b-a4b-it`
 - Supabase URL: `https://jzwmgcldazvuoxvbmkzu.supabase.co`
