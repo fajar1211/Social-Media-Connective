@@ -72,6 +72,7 @@ export type SocialConnection = {
   selectedBusinessName?: string;
   selectedPageId?: string;
   selectedPageName?: string;
+  facebookUserName?: string;
 };
 
 export type Client = {

@@ -454,6 +454,7 @@ function SocialIntegrationCard({
   accountName,
   selectedBusinessName,
   selectedPageName,
+  facebookUserName,
   onConnect,
   onDisconnect,
   onManualConnect,
@@ -463,6 +464,7 @@ function SocialIntegrationCard({
   accountName?: string | undefined;
   selectedBusinessName?: string | undefined;
   selectedPageName?: string | undefined;
+  facebookUserName?: string | undefined;
   onConnect: () => void;
   onDisconnect: () => void;
   onManualConnect?: () => void;
@@ -497,8 +499,14 @@ function SocialIntegrationCard({
           {connected && accountName && (
             <div className="mt-2 rounded-lg bg-success/5 px-3 py-2">
               <p className="text-xs text-muted-foreground">Connected account</p>
-              <p className="text-sm font-medium text-foreground">{accountName}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{platform}: {accountName}</p>
+              {facebookUserName && platform === "Instagram" ? (
+                <>
+                  <p className="text-sm font-medium text-foreground">{facebookUserName}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Instagram: {accountName}</p>
+                </>
+              ) : (
+                <p className="text-sm font-medium text-foreground">{accountName}</p>
+              )}
               {selectedBusinessName && (
                 <p className="mt-1 text-xs text-muted-foreground">Business: {selectedBusinessName}</p>
               )}
@@ -914,6 +922,8 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
     const processFacebookForInstagram = (eventData: Record<string, unknown>) => {
       authSuccessful = true;
+      const userData = eventData['user'] as { id: string; name: string; email?: string } | undefined;
+      const facebookUserName = userData?.name || "";
       const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{
         id: string;
         name: string;
@@ -951,6 +961,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
             selectedBusinessName: account.business_name || page?.business_name || "",
             selectedPageId: account.page_id || page?.id || "",
             selectedPageName: account.page_name || page?.name || "",
+            facebookUserName: facebookUserName,
           },
         };
         setSocialIntegrations(newIntegrations);
@@ -1369,6 +1380,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               accountName={socialIntegrations[platform]?.accountName}
               selectedBusinessName={socialIntegrations[platform]?.selectedBusinessName}
               selectedPageName={socialIntegrations[platform]?.selectedPageName}
+              facebookUserName={socialIntegrations[platform]?.facebookUserName}
               onConnect={() => handleConnect(platform)}
               onDisconnect={() => handleDisconnect(platform)}
               onManualConnect={(platform === "Facebook" || platform === "Instagram") ? () => {
