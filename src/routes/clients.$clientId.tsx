@@ -1654,7 +1654,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
           <div className="space-y-3">
             <button
-              onClick={handleConnectInstagramDirect}
+              onClick={handleConnectInstagramViaFacebook}
               className="w-full rounded-xl border border-dashed p-5 text-left transition-all hover:border-primary/50 hover:bg-primary/5"
             >
               <div className="flex items-center gap-4">
@@ -1671,7 +1671,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
             </button>
 
             <button
-              onClick={handleConnectInstagramDirect}
+              onClick={handleConnectInstagramViaFacebook}
               className="w-full rounded-xl border border-dashed p-5 text-left transition-all hover:border-primary/50 hover:bg-primary/5"
             >
               <div className="flex items-center gap-4">
