@@ -231,21 +231,33 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
             `,
             script: `
               (function() {
-                try {
-                  localStorage.setItem("socmedconnective-fb-auth", atob("${btoa(payload)}"));
-                } catch(e) {}
+                var payload = ${payload};
+                var attempts = 0;
+                var maxAttempts = 30;
 
-                try {
-                  if (window.opener && !window.opener.closed) {
-                    window.opener.postMessage(${payload}, "*");
-                  }
-                } catch(e) {}
+                function sendAuth() {
+                  attempts++;
+                  try {
+                    localStorage.setItem("socmedconnective-fb-auth", JSON.stringify(payload));
+                  } catch(e) {}
 
-                setTimeout(function() {
+                  try {
+                    if (window.opener && !window.opener.closed) {
+                      window.opener.postMessage(payload, "*");
+                    }
+                  } catch(e) {}
+
                   var el = document.getElementById("status");
-                  if (el) el.textContent = "Connected! You can close this tab.";
-                  try { window.close(); } catch(e) {}
-                }, 3000);
+                  if (el) el.textContent = "Connected! Closing...";
+
+                  if (attempts < maxAttempts) {
+                    setTimeout(sendAuth, 100);
+                  } else {
+                    try { window.close(); } catch(e) {}
+                  }
+                }
+
+                sendAuth();
               })();
             `,
           });

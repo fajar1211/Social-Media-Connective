@@ -632,6 +632,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
       );
 
       let authSuccessful = false;
+      let popupClosed = false;
 
       const processFacebookAuth = (eventData: Record<string, unknown>) => {
         authSuccessful = true;
@@ -719,17 +720,22 @@ function SettingsTab({ clientId }: { clientId: string }) {
             }
           }
         } catch {}
-      }, 300);
+      }, 200);
 
       if (popup) {
         const check = setInterval(() => {
           if (popup.closed) {
+            popupClosed = true;
             clearInterval(check);
             clearInterval(checkExisting);
             window.removeEventListener("message", handler);
             window.removeEventListener("storage", handleStorage);
 
-            if (!authSuccessful) {
+            // If auth was successful but popup closed, refresh state
+            if (authSuccessful) {
+              // Force re-render to show connected state
+              forceUpdate();
+            } else {
               const newIntegrations = {
                 ...socialIntegrationsRef.current,
                 Facebook: { connected: false },
@@ -740,7 +746,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
               forceUpdate();
             }
           }
-        }, 4000);
+        }, 500);
       }
     } else if (platform === "Instagram") {
       setIgLoginDialogOpen(true);
@@ -765,6 +771,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     );
 
     let igAuthSuccessful = false;
+    let popupClosed = false;
 
     const processInstagramAuth = (eventData: Record<string, unknown>) => {
       igAuthSuccessful = true;
@@ -836,17 +843,21 @@ function SettingsTab({ clientId }: { clientId: string }) {
           }
         }
       } catch {}
-    }, 300);
+    }, 200);
 
     if (popup) {
       const check = setInterval(() => {
         if (popup.closed) {
+          popupClosed = true;
           clearInterval(check);
           clearInterval(checkExisting);
           window.removeEventListener("message", handler);
           window.removeEventListener("storage", handleStorage);
 
-          if (!igAuthSuccessful) {
+          // If auth was successful but popup closed, force re-render
+          if (igAuthSuccessful) {
+            forceUpdate();
+          } else {
             const newIntegrations = {
               ...socialIntegrationsRef.current,
               Instagram: { connected: false },
@@ -857,7 +868,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
             forceUpdate();
           }
         }
-      }, 4000);
+      }, 500);
     }
   };
 
@@ -877,6 +888,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     );
 
     let authSuccessful = false;
+    let popupClosed = false;
 
     const processFacebookForInstagram = (eventData: Record<string, unknown>) => {
       authSuccessful = true;
@@ -951,17 +963,23 @@ function SettingsTab({ clientId }: { clientId: string }) {
           }
         }
       } catch {}
-    }, 300);
+    }, 200);
 
     if (popup) {
       const check = setInterval(() => {
         if (popup.closed) {
+          popupClosed = true;
           clearInterval(check);
           clearInterval(checkExisting);
           window.removeEventListener("message", handler);
           window.removeEventListener("storage", handleStorage);
+
+          // If auth was successful but popup closed, force re-render
+          if (authSuccessful) {
+            forceUpdate();
+          }
         }
-      }, 4000);
+      }, 500);
     }
   };
 

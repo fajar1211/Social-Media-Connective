@@ -29,15 +29,27 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
   <p><strong>Description:</strong> ${errorDescription || "Unknown error"}</p>
   <script>
     (function() {
-      try {
-        localStorage.setItem("socmedconnective-ig-auth", atob("${btoa(errorPayload)}"));
-      } catch(e) {}
-      try {
-        if (window.opener && !window.opener.closed) {
-          window.opener.postMessage(${errorPayload}, "*");
+      var attempts = 0;
+      var maxAttempts = 10;
+
+      function sendError() {
+        attempts++;
+        try {
+          localStorage.setItem("socmedconnective-ig-auth", JSON.stringify(JSON.parse("${errorPayload.replace(/"/g, '\\"')}")));
+        } catch(e) {}
+        try {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage(JSON.parse("${errorPayload.replace(/"/g, '\\"')}"), "*");
+          }
+        } catch(e) {}
+        if (attempts < maxAttempts) {
+          setTimeout(sendError, 100);
+        } else {
+          try { window.close(); } catch(e) {}
         }
-      } catch(e) {}
-      setTimeout(function() { try { window.close(); } catch(e) {} }, 800);
+      }
+
+      sendError();
     })();
   </script>
 </body>
@@ -123,21 +135,33 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
   <p id="status" style="color:green;">Connecting...</p>
   <script>
     (function() {
-      try {
-        localStorage.setItem("socmedconnective-ig-auth", atob("${btoa(payload)}"));
-      } catch(e) {}
+      var payload = ${payload};
+      var attempts = 0;
+      var maxAttempts = 30;
 
-      try {
-        if (window.opener && !window.opener.closed) {
-          window.opener.postMessage(${payload}, "*");
-        }
-      } catch(e) {}
+      function sendAuth() {
+        attempts++;
+        try {
+          localStorage.setItem("socmedconnective-ig-auth", JSON.stringify(payload));
+        } catch(e) {}
 
-      setTimeout(function() {
+        try {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage(payload, "*");
+          }
+        } catch(e) {}
+
         var el = document.getElementById("status");
-        if (el) el.textContent = "Connected! You can close this tab.";
-        try { window.close(); } catch(e) {}
-      }, 3000);
+        if (el) el.textContent = "Connected! Closing...";
+
+        if (attempts < maxAttempts) {
+          setTimeout(sendAuth, 100);
+        } else {
+          try { window.close(); } catch(e) {}
+        }
+      }
+
+      sendAuth();
     })();
   </script>
 </body>
@@ -163,15 +187,27 @@ export const Route = createFileRoute("/api/auth/instagram/callback")({
   <p><strong>Error:</strong> ${err instanceof Error ? err.message : "Unknown error"}</p>
   <script>
     (function() {
-      try {
-        localStorage.setItem("socmedconnective-ig-auth", atob("${btoa(errorPayload)}"));
-      } catch(e) {}
-      try {
-        if (window.opener && !window.opener.closed) {
-          window.opener.postMessage(${errorPayload}, "*");
+      var attempts = 0;
+      var maxAttempts = 10;
+
+      function sendError() {
+        attempts++;
+        try {
+          localStorage.setItem("socmedconnective-ig-auth", JSON.stringify(JSON.parse("${errorPayload.replace(/"/g, '\\"')}")));
+        } catch(e) {}
+        try {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage(JSON.parse("${errorPayload.replace(/"/g, '\\"')}"), "*");
+          }
+        } catch(e) {}
+        if (attempts < maxAttempts) {
+          setTimeout(sendError, 100);
+        } else {
+          try { window.close(); } catch(e) {}
         }
-      } catch(e) {}
-      setTimeout(function() { try { window.close(); } catch(e) {} }, 800);
+      }
+
+      sendError();
     })();
   </script>
 </body>
