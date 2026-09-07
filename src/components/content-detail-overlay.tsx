@@ -413,7 +413,7 @@ export function ContentDetailOverlay({
                   })()}
                   timestamp={formatDate(item.date)}
                   content={editing ? draft.caption : item.caption}
-                  images={draft.media || []}
+                  images={(draft.media || []).map((m) => typeof m === "string" ? { src: m, alt: "Uploaded media" } : m)}
                   platform={platformKey === "gbp" ? "gbp" : platformKey === "instagram" ? "instagram" : "facebook"}
                   gbpTitle={item.client}
                   gbpButtonLabel="Learn More"
