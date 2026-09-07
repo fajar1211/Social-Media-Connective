@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const INSTAGRAM_APP_ID = "2421970934879169";
-const INSTAGRAM_APP_SECRET = "80572ef976b4d23ff4cc455af54763d1";
+const META_APP_ID = "1109449551768527";
+const META_APP_SECRET = "42bc8519cc029ed1e79062a137d57b75";
 const REDIRECT_URI = "https://socmed.marketingconnective.com/api/auth/instagram-direct/callback";
 const GRAPH_API_VERSION = "v21.0";
 
@@ -19,9 +19,9 @@ export const Route = createFileRoute("/api/auth/instagram-direct/callback")({
         if (error) {
           return new Response(
             buildHtml({
-              title: "Instagram Direct OAuth Error",
+              title: "Instagram OAuth Error",
               body: `
-                <h2>Instagram Direct OAuth Error</h2>
+                <h2>Instagram OAuth Error</h2>
                 <p><strong>Error:</strong> ${escapeHtml(error)}</p>
                 <p><strong>Description:</strong> ${escapeHtml(errorDescription || "Unknown error")}</p>
               `,
@@ -34,9 +34,9 @@ export const Route = createFileRoute("/api/auth/instagram-direct/callback")({
         if (!code) {
           return new Response(
             buildHtml({
-              title: "Instagram Direct OAuth",
+              title: "Instagram OAuth",
               body: `
-                <h2>Instagram Direct OAuth Callback</h2>
+                <h2>Instagram OAuth Callback</h2>
                 <p>No authorization code received.</p>
               `,
             }),
@@ -51,8 +51,8 @@ export const Route = createFileRoute("/api/auth/instagram-direct/callback")({
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                client_id: INSTAGRAM_APP_ID,
-                client_secret: INSTAGRAM_APP_SECRET,
+                client_id: META_APP_ID,
+                client_secret: META_APP_SECRET,
                 redirect_uri: REDIRECT_URI,
                 code: code,
               }),
@@ -72,14 +72,10 @@ export const Route = createFileRoute("/api/auth/instagram-direct/callback")({
           );
           const userData = await userResponse.json();
 
-          const userPagesResponse = await fetch(
+          const pagesResponse = await fetch(
             `https://graph.facebook.com/${GRAPH_API_VERSION}/me/accounts?fields=id,name,category,access_token,instagram_business_account&access_token=${accessToken}`
           );
-          const userPagesData = await userPagesResponse.json();
-          const userPages = (userPagesData.data || []).filter(
-            (p: { category?: string }) =>
-              !p.category?.toLowerCase().includes("instagram")
-          );
+          const pagesData = await pagesResponse.json();
 
           let businesses: Array<{
             id: string;
@@ -99,6 +95,11 @@ export const Route = createFileRoute("/api/auth/instagram-direct/callback")({
             access_token: string;
             instagram_business_account?: { id: string; name: string };
           }> = [];
+
+          const userPages = (pagesData.data || []).filter(
+            (p: { category?: string }) =>
+              !p.category?.toLowerCase().includes("instagram")
+          );
 
           const businessesResponse = await fetch(
             `https://graph.facebook.com/${GRAPH_API_VERSION}/me/businesses?fields=id,name&access_token=${accessToken}`
@@ -210,9 +211,9 @@ export const Route = createFileRoute("/api/auth/instagram-direct/callback")({
           });
 
           const successHtml = buildHtml({
-            title: "Instagram Direct Auth Success",
+            title: "Instagram Auth Success",
             body: `
-              <h2>Instagram Direct Authentication Successful!</h2>
+              <h2>Instagram Authentication Successful!</h2>
               <p>User: ${escapeHtml(userData.name)} (${userData.id})</p>
               <p>Pages: ${allBusinessPages.length} found</p>
               <p>Instagram Accounts: ${instagramAccounts.length} found</p>
@@ -260,9 +261,9 @@ export const Route = createFileRoute("/api/auth/instagram-direct/callback")({
 
           return new Response(
             buildHtml({
-              title: "Instagram Direct OAuth Error",
+              title: "Instagram OAuth Error",
               body: `
-                <h2>Instagram Direct OAuth Error</h2>
+                <h2>Instagram OAuth Error</h2>
                 <p>Error: ${escapeHtml(msg)}</p>
                 <p>Please close this tab and try again.</p>
               `,
