@@ -1911,7 +1911,7 @@ function MediaTab({ client }: { client: { id: string; name: string } }) {
   const [filter, setFilter] = useState<"all" | "images" | "videos">("all");
 
   const allMedia = content
-    .filter((c) => (c.clientId === clientId || c.client === client.name) && c.media && c.media.length > 0)
+    .filter((c) => (c.clientId === client.id || c.client === client.name) && c.media && c.media.length > 0)
     .flatMap((c) =>
       (c.media || []).map((url) => ({
         id: `${c.id}-${url}`,
@@ -2155,7 +2155,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   };
 
   const suggestedContent = content.filter(
-    (c) => (c.clientId === clientId || c.client === client.name) && c.status === "Suggested"
+    (c) => (c.clientId === client.id || c.client === client.name) && c.status === "Suggested"
   );
 
   return (
