@@ -388,7 +388,29 @@ export function ContentDetailOverlay({
               <p className="mb-2 text-sm font-medium">Post Preview</p>
               <div className="rounded-xl border bg-card p-4 shadow-soft">
                 <SocialMediaPreviewCard
-                  profileName={item.client}
+                  profileName={(() => {
+                    const client = clients.find((c) => c.name === item.client);
+                    if (item.platform === "Instagram") {
+                      const ig = client?.socialIntegrations?.Instagram;
+                      return ig?.accountName || ig?.selectedPageName || item.client;
+                    }
+                    if (item.platform === "Facebook") {
+                      const fb = client?.socialIntegrations?.Facebook;
+                      return fb?.selectedPageName || item.client;
+                    }
+                    return item.client;
+                  })()}
+                  profileImage={(() => {
+                    const client = clients.find((c) => c.name === item.client);
+                    if (item.platform === "Instagram") {
+                      return client?.socialIntegrations?.Instagram?.profilePicture || undefined;
+                    }
+                    if (item.platform === "Facebook") {
+                      const fb = client?.socialIntegrations?.Facebook;
+                      return `https://graph.facebook.com/${fb?.selectedPageId || ""}/picture?height=80&width=80`;
+                    }
+                    return undefined;
+                  })()}
                   timestamp={formatDate(item.date)}
                   content={editing ? draft.caption : item.caption}
                   images={draft.media || []}
