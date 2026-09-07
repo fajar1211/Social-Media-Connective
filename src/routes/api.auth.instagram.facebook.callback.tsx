@@ -92,6 +92,16 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
             instagram_business_account?: { id: string; name: string };
           }> = [];
 
+          // Fetch user pages directly (non-business)
+          const userPagesResponse = await fetch(
+            `https://graph.facebook.com/${GRAPH_API_VERSION}/me/accounts?fields=id,name,category,access_token,instagram_business_account&access_token=${accessToken}`
+          );
+          const userPagesData = await userPagesResponse.json();
+          const userPages = (userPagesData.data || []).filter(
+            (p: { category?: string }) =>
+              !p.category?.toLowerCase().includes("instagram")
+          );
+
           const businessesResponse = await fetch(
             `https://graph.facebook.com/${GRAPH_API_VERSION}/me/businesses?fields=id,name&access_token=${accessToken}`
           );
@@ -122,16 +132,23 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
             );
           }
 
-          allBusinessPages = businesses.flatMap(
-            (biz: {
-              pages: Array<{
-                id: string;
-                name: string;
-                category: string;
-                access_token: string;
-                instagram_business_account?: { id: string; name: string };
-              }>;
-            }) => biz.pages
+          // Merge user pages + business pages (avoid duplicates)
+          allBusinessPages = [
+            ...userPages,
+            ...businesses.flatMap(
+              (biz: {
+                pages: Array<{
+                  id: string;
+                  name: string;
+                  category: string;
+                  access_token: string;
+                  instagram_business_account?: { id: string; name: string };
+                }>;
+              }) => biz.pages
+            ),
+          ].filter(
+            (page, index, self) =>
+              self.findIndex((p) => p.id === page.id) === index
           );
 
           const autoConnect = businesses.length === 1 && allBusinessPages.length === 1;
@@ -175,12 +192,29 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
             expires_in: tokenData.expires_in || 0,
           });
 
+          const debugInfo = {
+            userName: userData.name,
+            userId: userData.id,
+            businessesCount: businesses.length,
+            businessNames: businesses.map((b) => b.name),
+            allPagesCount: allBusinessPages.length,
+            pageNames: allBusinessPages.map((p) => p.name),
+            pagesWithInstagram: instagramAccounts.length,
+            instagramAccountNames: instagramAccounts.map((p) => p.instagram_business_account?.name),
+          };
+
           const successHtml = buildHtml({
             title: "Instagram via Facebook Auth Success",
             body: `
               <h2>Instagram via Facebook Authentication Successful!</h2>
               <p>User: ${escapeHtml(userData.name)} (${userData.id})</p>
+              <p>Businesses: ${businesses.length} found</p>
+              <p>Pages: ${allBusinessPages.length} found</p>
               <p>Instagram Accounts: ${instagramAccounts.length} found</p>
+              <details>
+                <summary>Debug Info (click to expand)</summary>
+                <pre style="background:#f5f5f5;padding:10px;overflow:auto;font-size:12px;">${JSON.stringify(debugInfo, null, 2)}</pre>
+              </details>
               <p id="status" style="color:green;">Connecting...</p>
             `,
             script: `
