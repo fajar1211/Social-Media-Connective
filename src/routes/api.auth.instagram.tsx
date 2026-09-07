@@ -14,12 +14,11 @@ export const Route = createFileRoute("/api/auth/instagram")({
           client_id: META_APP_ID,
           redirect_uri: REDIRECT_URI,
           response_type: "code",
-          scope: "public_profile,email,business_management,pages_show_list,pages_read_engagement,instagram_basic,instagram_content_publish",
+          scope: "instagram_basic,instagram_content_publish,pages_show_list",
           state: clientId,
         });
 
-        // Use Facebook Business Login dialog with config_id
-        params.set("config_id", "2308260646667688");
+        params.set("config_id", "3599309600234069");
 
         return new Response(null, {
           status: 302,
