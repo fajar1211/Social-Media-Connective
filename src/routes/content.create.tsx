@@ -196,6 +196,22 @@ function CreateContent() {
   const [agentUrl, setAgentUrl] = useState("http://localhost:8000");
 
   const client = clients.find((c) => c.id === selectedClientId);
+  
+  // DEBUG: Check Instagram data
+  if (client) {
+    const igData = client?.socialIntegrations?.Instagram;
+    console.log("[IG DEBUG] selectedClientId:", selectedClientId);
+    console.log("[IG DEBUG] client.name:", client.name);
+    console.log("[IG DEBUG] socialIntegrations keys:", Object.keys(client.socialIntegrations || {}));
+    console.log("[IG DEBUG] Instagram connected:", igData?.connected);
+    console.log("[IG DEBUG] Instagram accountName:", igData?.accountName);
+    console.log("[IG DEBUG] Instagram profilePicture:", igData?.profilePicture?.substring(0, 80));
+    console.log("[IG DEBUG] full Instagram:", JSON.stringify(igData));
+  } else {
+    console.log("[IG DEBUG] NO CLIENT FOUND for:", selectedClientId);
+    console.log("[IG DEBUG] available client IDs:", clients.map(c => c.id));
+  }
+  
   const fbConnection = client?.socialIntegrations?.Facebook;
   const pages: FacebookPage[] = fbConnection?.pages || [];
   const isFacebook = platform === "Facebook";
