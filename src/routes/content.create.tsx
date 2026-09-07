@@ -217,6 +217,43 @@ function CreateContent() {
     }
   }, [isFacebook, pages, selectedPage]);
 
+  // Auto-fix incomplete Instagram data: fill missing accountName + fetch profile picture
+  useEffect(() => {
+    if (!client?.id || !platform || platform !== "Instagram") return;
+    const ig = client?.socialIntegrations?.Instagram;
+    if (!ig?.connected || !ig?.accessToken || !ig?.accountId) return;
+
+    const needsAccountName = !ig.accountName;
+    const needsProfilePic = !ig.profilePicture;
+
+    if (!needsAccountName && !needsProfilePic) return;
+
+    (async () => {
+      try {
+        const updatedFields: Record<string, unknown> = {};
+        if (needsProfilePic) {
+          const picRes = await fetch(
+            `https://graph.facebook.com/v21.0/${ig.accountId}?fields=profile_picture_url&access_token=${ig.accessToken}`
+          );
+          const picData = await picRes.json();
+          if (picData.profile_picture_url) {
+            updatedFields.profilePicture = picData.profile_picture_url;
+          }
+        }
+        if (needsAccountName && ig.selectedPageName) {
+          updatedFields.accountName = ig.selectedPageName;
+        }
+        if (Object.keys(updatedFields).length > 0) {
+          const newIntegrations = {
+            ...client.socialIntegrations,
+            Instagram: { ...ig, ...updatedFields },
+          };
+          actions.updateClient(client.id, { socialIntegrations: newIntegrations });
+        }
+      } catch {}
+    })();
+  }, [client?.id, platform, client?.socialIntegrations?.Instagram?.connected]);
+
   const handleImageUpload = (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
@@ -963,7 +1000,6 @@ function CreateContent() {
           <div className="rounded bg-yellow-50 border border-yellow-200 p-2 text-[10px] font-mono text-yellow-800 space-y-0.5">
             <div>clientId: {selectedClientId} | client: {client?.name || "NOT FOUND"}</div>
             <div>platform: "{platform}" | isIG: {platform === "Instagram" ? "YES" : "no"}</div>
-            <div>IG keys: {client?.socialIntegrations ? Object.keys(client.socialIntegrations).join(", ") : "none"}</div>
             <div>IG FULL: {JSON.stringify(client?.socialIntegrations?.Instagram) || "(none)"}</div>
           </div>
 
@@ -980,7 +1016,8 @@ function CreateContent() {
                   return client?.name || "Your Business";
                 }
                 if (platform === "Instagram") {
-                  return client?.socialIntegrations?.Instagram?.accountName || client?.name || "Your Business";
+                  const ig = client?.socialIntegrations?.Instagram;
+                  return ig?.accountName || ig?.selectedPageName || client?.name || "Your Business";
                 }
                 return client?.name || "Your Business";
               })()}
@@ -989,7 +1026,8 @@ function CreateContent() {
                   return `https://graph.facebook.com/${selectedPage || fbConnection?.selectedPageId || ""}/picture?height=80&width=80`;
                 }
                 if (platform === "Instagram") {
-                  return client?.socialIntegrations?.Instagram?.profilePicture || undefined;
+                  const ig = client?.socialIntegrations?.Instagram;
+                  return ig?.profilePicture || undefined;
                 }
                 return undefined;
               })()}

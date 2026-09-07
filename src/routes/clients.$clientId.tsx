@@ -952,7 +952,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           ...socialIntegrationsRef.current,
           Instagram: {
             connected: true,
-            accountName: igAccount.name || page?.name || "Instagram Account",
+            accountName: igAccount.name || page?.name || account.name || "Instagram Account",
             accountId: igAccount.id,
             connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
             accessToken: page?.access_token || accessToken,
