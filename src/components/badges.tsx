@@ -58,3 +58,12 @@ export function ClientStatusBadge({ active }: { active: boolean }) {
     </span>
   );
 }
+
+export function PlatformIcon({ platform }: { platform: Platform }) {
+  const Icon = platformIcons[platform];
+  return (
+    <span className="inline-flex size-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground" title={platform}>
+      <Icon className="size-3.5" strokeWidth={1.75} />
+    </span>
+  );
+}

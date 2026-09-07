@@ -57,7 +57,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ClientStatusBadge, PlatformBadge } from "@/components/badges";
+import { ClientStatusBadge, PlatformBadge, PlatformIcon } from "@/components/badges";
 import { actions, useStore, counts, type Client, type Platform } from "@/lib/content-store";
 import { useAuth } from "@/lib/auth";
 import { updateProfile } from "@/lib/db";
@@ -128,7 +128,7 @@ function ClientCard({
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {client.platforms.length > 0 ? (
-          client.platforms.map((p) => <PlatformBadge key={p} platform={p} />)
+          client.platforms.map((p) => <PlatformIcon key={p} platform={p} />)
         ) : (
           <span className="text-xs text-muted-foreground">No platforms</span>
         )}
@@ -490,7 +490,7 @@ function ClientsPage() {
                         <div className="flex flex-wrap gap-1.5">
                           {c.platforms.length > 0 ? (
                             c.platforms.map((p) => (
-                              <PlatformBadge key={p} platform={p} />
+                              <PlatformIcon key={p} platform={p} />
                             ))
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
