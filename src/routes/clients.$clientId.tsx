@@ -499,13 +499,9 @@ function SocialIntegrationCard({
           {connected && accountName && (
             <div className="mt-2 rounded-lg bg-success/5 px-3 py-2">
               <p className="text-xs text-muted-foreground">Connected account</p>
-              {facebookUserName && platform === "Instagram" ? (
-                <>
-                  <p className="text-sm font-medium text-foreground">{facebookUserName}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Instagram: {accountName}</p>
-                </>
-              ) : (
-                <p className="text-sm font-medium text-foreground">{accountName}</p>
+              <p className="text-sm font-medium text-foreground">{accountName}</p>
+              {facebookUserName && platform === "Instagram" && (
+                <p className="mt-1 text-xs text-muted-foreground">Facebook: {facebookUserName}</p>
               )}
               {selectedBusinessName && (
                 <p className="mt-1 text-xs text-muted-foreground">Business: {selectedBusinessName}</p>
