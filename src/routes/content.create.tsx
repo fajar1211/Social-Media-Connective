@@ -390,14 +390,21 @@ function CreateContent() {
     try {
       const message = body.trim();
 
-      const response = await fetch("/api/facebook/post", {
+      const isPhoto = !!mediaPreview;
+      const endpoint = isPhoto ? "/api/facebook/photo" : "/api/facebook/post";
+      const payload: Record<string, string> = {
+        pageId: page.id,
+        pageAccessToken: page.access_token,
+        message,
+      };
+      if (isPhoto && mediaPreview) {
+        payload.imageUrl = mediaPreview;
+      }
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pageId: page.id,
-          pageAccessToken: page.access_token,
-          message,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
