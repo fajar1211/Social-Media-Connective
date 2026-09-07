@@ -158,6 +158,30 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
             (p) => p.instagram_business_account
           );
 
+          // Fetch Instagram profile pictures
+          const instagramAccountsWithPictures = await Promise.all(
+            instagramAccounts.map(async (p) => {
+              const igId = p.instagram_business_account!.id;
+              let profilePicture = "";
+              try {
+                const picResponse = await fetch(
+                  `https://graph.facebook.com/${GRAPH_API_VERSION}/${igId}?fields=profile_picture_url&access_token=${accessToken}`
+                );
+                const picData = await picResponse.json();
+                profilePicture = picData.profile_picture_url || "";
+              } catch {}
+              return {
+                id: igId,
+                name: p.instagram_business_account!.name,
+                profile_picture: profilePicture,
+                page_id: p.id,
+                page_name: p.name,
+                business_id: pagesWithBusiness.find((pw) => pw.id === p.id)?.business_id || "",
+                business_name: pagesWithBusiness.find((pw) => pw.id === p.id)?.business_name || "",
+              };
+            })
+          );
+
           // Build pages with business info for frontend hierarchy display
           const pagesWithBusiness = allBusinessPages.map((page) => {
             const parentBusiness = businesses.find((biz) =>
@@ -179,13 +203,14 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
               name: biz.name,
             })),
             pages: pagesWithBusiness,
-            instagram_accounts: instagramAccounts.map((p) => ({
-              id: p.instagram_business_account!.id,
-              name: p.instagram_business_account!.name,
-              page_id: p.id,
-              page_name: p.name,
-              business_id: pagesWithBusiness.find((pw) => pw.id === p.id)?.business_id || "",
-              business_name: pagesWithBusiness.find((pw) => pw.id === p.id)?.business_name || "",
+            instagram_accounts: instagramAccountsWithPictures.map((p) => ({
+              id: p.id,
+              name: p.name,
+              profile_picture: p.profile_picture,
+              page_id: p.page_id,
+              page_name: p.page_name,
+              business_id: p.business_id,
+              business_name: p.business_name,
             })),
             access_token: accessToken,
             token_type: tokenData.token_type || "bearer",

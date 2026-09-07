@@ -785,7 +785,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
     const processInstagramAuth = (eventData: Record<string, unknown>) => {
       igAuthSuccessful = true;
-      const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{ id: string; name: string }>;
+      const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{ id: string; name: string; profile_picture?: string }>;
       const pages = (eventData['pages'] || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string }; access_token: string }>;
       const accessToken = eventData['access_token'] as string;
       const expiresIn = eventData['expires_in'] as number;
@@ -804,6 +804,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
             connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
             accessToken: page?.access_token || accessToken,
             tokenExpiresIn: expiresIn,
+            profilePicture: account.profile_picture || "",
           },
         };
         setSocialIntegrations(newIntegrations);
@@ -925,6 +926,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
       const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{
         id: string;
         name: string;
+        profile_picture?: string;
         page_id?: string;
         page_name?: string;
         business_id?: string;
@@ -960,6 +962,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
             selectedPageId: account.page_id || page?.id || "",
             selectedPageName: account.page_name || page?.name || "",
             facebookUserName: facebookUserName,
+            profilePicture: account.profile_picture || "",
           },
         };
         setSocialIntegrations(newIntegrations);
@@ -973,6 +976,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
         const accountsWithDetails = instagramAccounts.map((acc) => ({
           id: acc.id,
           name: acc.name,
+          profilePicture: acc.profile_picture || "",
           pageId: acc.page_id || "",
           pageName: acc.page_name || "",
           businessId: acc.business_id || "",
@@ -1103,6 +1107,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
         selectedBusinessName: selectedAccount.businessName || "",
         selectedPageId: selectedAccount.pageId || "",
         selectedPageName: selectedAccount.pageName || "",
+        profilePicture: selectedAccount.profilePicture || "",
       },
     };
     setSocialIntegrations(newIntegrations);
@@ -1243,6 +1248,15 @@ function SettingsTab({ clientId }: { clientId: string }) {
         toast.error("Instagram Business Account tidak ditemukan di halaman ini");
         return;
       }
+      // Fetch Instagram profile picture
+      let profilePicture = "";
+      try {
+        const picResponse = await fetch(
+          `https://graph.facebook.com/v21.0/${igAccount.id}?fields=profile_picture_url&access_token=${manualToken.trim()}`
+        );
+        const picData = await picResponse.json();
+        profilePicture = picData.profile_picture_url || "";
+      } catch {}
       const newIntegrations: Partial<Record<SocialPlatform, SocialConnection>> = {
         ...socialIntegrationsRef.current,
         Instagram: {
@@ -1252,6 +1266,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
           accessToken: manualToken.trim(),
           tokenExpiresIn: 0,
+          profilePicture,
         },
       };
       setSocialIntegrations(newIntegrations);

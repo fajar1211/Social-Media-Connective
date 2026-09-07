@@ -981,8 +981,7 @@ function CreateContent() {
                   return `https://graph.facebook.com/${selectedPage || fbConnection?.selectedPageId || ""}/picture?height=80&width=80`;
                 }
                 if (platform === "Instagram") {
-                  const igAccountId = client?.socialIntegrations?.Instagram?.accountId;
-                  return igAccountId ? `https://graph.facebook.com/${igAccountId}/picture?height=80&width=80` : undefined;
+                  return client?.socialIntegrations?.Instagram?.profilePicture || undefined;
                 }
                 return undefined;
               })()}
