@@ -892,18 +892,13 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
     const processFacebookForInstagram = (eventData: Record<string, unknown>) => {
       authSuccessful = true;
-      const pages = (eventData['pages'] || []) as Array<{ id: string; name: string; category: string; access_token: string; instagram_business_account?: { id: string; name: string } }>;
+      const instagramAccounts = (eventData['instagram_accounts'] || []) as Array<{ id: string; name: string }>;
+      const pages = (eventData['pages'] || []) as Array<{ id: string; name: string; instagram_business_account?: { id: string; name: string } }>;
 
-      const igPages = pages.filter((p) => p.instagram_business_account);
-
-      if (igPages.length === 0) {
-        toast.error("No Instagram Business accounts found on your Facebook Pages. Please connect an Instagram Business account to a Facebook Page first.");
-        return;
-      }
-
-      if (igPages.length === 1) {
-        const page = igPages[0]!;
-        const igAccount = page.instagram_business_account!;
+      if (instagramAccounts.length === 1) {
+        const account = instagramAccounts[0]!;
+        const page = pages.find((p) => p.instagram_business_account);
+        const igAccount = page?.instagram_business_account || account;
 
         const newIntegrations = {
           ...socialIntegrationsRef.current,
@@ -912,7 +907,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
             accountName: igAccount.name,
             accountId: igAccount.id,
             connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-            accessToken: page.access_token,
+            accessToken: eventData['access_token'] as string,
             tokenExpiresIn: eventData['expires_in'] as number,
           },
         };
@@ -922,16 +917,18 @@ function SettingsTab({ clientId }: { clientId: string }) {
         forceUpdate();
 
         toast.success(`Instagram connected to "${igAccount.name}" via Facebook!`);
+      } else if (instagramAccounts.length > 1) {
+        toast.info(`Found ${instagramAccounts.length} Instagram accounts. Please select one.`);
       } else {
-        toast.info(`Found ${igPages.length} Instagram accounts. Please select one.`);
+        toast.error("No Instagram Business accounts found on your Facebook Pages. Please connect an Instagram Business account to a Facebook Page first.");
       }
     };
 
     const handler = (event: MessageEvent) => {
-      if (event.data?.type === "facebook-auth-success" && event.data.clientId === clientId) {
+      if (event.data?.type === "instagram-auth-success" && event.data.clientId === clientId) {
         processFacebookForInstagram(event.data);
         window.removeEventListener("message", handler);
-      } else if (event.data?.type === "facebook-auth-error" && event.data.clientId === clientId) {
+      } else if (event.data?.type === "instagram-auth-error" && event.data.clientId === clientId) {
         toast.error(`Failed to connect Instagram via Facebook: ${event.data.error}`);
         window.removeEventListener("message", handler);
       }
@@ -940,12 +937,12 @@ function SettingsTab({ clientId }: { clientId: string }) {
     window.addEventListener("message", handler);
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === "socmedconnective-fb-auth" && e.newValue) {
+      if (e.key === "socmedconnective-ig-auth" && e.newValue) {
         try {
           const data = JSON.parse(e.newValue);
-          if (data.type === "facebook-auth-success" && data.clientId === clientId) {
+          if (data.type === "instagram-auth-success" && data.clientId === clientId) {
             processFacebookForInstagram(data);
-            localStorage.removeItem("socmedconnective-fb-auth");
+            localStorage.removeItem("socmedconnective-ig-auth");
           }
         } catch {}
       }
@@ -954,12 +951,12 @@ function SettingsTab({ clientId }: { clientId: string }) {
 
     const checkExisting = setInterval(() => {
       try {
-        const raw = localStorage.getItem("socmedconnective-fb-auth");
+        const raw = localStorage.getItem("socmedconnective-ig-auth");
         if (raw) {
           const data = JSON.parse(raw);
-          if (data.type === "facebook-auth-success" && data.clientId === clientId) {
+          if (data.type === "instagram-auth-success" && data.clientId === clientId) {
             processFacebookForInstagram(data);
-            localStorage.removeItem("socmedconnective-fb-auth");
+            localStorage.removeItem("socmedconnective-ig-auth");
           }
         }
       } catch {}

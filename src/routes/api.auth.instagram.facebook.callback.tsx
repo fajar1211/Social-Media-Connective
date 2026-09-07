@@ -26,7 +26,7 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
                 <p><strong>Error:</strong> ${escapeHtml(error)}</p>
                 <p><strong>Description:</strong> ${escapeHtml(errorDescription || "Unknown error")}</p>
               `,
-              script: `(function(){try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:"facebook-auth-error",clientId:"${escapeJs(clientId)}",error:"${escapeJs(error)}",description:"${escapeJs(errorDescription || "")}" },"*")}}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},800)})()`,
+              script: `(function(){try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:"instagram-auth-error",clientId:"${escapeJs(clientId)}",error:"${escapeJs(error)}",description:"${escapeJs(errorDescription || "")}" },"*")}}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},800)})()`,
             }),
             { status: 200, headers: { "Content-Type": "text/html" } }
           );
@@ -136,16 +136,23 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
 
           const autoConnect = businesses.length === 1 && allBusinessPages.length === 1;
 
+          // Filter pages that have Instagram Business accounts
+          const instagramAccounts = allBusinessPages.filter(
+            (p) => p.instagram_business_account
+          );
+
           const payload = JSON.stringify({
-            type: "facebook-auth-success",
+            type: "instagram-auth-success",
             clientId: clientId,
             user: userData,
-            businesses: businesses,
             pages: allBusinessPages,
+            instagram_accounts: instagramAccounts.map((p) => ({
+              id: p.instagram_business_account!.id,
+              name: p.instagram_business_account!.name,
+            })),
             access_token: accessToken,
             token_type: tokenData.token_type || "bearer",
             expires_in: tokenData.expires_in || 0,
-            auto_connect: autoConnect,
           });
 
           const successHtml = buildHtml({
@@ -153,8 +160,7 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
             body: `
               <h2>Instagram via Facebook Authentication Successful!</h2>
               <p>User: ${escapeHtml(userData.name)} (${userData.id})</p>
-              <p>Businesses: ${businesses.length} found</p>
-              <p>Pages: ${allBusinessPages.length} found</p>
+              <p>Instagram Accounts: ${instagramAccounts.length} found</p>
               <p id="status" style="color:green;">Connecting...</p>
             `,
             script: `
@@ -166,7 +172,7 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
                 function sendAuth() {
                   attempts++;
                   try {
-                    localStorage.setItem("socmedconnective-fb-auth", JSON.stringify(payload));
+                    localStorage.setItem("socmedconnective-ig-auth", JSON.stringify(payload));
                   } catch(e) {}
 
                   try {
@@ -207,12 +213,24 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
               `,
               script: `
                 (function() {
-                  try {
-                    if (window.opener && !window.opener.closed) {
-                      window.opener.postMessage({ type: "facebook-auth-error", clientId: "${escapeJs(clientId)}", error: "${escapeJs(msg)}" }, "*");
+                  var attempts = 0;
+                  var maxAttempts = 10;
+
+                  function sendError() {
+                    attempts++;
+                    try {
+                      if (window.opener && !window.opener.closed) {
+                        window.opener.postMessage({ type: "instagram-auth-error", clientId: "${escapeJs(clientId)}", error: "${escapeJs(msg)}" }, "*");
+                      }
+                    } catch(e) {}
+                    if (attempts < maxAttempts) {
+                      setTimeout(sendError, 100);
+                    } else {
+                      try { window.close(); } catch(e) {}
                     }
-                  } catch(e) {}
-                  setTimeout(function() { try { window.close(); } catch(e) {} }, 800);
+                  }
+
+                  sendError();
                 })();
               `,
             }),
