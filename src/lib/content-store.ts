@@ -239,9 +239,6 @@ export async function loadStoreData(clientId?: string): Promise<void> {
 
     const mappedClients: Client[] = clientsData.map((c) => {
       const integrations = (c as any).social_integrations || (c as any).socialIntegrations || {};
-      if (integrations.Instagram?.connected) {
-        console.log("[IG DEBUG] loadStoreData client:", c.id, c.name, "Instagram:", JSON.stringify(integrations.Instagram).substring(0, 200));
-      }
       const derivedPlatforms: Platform[] = [];
       if (integrations.Facebook?.connected) derivedPlatforms.push("Facebook");
       if (integrations.Instagram?.connected) derivedPlatforms.push("Instagram");
@@ -440,8 +437,6 @@ export const actions = {
       if (patch.magicLinkActive !== undefined) dbPatch.magic_link_active = patch.magicLinkActive;
       if (patch.socialIntegrations !== undefined) dbPatch.social_integrations = patch.socialIntegrations;
       if (Object.keys(dbPatch).length > 0) {
-        console.log("[IG DEBUG] updateClient saving to Supabase:", id, "keys:", Object.keys(dbPatch));
-        console.log("[IG DEBUG] social_integrations:", JSON.stringify(dbPatch.social_integrations)?.substring(0, 200));
         await dbUpdateClient(id, dbPatch as any);
       }
     }

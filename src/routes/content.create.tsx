@@ -196,22 +196,6 @@ function CreateContent() {
   const [agentUrl, setAgentUrl] = useState("http://localhost:8000");
 
   const client = clients.find((c) => c.id === selectedClientId);
-  
-  // DEBUG: Check Instagram data
-  if (client) {
-    const igData = client?.socialIntegrations?.Instagram;
-    console.log("[IG DEBUG] selectedClientId:", selectedClientId);
-    console.log("[IG DEBUG] client.name:", client.name);
-    console.log("[IG DEBUG] socialIntegrations keys:", Object.keys(client.socialIntegrations || {}));
-    console.log("[IG DEBUG] Instagram connected:", igData?.connected);
-    console.log("[IG DEBUG] Instagram accountName:", igData?.accountName);
-    console.log("[IG DEBUG] Instagram profilePicture:", igData?.profilePicture?.substring(0, 80));
-    console.log("[IG DEBUG] full Instagram:", JSON.stringify(igData));
-  } else {
-    console.log("[IG DEBUG] NO CLIENT FOUND for:", selectedClientId);
-    console.log("[IG DEBUG] available client IDs:", clients.map(c => c.id));
-  }
-  
   const fbConnection = client?.socialIntegrations?.Facebook;
   const pages: FacebookPage[] = fbConnection?.pages || [];
   const isFacebook = platform === "Facebook";
@@ -974,6 +958,18 @@ function CreateContent() {
           <p className="text-xs text-muted-foreground">
             This is how your post will appear on the platform.
           </p>
+
+          {/* Visible debug info for Instagram preview */}
+          {platform === "Instagram" && (
+            <div className="rounded bg-yellow-50 border border-yellow-200 p-2 text-[10px] font-mono text-yellow-800 space-y-0.5">
+              <div>clientId: {selectedClientId}</div>
+              <div>client found: {client ? "yes" : "NO"} {client?.name}</div>
+              <div>socialIntegrations keys: {client?.socialIntegrations ? Object.keys(client.socialIntegrations).join(", ") : "none"}</div>
+              <div>IG connected: {String(client?.socialIntegrations?.Instagram?.connected)}</div>
+              <div>IG accountName: {client?.socialIntegrations?.Instagram?.accountName || "(empty)"}</div>
+              <div>IG profilePicture: {client?.socialIntegrations?.Instagram?.profilePicture ? "HAS VALUE" : "(empty)"}</div>
+            </div>
+          )}
 
           {platform ? (
             <SocialMediaPreviewCard
