@@ -765,7 +765,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     const left = (window.innerWidth - width) / 2;
     const top = (window.innerHeight - height) / 2;
 
-    const authUrl = `/api/auth/instagram?client_id=${clientId}`;
+    const authUrl = `/api/auth/instagram-direct?client_id=${clientId}`;
 
     const popup = window.open(
       authUrl,
