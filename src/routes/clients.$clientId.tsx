@@ -496,10 +496,12 @@ function SocialIntegrationCard({
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{config.description}</p>
-          {connected && accountName && (
+          {connected && (
             <div className="mt-2 rounded-lg bg-success/5 px-3 py-2">
               <p className="text-xs text-muted-foreground">Connected account</p>
-              <p className="text-sm font-medium text-foreground">{accountName}</p>
+              {accountName && (
+                <p className="text-sm font-medium text-foreground">{accountName}</p>
+              )}
               {facebookUserName && platform === "Instagram" && (
                 <p className="mt-1 text-xs text-muted-foreground">Facebook: {facebookUserName}</p>
               )}
