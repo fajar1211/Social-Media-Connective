@@ -996,13 +996,6 @@ function CreateContent() {
             This is how your post will appear on the platform.
           </p>
 
-          {/* Debug info - always visible */}
-          <div className="rounded bg-yellow-50 border border-yellow-200 p-2 text-[10px] font-mono text-yellow-800 space-y-0.5">
-            <div>clientId: {selectedClientId} | client: {client?.name || "NOT FOUND"}</div>
-            <div>platform: "{platform}" | isIG: {platform === "Instagram" ? "YES" : "no"}</div>
-            <div>IG FULL: {JSON.stringify(client?.socialIntegrations?.Instagram) || "(none)"}</div>
-          </div>
-
           {platform ? (
             <SocialMediaPreviewCard
               profileName={(() => {
