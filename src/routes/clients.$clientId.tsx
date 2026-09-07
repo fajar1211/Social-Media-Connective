@@ -1237,7 +1237,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     }
   };
 
-  const handleManualConnect = () => {
+  const handleManualConnect = async () => {
     if (!manualSelectedPageId || !manualToken) return;
     const selectedPage = manualPages.find((p) => p.id === manualSelectedPageId);
     if (!selectedPage) return;
