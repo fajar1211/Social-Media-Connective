@@ -197,11 +197,14 @@ function CreateContent() {
 
   const client = clients.find((c) => c.id === selectedClientId);
   const fbConnection = client?.socialIntegrations?.Facebook;
+  const igConnection = client?.socialIntegrations?.Instagram;
   const pages: FacebookPage[] = fbConnection?.pages || [];
   const isFacebook = platform === "Facebook";
+  const isInstagram = platform === "Instagram";
   const isGBP = platform === "GBP";
   const isBlog = platform === "Blog";
-  const canPublish = isFacebook && fbConnection?.connected && fbConnection?.accessToken;
+  const canPublish = (isFacebook && fbConnection?.connected && fbConnection?.accessToken) ||
+    (isInstagram && igConnection?.connected && igConnection?.accessToken && igConnection?.accountId);
 
   const availableContentTypes = isBlog
     ? ["Blog Article" as const]
@@ -375,41 +378,66 @@ function CreateContent() {
   };
 
   const publishNow = async () => {
-    if (!canPublish || !selectedPage || !client) {
-      toast.error("Please select a Facebook page first.");
+    if (!canPublish || !client) {
+      toast.error("Please connect a social media account first.");
       return;
     }
 
-    const page = pages.find((p) => p.id === selectedPage);
-    if (!page) {
-      toast.error("Selected page not found.");
+    if (isFacebook && !selectedPage) {
+      toast.error("Please select a Facebook page first.");
       return;
     }
 
     setPublishing(true);
     try {
       const message = body.trim();
+      let response: Response;
 
-      const isPhoto = !!mediaPreview;
-      const endpoint = isPhoto ? "/api/facebook/photo" : "/api/facebook/post";
-      const payload: Record<string, string> = {
-        pageId: page.id,
-        pageAccessToken: page.access_token,
-        message,
-      };
-      if (isPhoto && mediaPreview) {
-        payload.imageUrl = mediaPreview;
+      if (isInstagram && igConnection) {
+        response = await fetch("/api/instagram/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            igUserId: igConnection.accountId,
+            accessToken: igConnection.accessToken,
+            imageUrl: mediaPreview || undefined,
+            caption: message || undefined,
+          }),
+        });
+      } else if (isFacebook) {
+        const page = pages.find((p) => p.id === selectedPage);
+        if (!page) {
+          toast.error("Selected page not found.");
+          setPublishing(false);
+          return;
+        }
+        const isPhoto = !!mediaPreview;
+        const endpoint = isPhoto ? "/api/facebook/photo" : "/api/facebook/post";
+        const payload: Record<string, string> = {
+          pageId: page.id,
+          pageAccessToken: page.access_token,
+          message,
+        };
+        if (isPhoto && mediaPreview) {
+          payload.imageUrl = mediaPreview;
+        }
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        toast.error("Platform not supported for publishing.");
+        setPublishing(false);
+        return;
       }
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
 
       const data = await response.json();
 
       if (data.success) {
+        const publishNote = isInstagram
+          ? `Published to Instagram: ${igConnection?.accountName || "Instagram Account"} (Post ID: ${data.postId})`
+          : `Published to Facebook: ${pages.find((p) => p.id === selectedPage)?.name || "Facebook Page"} (Post ID: ${data.postId})`;
         await actions.addContent({
           title: topic.trim(),
           client: client.name,
@@ -422,11 +450,11 @@ function CreateContent() {
           body: body,
           hashtags: [],
           cta: "",
-          notes: `Published to Facebook: ${page.name} (Post ID: ${data.postId})`,
+          notes: publishNote,
           media: mediaPreview ? [mediaPreview] : [],
           timezone,
         });
-        toast.success(`Published to ${page.name}!`);
+        toast.success(`Published to ${isInstagram ? "Instagram" : pages.find((p) => p.id === selectedPage)?.name || "Facebook"}!`);
         navigate({ to: "/approved" });
       } else {
         toast.error(`Failed to publish: ${data.error}`);
@@ -439,14 +467,13 @@ function CreateContent() {
   };
 
   const scheduleFacebookPost = async () => {
-    if (!canPublish || !selectedPage || !client || !scheduleDate || !scheduleTime) {
-      toast.error("Please select a page and schedule time.");
+    if (!canPublish || !client || !scheduleDate || !scheduleTime) {
+      toast.error("Please select a platform and schedule time.");
       return;
     }
 
-    const page = pages.find((p) => p.id === selectedPage);
-    if (!page) {
-      toast.error("Selected page not found.");
+    if (isFacebook && !selectedPage) {
+      toast.error("Please select a Facebook page first.");
       return;
     }
 
@@ -461,21 +488,49 @@ function CreateContent() {
     setPublishing(true);
     try {
       const message = body.trim();
+      let response: Response;
 
-      const response = await fetch("/api/facebook/schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pageId: page.id,
-          pageAccessToken: page.access_token,
-          message,
-          scheduledPublishTime: unixTimestamp,
-        }),
-      });
+      if (isInstagram && igConnection) {
+        response = await fetch("/api/instagram/schedule", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            igUserId: igConnection.accountId,
+            accessToken: igConnection.accessToken,
+            imageUrl: mediaPreview || undefined,
+            caption: message || undefined,
+            scheduledPublishTime: unixTimestamp,
+          }),
+        });
+      } else if (isFacebook) {
+        const page = pages.find((p) => p.id === selectedPage);
+        if (!page) {
+          toast.error("Selected page not found.");
+          setPublishing(false);
+          return;
+        }
+        response = await fetch("/api/facebook/schedule", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pageId: page.id,
+            pageAccessToken: page.access_token,
+            message,
+            scheduledPublishTime: unixTimestamp,
+          }),
+        });
+      } else {
+        toast.error("Platform not supported for scheduling.");
+        setPublishing(false);
+        return;
+      }
 
       const data = await response.json();
 
       if (data.success) {
+        const scheduleNote = isInstagram
+          ? `Scheduled for ${scheduledDateTime.toLocaleString()} on Instagram: ${igConnection?.accountName || "Instagram Account"} (Post ID: ${data.postId})`
+          : `Scheduled for ${scheduledDateTime.toLocaleString()} on ${pages.find((p) => p.id === selectedPage)?.name || "Facebook Page"} (Post ID: ${data.postId})`;
         await actions.addContent({
           title: topic.trim(),
           client: client.name,
@@ -488,7 +543,7 @@ function CreateContent() {
           body: body,
           hashtags: [],
           cta: "",
-          notes: `Scheduled for ${scheduledDateTime.toLocaleString()} on ${page.name} (Post ID: ${data.postId})`,
+          notes: scheduleNote,
           media: mediaPreview ? [mediaPreview] : [],
           timezone,
           scheduledDate: scheduleDate,
@@ -658,6 +713,18 @@ function CreateContent() {
               </Button>
             </div>
           </Row>
+
+          {isInstagram && canPublish && (
+            <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Send className="size-4" />
+                Instagram Publishing
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Publishing to: <span className="font-medium text-foreground">{igConnection?.accountName || igConnection?.selectedPageName || "Instagram Account"}</span>
+              </div>
+            </div>
+          )}
 
           {isFacebook && canPublish && (
             <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
@@ -950,16 +1017,16 @@ function CreateContent() {
                 </Button>
                 <Button
                   className="flex-1"
-                  disabled={!!(loading || !platform || !type || !goal || (publishMode === "later" && (!scheduleDate || !scheduleTime)) || (publishMode === "now" && isFacebook && canPublish && !selectedPage))}
+                  disabled={!!(loading || !platform || !type || !goal || (publishMode === "later" && (!scheduleDate || !scheduleTime)) || (publishMode === "now" && canPublish && isFacebook && !selectedPage))}
                   onClick={async () => {
                     if (publishMode === "now") {
-                      if (isFacebook && canPublish) {
+                      if (canPublish && (isFacebook || isInstagram)) {
                         publishNow();
                       } else {
                         generate();
                       }
                     } else {
-                      if (isFacebook && canPublish && selectedPage) {
+                      if (canPublish && (isFacebook || isInstagram)) {
                         scheduleFacebookPost();
                       } else {
                         if (!client) {
