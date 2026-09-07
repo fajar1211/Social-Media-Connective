@@ -10,18 +10,25 @@ export const Route = createFileRoute("/api/auth/instagram-direct")({
         const url = new URL(request.url);
         const clientId = url.searchParams.get("client_id") || "unknown";
 
-        const params = new URLSearchParams({
-          client_id: META_APP_ID,
+        const oauthParams = new URLSearchParams({
           redirect_uri: REDIRECT_URI,
           response_type: "code",
-          scope: "instagram_basic,instagram_content_publish,pages_show_list",
-          state: clientId,
+          scope: "instagram_business_basic,instagram_business_content_publish",
+          enable_fb_login: "1",
+          client_id: META_APP_ID,
         });
+
+        const nextUrl = `/oauth/authorize/third_party/?${oauthParams.toString()}`;
+
+        const loginUrl = new URL("https://www.instagram.com/accounts/login/");
+        loginUrl.searchParams.set("force_authentication", "1");
+        loginUrl.searchParams.set("platform_app_id", META_APP_ID);
+        loginUrl.searchParams.set("next", nextUrl);
 
         return new Response(null, {
           status: 302,
           headers: {
-            Location: `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}`,
+            Location: loginUrl.toString(),
           },
         });
       },
