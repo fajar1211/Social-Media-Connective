@@ -964,7 +964,7 @@ function CreateContent() {
             <div>clientId: {selectedClientId} | client: {client?.name || "NOT FOUND"}</div>
             <div>platform: "{platform}" | isIG: {platform === "Instagram" ? "YES" : "no"}</div>
             <div>IG keys: {client?.socialIntegrations ? Object.keys(client.socialIntegrations).join(", ") : "none"}</div>
-            <div>IG connected: {String(client?.socialIntegrations?.Instagram?.connected)} | accountName: {client?.socialIntegrations?.Instagram?.accountName || "(empty)"} | pic: {client?.socialIntegrations?.Instagram?.profilePicture ? "YES" : "NO"}</div>
+            <div>IG FULL: {JSON.stringify(client?.socialIntegrations?.Instagram) || "(none)"}</div>
           </div>
 
           {platform ? (
