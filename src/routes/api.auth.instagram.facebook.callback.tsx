@@ -153,6 +153,18 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
 
           const autoConnect = businesses.length === 1 && allBusinessPages.length === 1;
 
+          // Build pages with business info for frontend hierarchy display
+          const pagesWithBusiness = allBusinessPages.map((page) => {
+            const parentBusiness = businesses.find((biz) =>
+              biz.pages?.some((bp) => bp.id === page.id)
+            );
+            return {
+              ...page,
+              business_id: parentBusiness?.id || "",
+              business_name: parentBusiness?.name || "",
+            };
+          });
+
           // Filter pages that have Instagram Business accounts
           const instagramAccounts = allBusinessPages.filter(
             (p) => p.instagram_business_account
@@ -181,18 +193,6 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
               };
             })
           );
-
-          // Build pages with business info for frontend hierarchy display
-          const pagesWithBusiness = allBusinessPages.map((page) => {
-            const parentBusiness = businesses.find((biz) =>
-              biz.pages?.some((bp) => bp.id === page.id)
-            );
-            return {
-              ...page,
-              business_id: parentBusiness?.id || "",
-              business_name: parentBusiness?.name || "",
-            };
-          });
 
           const payload = JSON.stringify({
             type: "instagram-auth-success",
