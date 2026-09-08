@@ -76,7 +76,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             );
           }
 
-          const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyAgWl8TdaPheH71WDntMOPDtU-MF9kRh08";
+          const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
           if (!apiKey) {
             return new Response(
               JSON.stringify({ error: "Gemini API key not configured" }),
