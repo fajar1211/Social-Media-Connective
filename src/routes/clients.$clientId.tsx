@@ -2157,6 +2157,8 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const [endDate, setEndDate] = useState("");
   const [generatingContent, setGeneratingContent] = useState(false);
   const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, platform: "" });
+  const [goal, setGoal] = useState("");
+  const [tone, setTone] = useState("professional");
 
   useEffect(() => {
     loadKnowledgeFiles();
@@ -2288,6 +2290,17 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       (sum, p) => sum + (postsPerPlatform[p] || 5), 0
     );
 
+    const varietyAspects = [
+      "Create an engaging introduction/hook post",
+      "Focus on the key features and benefits",
+      "Share a behind-the-scenes or story angle",
+      "Use social proof or testimonial style",
+      "Create urgency with a strong call-to-action",
+      "Educate the audience with tips or insights",
+      "Highlight a specific product or service detail",
+      "Create an emotional connection with the audience",
+    ];
+
     setGeneratingContent(true);
     setGeneratingProgress({ current: 0, total: totalPosts, platform: "" });
 
@@ -2312,11 +2325,12 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               topic: postsAbout.trim(),
-              body: `Post ${i + 1} of ${postCount}. ${knowledgeNotes.trim()}`,
+              body: knowledgeNotes.trim(),
               platform,
-              tone: "professional",
+              tone,
               client_name: client.name,
               knowledge_files: selected.map((f) => ({ name: f.name, content: f.content })),
+              variety: varietyAspects[i % varietyAspects.length],
             }),
           });
 
@@ -2324,19 +2338,24 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
           const data = await resp.json();
 
           if (data.caption) {
+            const topicTitle = data.topic || postsAbout.trim().slice(0, 80);
+
             await actions.addContent({
-              title: `${postsAbout.trim()} - ${platform} Post ${i + 1}`,
+              title: topicTitle,
               client: client.name,
               clientId: client.id,
               platform: platform as SocialPlatform,
-              type: "Image",
+              type: (data.content_type || "Image") as ContentType,
               status: "Suggested",
               date: new Date().toISOString().slice(0, 10),
               caption: data.caption,
               body: data.caption,
               hashtags: data.hashtags || [],
-              cta: "",
-              notes: knowledgeNotes.trim() ? `Notes: ${knowledgeNotes.trim()}` : "",
+              cta: data.cta || "",
+              notes: [
+                goal ? `Goal: ${goal}` : "",
+                data.image_prompt ? `Image Prompt: ${data.image_prompt}` : "",
+              ].filter(Boolean).join("\n"),
               media: campaignImage ? [campaignImage] : [],
               timezone: "Asia/Jakarta",
               scheduledDate: schedule[i]?.date || "",
@@ -2354,6 +2373,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       setCampaignImage(null);
       setKnowledgeNotes("");
       setReferenceUrl("");
+      setGoal("");
     } catch {
       toast.error(`Failed at post ${currentPost}/${totalPosts}. Some posts may have been saved.`);
     } finally {
@@ -2479,6 +2499,41 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
               placeholder="Enter knowledge notes here..."
               className="mt-3 w-full rounded-lg border px-3 py-2 text-sm min-h-[100px]"
             />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border p-4">
+              <h3 className="text-sm font-semibold">Goal</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Select the goal for your content.
+              </p>
+              <Select value={goal} onValueChange={setGoal}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select goal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["Education", "Promotion", "Engagement", "Awareness", "Announcement"].map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-lg border p-4">
+              <h3 className="text-sm font-semibold">Tone</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Select the tone for your content.
+              </p>
+              <Select value={tone} onValueChange={setTone}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select tone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["Professional", "Friendly", "Educational", "Promotional", "Casual"].map((t) => (
+                    <SelectItem key={t} value={t.toLowerCase()}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="rounded-lg border p-4">
@@ -2660,31 +2715,58 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
             <div>
               <h2 className="text-base font-semibold">Suggested Posts</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Content suggestions ready for review.
+                {suggestedContent.length} content suggestions ready for review.
               </p>
             </div>
           </div>
 
           <div className="mt-6 space-y-4">
-            {suggestedContent.map((item) => (
+            {suggestedContent.map((item, index) => (
               <div
                 key={item.id}
                 className="cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted/30"
                 onClick={() => navigate({ to: "/content" })}
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                    {index + 1}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-medium">{item.title}</h3>
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-medium leading-snug">{item.title}</h3>
                       <StatusBadge status={item.status} />
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                    <p className="mt-1.5 text-xs text-muted-foreground line-clamp-4 leading-relaxed">
                       {item.caption}
                     </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    {item.hashtags?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {item.hashtags.slice(0, 6).map((tag, i) => (
+                          <span key={i} className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                            #{tag}
+                          </span>
+                        ))}
+                        {item.hashtags.length > 6 && (
+                          <span className="text-[10px] text-muted-foreground">+{item.hashtags.length - 6}</span>
+                        )}
+                      </div>
+                    )}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <PlatformBadge platform={item.platform} />
                       <ContentTypeBadge type={item.type} />
+                      {item.cta && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">CTA: {item.cta}</span>
+                      )}
+                      {item.scheduledDate && (
+                        <span className="flex items-center gap-1 text-[10px]">
+                          <CalendarClock className="size-3" />
+                          {item.scheduledDate} {item.scheduledTime || ""}
+                        </span>
+                      )}
                     </div>
+                    {item.media?.[0] && (
+                      <img src={item.media[0]} alt="" className="mt-2 h-20 w-20 rounded-lg object-cover" />
+                    )}
                   </div>
                 </div>
               </div>

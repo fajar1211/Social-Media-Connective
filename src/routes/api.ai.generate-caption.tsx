@@ -8,18 +8,26 @@ You MUST respond with valid JSON only. No markdown, no code blocks, no extra tex
 
 The JSON must have this exact structure:
 {
-  "caption": "The post caption text",
-  "hashtags": ["tag1", "tag2", "tag3"]
+  "topic": "Short topic title (max 80 chars)",
+  "caption": "The post caption/body text",
+  "hashtags": ["tag1", "tag2", "tag3"],
+  "cta": "A call-to-action sentence",
+  "image_prompt": "Detailed prompt for generating a relevant image",
+  "content_type": "Image"
 }
 
 Rules:
-- caption: concise, engaging, platform-appropriate (max 2200 chars for Instagram, 280 for Twitter)
-- hashtags: array of relevant hashtags WITHOUT the # symbol (3-15 tags)
+- topic: short, descriptive title for the post (max 80 chars)
+- caption: engaging, platform-appropriate text (max 2200 chars for Instagram, 280 for Twitter)
+- hashtags: 3-15 tags WITHOUT the # symbol
+- cta: a single sentence call-to-action relevant to the content
+- image_prompt: detailed description for AI image generation
+- content_type: one of "Image", "Carousel", "Text Post", "Short Video"
 - Match the tone requested
-- Include a call-to-action when appropriate
-- Do NOT include hashtags in the caption text itself, return them separately`;
+- Do NOT include hashtags in the caption text
+- If knowledge context is provided, use it to make content more specific and authentic`;
 
-function parseJsonResponse(text: string): { caption?: string; hashtags?: string[] } | null {
+function parseJsonResponse(text: string): { topic?: string; caption?: string; hashtags?: string[]; cta?: string; image_prompt?: string; content_type?: string } | null {
   // Strategy 1: Extract from markdown code blocks
   const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (codeBlockMatch) {
@@ -38,7 +46,6 @@ function parseJsonResponse(text: string): { caption?: string; hashtags?: string[
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].trim().startsWith("{")) {
       const candidate = lines.slice(i).join("\n");
-      // Find matching closing brace
       let depth = 0;
       for (const ch of candidate) {
         if (ch === "{") depth++;
@@ -50,6 +57,14 @@ function parseJsonResponse(text: string): { caption?: string; hashtags?: string[
         }
       }
     }
+  }
+
+  // Strategy 4: Regex find JSON object with "caption" key (handles thinking text before JSON)
+  const jsonMatch = text.match(/\{[\s\S]*?"caption"[\s\S]*?\}/);
+  if (jsonMatch) {
+    try {
+      return JSON.parse(jsonMatch[0]);
+    } catch { /* continue */ }
   }
 
   return null;
@@ -68,6 +83,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             tone = "professional",
             client_name = "",
             knowledge_files = [],
+            variety = "",
           } = body;
 
           if (!topic || !topic.trim()) {
@@ -110,6 +126,9 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
           userParts.push(`Tone: ${tone}`);
           userParts.push(`Platform: ${platform}`);
+          if (variety) {
+            userParts.push(`Variation focus: ${variety}`);
+          }
           userParts.push("");
           userParts.push("Respond with JSON only. No extra text.");
 
@@ -144,8 +163,12 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             return new Response(
               JSON.stringify({
                 success: true,
+                topic: parsed.topic || topic.trim(),
                 caption: parsed.caption,
                 hashtags: parsed.hashtags || [],
+                cta: parsed.cta || "",
+                image_prompt: parsed.image_prompt || "",
+                content_type: parsed.content_type || "Image",
               }),
               { status: 200, headers: { "Content-Type": "application/json" } }
             );
@@ -155,8 +178,12 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           return new Response(
             JSON.stringify({
               success: true,
+              topic: topic.trim(),
               caption: content,
               hashtags: [],
+              cta: "",
+              image_prompt: "",
+              content_type: "Image",
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
