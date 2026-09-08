@@ -294,7 +294,7 @@ function CreateContent() {
     }
     setAiCaptionLoading(true);
     try {
-      const resp = await fetch(`${agentUrl}/ai/generate`, {
+      const resp = await fetch("/api/ai/generate-caption", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -305,7 +305,7 @@ function CreateContent() {
           client_name: client?.name || "",
         }),
       });
-      if (!resp.ok) throw new Error("Agent unreachable");
+      if (!resp.ok) throw new Error("Generation failed");
       const data = await resp.json();
       if (data.caption) setBody(data.caption);
       if (data.hashtags && data.hashtags.length > 0) {
@@ -314,7 +314,7 @@ function CreateContent() {
       }
       toast.success("AI caption generated!");
     } catch {
-      toast.error("Could not reach AI agent. Make sure it's running on " + agentUrl);
+      toast.error("Failed to generate caption. Please try again.");
     } finally {
       setAiCaptionLoading(false);
     }
