@@ -155,8 +155,10 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             body: JSON.stringify({
               contents: [{ parts: [{ text: fullPrompt }] }],
               generationConfig: {
-                temperature: 0.8,
-                maxOutputTokens: 1024,
+                temperature: 0.7,
+                topP: 0.8,
+                topK: 40,
+                maxOutputTokens: 2048,
               },
             }),
           });
