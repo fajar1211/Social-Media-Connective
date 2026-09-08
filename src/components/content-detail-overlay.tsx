@@ -49,16 +49,90 @@ function ReplaceMediaSection({
   const [aiPrompt, setAiPrompt] = useState("");
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [gbpImageUrl, setGbpImageUrl] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
-  const handleUpload = (files: FileList | null) => {
+  const handleUpload = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const url = e.target?.result as string;
-      setDraft({ ...draft, media: [url] });
-    };
-    reader.readAsDataURL(file);
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum 10MB.");
+      return;
+    }
+    const { uploadContentMedia } = await import("@/lib/db");
+    const clientId = draft.clientId || "unknown";
+    setAiLoading(true);
+    try {
+      const url = await uploadContentMedia(file, clientId);
+      if (url) {
+        setDraft({ ...draft, media: [url] });
+      } else {
+        toast.error("Failed to upload image.");
+      }
+    } catch {
+      toast.error("Failed to upload image.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const generateAiImage = async () => {
+    const prompt = aiPrompt.trim() || draft.title;
+    if (!prompt) {
+      toast.error("Enter a prompt to generate image.");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      if (draft.type === "Carousel") {
+        const resp = await fetch("/api/ai/generate-carousel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompts: [prompt, prompt, prompt],
+            width: 1024,
+            height: 1024,
+            style: "photorealistic",
+            model: "flux",
+          }),
+        });
+        if (!resp.ok) throw new Error("Generation failed");
+        const data = await resp.json();
+        if (data.success && data.images?.length > 0) {
+          setDraft({ ...draft, media: [data.images[0].image_url] });
+          toast.success(`Generated ${data.images.length} carousel images!`);
+        } else {
+          throw new Error(data.error || "Generation failed");
+        }
+      } else {
+        const payload: Record<string, unknown> = {
+          prompt,
+          width: 1024,
+          height: 1024,
+          style: "photorealistic",
+          model: "flux",
+        };
+        if (referenceImage) payload.reference_image = referenceImage;
+        if (gbpImageUrl) payload.gbp_url = gbpImageUrl;
+
+        const resp = await fetch("/api/ai/generate-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!resp.ok) throw new Error("Generation failed");
+        const data = await resp.json();
+        if (data.success && data.image_url) {
+          setDraft({ ...draft, media: [data.image_url] });
+          toast.success("Image generated!");
+        } else {
+          throw new Error(data.error || "Generation failed");
+        }
+      }
+    } catch {
+      toast.error("Failed to generate image. Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
@@ -74,11 +148,11 @@ function ReplaceMediaSection({
       />
 
       <div className="space-y-2">
-        <Button variant="outline" size="sm" className="w-full" onClick={() => imageInputRef.current?.click()}>
+        <Button variant="outline" size="sm" className="w-full" onClick={() => imageInputRef.current?.click()} disabled={aiLoading}>
           <Upload className="mr-1.5 size-3.5" />
-          Upload Image/Video
+          {aiLoading ? "Uploading..." : "Upload Image/Video"}
         </Button>
-        <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAiGen((p) => !p)}>
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAiGen((p) => !p)} disabled={aiLoading}>
           <svg className="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2L2 7l10 5 10-5-10-5z"/>
             <path d="M2 17l10 5 10-5"/>
@@ -206,8 +280,23 @@ function ReplaceMediaSection({
             placeholder={`${aiMediaType === "video" ? "Video" : "Image"} prompt (used to generate)...`}
             className="text-xs"
           />
-          <Button size="sm" className="w-full" onClick={() => toast.success("AI generation started...")}>
-            Run
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={generateAiImage}
+            disabled={aiLoading || (!aiPrompt.trim() && !draft.title)}
+          >
+            {aiLoading ? (
+              <>
+                <svg className="mr-2 size-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Generating...
+              </>
+            ) : (
+              "Run"
+            )}
           </Button>
         </div>
       )}
@@ -430,6 +519,47 @@ export function ContentDetailOverlay({
                     onChange={(e) => setDraft({ ...draft, caption: e.target.value })}
                     placeholder="Write your post content including hashtags..."
                   />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full"
+                    onClick={async () => {
+                      if (!draft.title) {
+                        toast.error("Enter a topic first.");
+                        return;
+                      }
+                      try {
+                        const resp = await fetch("/api/ai/generate-caption", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            topic: draft.title,
+                            body: draft.caption || "",
+                            platform: draft.platform || "Facebook",
+                            tone: "professional",
+                            client_name: draft.client || "",
+                          }),
+                        });
+                        if (!resp.ok) throw new Error("Generation failed");
+                        const data = await resp.json();
+                        if (data.caption) setDraft({ ...draft, caption: data.caption });
+                        if (data.hashtags && data.hashtags.length > 0) {
+                          const cleanTags = data.hashtags.map((t: string) => t.replace(/^#/, ""));
+                          setDraft({ ...draft, hashtags: cleanTags });
+                        }
+                        toast.success("AI caption regenerated!");
+                      } catch {
+                        toast.error("Failed to regenerate caption.");
+                      }
+                    }}
+                  >
+                    <svg className="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                      <path d="M2 17l10 5 10-5"/>
+                      <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    AI Regenerate Caption
+                  </Button>
                 </div>
               )}
             </div>
@@ -450,6 +580,32 @@ export function ContentDetailOverlay({
                   />
                 ) : (
                   <p className="mt-1 text-sm">{item.cta || "—"}</p>
+                )}
+              </div>
+              <div>
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Hashtags</Label>
+                {editing ? (
+                  <Input
+                    className="mt-1.5"
+                    value={(draft.hashtags || []).join(", ")}
+                    onChange={(e) => setDraft({
+                      ...draft,
+                      hashtags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean),
+                    })}
+                    placeholder="tag1, tag2, tag3"
+                  />
+                ) : (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {(item.hashtags || []).length > 0 ? (
+                      item.hashtags.map((tag, i) => (
+                        <span key={i} className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                          #{tag}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">—</p>
+                    )}
+                  </div>
                 )}
               </div>
               <div>

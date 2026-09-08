@@ -33,6 +33,8 @@ import {
   type FacebookPage,
 } from "@/lib/content-store";
 import { SocialMediaPreviewCard } from "@/components/social-media-preview-card";
+import { getKnowledgeFiles, uploadContentMedia } from "@/lib/db";
+import type { KnowledgeFile } from "@/lib/database.types";
 
 export const Route = createFileRoute("/content/create")({
   head: () => ({
@@ -195,6 +197,9 @@ function CreateContent() {
   const [aiCaptionLoading, setAiCaptionLoading] = useState(false);
   const [aiImageLoading, setAiImageLoading] = useState(false);
   const [agentUrl, setAgentUrl] = useState("http://localhost:8000");
+  const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
+  const [generatedHashtags, setGeneratedHashtags] = useState<string[]>([]);
+  const [tone, setTone] = useState("professional");
 
   const client = clients.find((c) => c.id === selectedClientId);
   const fbConnection = client?.socialIntegrations?.Facebook;
@@ -220,6 +225,24 @@ function CreateContent() {
       setSelectedPage(pages[0].id);
     }
   }, [isFacebook, pages, selectedPage]);
+
+  // Load knowledge files when client is selected
+  useEffect(() => {
+    if (!selectedClientId) {
+      setKnowledgeFiles([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const files = await getKnowledgeFiles(selectedClientId);
+        if (!cancelled) setKnowledgeFiles(files);
+      } catch {
+        if (!cancelled) setKnowledgeFiles([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedClientId]);
 
   // Auto-fix incomplete Instagram data: fill missing accountName + fetch profile picture
   useEffect(() => {
@@ -258,28 +281,60 @@ function CreateContent() {
     })();
   }, [client?.id, platform, client?.socialIntegrations?.Instagram?.connected]);
 
-  const handleImageUpload = (files: FileList | null) => {
+  const handleImageUpload = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setMediaPreview(e.target?.result as string);
-      setMediaType("image");
-      setType("Image");
-    };
-    reader.readAsDataURL(file);
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum 10MB.");
+      return;
+    }
+    if (!selectedClientId) {
+      toast.error("Select a client first.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const url = await uploadContentMedia(file, selectedClientId);
+      if (url) {
+        setMediaPreview(url);
+        setMediaType("image");
+        setType("Image");
+      } else {
+        toast.error("Failed to upload image.");
+      }
+    } catch {
+      toast.error("Failed to upload image.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleVideoUpload = (files: FileList | null) => {
+  const handleVideoUpload = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setMediaPreview(e.target?.result as string);
-      setMediaType("video");
-      setType("Short Video");
-    };
-    reader.readAsDataURL(file);
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum 10MB.");
+      return;
+    }
+    if (!selectedClientId) {
+      toast.error("Select a client first.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const url = await uploadContentMedia(file, selectedClientId);
+      if (url) {
+        setMediaPreview(url);
+        setMediaType("video");
+        setType("Short Video");
+      } else {
+        toast.error("Failed to upload video.");
+      }
+    } catch {
+      toast.error("Failed to upload video.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const removeMedia = () => {
@@ -301,16 +356,20 @@ function CreateContent() {
           topic: topic.trim(),
           body: body.trim(),
           platform: platform || "Facebook",
-          tone: "professional",
+          tone: tone || "professional",
           client_name: client?.name || "",
+          knowledge_files: knowledgeFiles.map((kf) => ({
+            name: kf.name,
+            content: kf.content,
+          })),
         }),
       });
       if (!resp.ok) throw new Error("Generation failed");
       const data = await resp.json();
       if (data.caption) setBody(data.caption);
       if (data.hashtags && data.hashtags.length > 0) {
-        const tags = data.hashtags.map((t: string) => `#${t.replace(/^#/, "")}`).join(" ");
-        setBody((prev) => (prev ? `${prev}\n\n${tags}` : tags));
+        const cleanTags = data.hashtags.map((t: string) => t.replace(/^#/, ""));
+        setGeneratedHashtags(cleanTags);
       }
       toast.success("AI caption generated!");
     } catch {
@@ -404,16 +463,16 @@ function CreateContent() {
       type: (type || "Carousel") as ContentType,
       status: "Suggested",
       date: new Date().toISOString().slice(0, 10),
-      caption: topic.trim(),
+      caption: body.trim() || topic.trim(),
       body: body,
-      hashtags: [],
+      hashtags: generatedHashtags,
       cta: "",
-      notes: "",
+      notes: goal ? `Goal: ${goal}` : "",
       media: mediaPreview ? [mediaPreview] : [],
       timezone,
     });
     toast.success("Content saved as draft");
-    navigate({ to: "/suggested" });
+    navigate({ to: "/content" });
   };
 
   const save = async (status: "Suggested" | "Submitted") => {
@@ -433,11 +492,11 @@ function CreateContent() {
       type: (type || "Carousel") as ContentType,
       status,
       date: new Date().toISOString().slice(0, 10),
-      caption: topic.trim(),
+      caption: body.trim() || topic.trim(),
       body: body,
-      hashtags: [],
+      hashtags: generatedHashtags,
       cta: "",
-      notes: "",
+      notes: goal ? `Goal: ${goal}` : "",
       media: mediaPreview ? [mediaPreview] : [],
       timezone,
     });
@@ -453,6 +512,11 @@ function CreateContent() {
 
     if (isFacebook && !selectedPage) {
       toast.error("Please select a Facebook page first.");
+      return;
+    }
+
+    if (!body.trim() && !topic.trim()) {
+      toast.error("Please generate or write content before publishing.");
       return;
     }
 
@@ -514,11 +578,11 @@ function CreateContent() {
           type: (type || "Carousel") as ContentType,
           status: "Approved",
           date: new Date().toISOString().slice(0, 10),
-          caption: topic.trim(),
+          caption: body.trim() || topic.trim(),
           body: body,
-          hashtags: [],
+          hashtags: generatedHashtags,
           cta: "",
-          notes: publishNote,
+          notes: goal ? `Goal: ${goal}\n${publishNote}` : publishNote,
           media: mediaPreview ? [mediaPreview] : [],
           timezone,
         });
@@ -542,6 +606,11 @@ function CreateContent() {
 
     if (isFacebook && !selectedPage) {
       toast.error("Please select a Facebook page first.");
+      return;
+    }
+
+    if (!body.trim() && !topic.trim()) {
+      toast.error("Please generate or write content before scheduling.");
       return;
     }
 
@@ -602,16 +671,16 @@ function CreateContent() {
         await actions.addContent({
           title: topic.trim(),
           client: client.name,
-      clientId: client.id,
+          clientId: client.id,
           platform: (platform || "Facebook") as any,
           type: (type || "Carousel") as ContentType,
           status: "Submitted",
           date: scheduleDate,
-          caption: topic.trim(),
+          caption: body.trim() || topic.trim(),
           body: body,
-          hashtags: [],
+          hashtags: generatedHashtags,
           cta: "",
-          notes: scheduleNote,
+          notes: goal ? `Goal: ${goal}\n${scheduleNote}` : scheduleNote,
           media: mediaPreview ? [mediaPreview] : [],
           timezone,
           scheduledDate: scheduleDate,
@@ -695,7 +764,7 @@ function CreateContent() {
             />
           </Row>
 
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-3">
             <Row label="Goal">
               <Select value={goal} onValueChange={setGoal}>
                 <SelectTrigger>
@@ -705,6 +774,20 @@ function CreateContent() {
                   {goals.map((g) => (
                     <SelectItem key={g} value={g}>
                       {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Row>
+            <Row label="Tone">
+              <Select value={tone} onValueChange={setTone}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Tone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["Professional", "Friendly", "Educational", "Promotional", "Casual"].map((t) => (
+                    <SelectItem key={t} value={t.toLowerCase()}>
+                      {t}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1109,11 +1192,13 @@ function CreateContent() {
                           type: (type || "Carousel") as ContentType,
                           status: "Submitted",
                           date: scheduleDate,
-                          caption: topic.trim(),
+                          caption: body.trim() || topic.trim(),
                           body: body,
-                          hashtags: [],
+                          hashtags: generatedHashtags,
                           cta: "",
-                          notes: `Scheduled for ${scheduleDate} ${scheduleTime} (${timezone})`,
+                          notes: goal
+                            ? `Goal: ${goal}\nScheduled for ${scheduleDate} ${scheduleTime} (${timezone})`
+                            : `Scheduled for ${scheduleDate} ${scheduleTime} (${timezone})`,
                           media: mediaPreview ? [mediaPreview] : [],
                           timezone,
                           scheduledDate: scheduleDate,
