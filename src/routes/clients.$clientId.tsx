@@ -2155,6 +2155,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const [postsPerPlatform, setPostsPerPlatform] = useState<Record<string, number>>({});
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [generatingContent, setGeneratingContent] = useState(false);
 
   useEffect(() => {
     loadKnowledgeFiles();
@@ -2220,15 +2221,24 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     (p) => clientData?.socialIntegrations?.[p]?.connected === true
   );
 
-  const handleCampaignImage = (files: FileList | null) => {
+  const handleCampaignImage = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setCampaignImage(e.target?.result as string);
-      toast.success("Campaign image added");
-    };
-    reader.readAsDataURL(file);
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum 10MB.");
+      return;
+    }
+    try {
+      const url = await db.uploadContentMedia(file, client.id);
+      if (url) {
+        setCampaignImage(url);
+        toast.success("Campaign image uploaded");
+      } else {
+        toast.error("Failed to upload image.");
+      }
+    } catch {
+      toast.error("Failed to upload image.");
+    }
   };
 
   const handleReferenceDoc = (files: FileList | null) => {
@@ -2243,7 +2253,12 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       toast.error("Enter a topic first.");
       return;
     }
-    toast.success("Generating AI content...");
+    if (connectedPlatforms.length === 0) {
+      toast.error("No connected platforms. Please connect a platform first.");
+      return;
+    }
+
+    setGeneratingContent(true);
     try {
       const selected = knowledgeFiles.filter((f) => selectedKnowledge.has(f.id));
       const resp = await fetch("/api/ai/generate-caption", {
@@ -2251,7 +2266,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topic: postsAbout.trim(),
-          body: "",
+          body: knowledgeNotes.trim(),
           platform: connectedPlatforms[0] || "Facebook",
           tone: "professional",
           client_name: client.name,
@@ -2260,13 +2275,38 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       });
       if (!resp.ok) throw new Error("Generation failed");
       const data = await resp.json();
+
       if (data.caption) {
-        toast.success("AI content generated!", {
-          description: data.caption.slice(0, 100) + "...",
+        await actions.addContent({
+          title: postsAbout.trim(),
+          client: client.name,
+          clientId: client.id,
+          platform: (connectedPlatforms[0] || "Facebook") as SocialPlatform,
+          type: "Image",
+          status: "Suggested",
+          date: new Date().toISOString().slice(0, 10),
+          caption: data.caption,
+          body: data.caption,
+          hashtags: data.hashtags || [],
+          cta: "",
+          notes: knowledgeNotes.trim() ? `Notes: ${knowledgeNotes.trim()}` : "",
+          media: campaignImage ? [campaignImage] : [],
+          timezone: "Asia/Jakarta",
         });
+
+        toast.success("Content generated and saved!", {
+          description: "Check Suggested Posts below or go to All Content.",
+        });
+
+        setPostsAbout("");
+        setCampaignImage(null);
+        setKnowledgeNotes("");
+        setReferenceUrl("");
       }
     } catch {
-      toast.error("Failed to generate content.");
+      toast.error("Failed to generate content. Please try again.");
+    } finally {
+      setGeneratingContent(false);
     }
   };
 
@@ -2540,9 +2580,21 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
             </div>
           </div>
 
-          <Button onClick={handleGenerate} className="w-full">
-            <Sparkles className="mr-2 size-4" />
-            Generate AI Content
+          <Button onClick={handleGenerate} className="w-full" disabled={generatingContent}>
+            {generatingContent ? (
+              <>
+                <svg className="mr-2 size-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 size-4" />
+                Generate AI Content
+              </>
+            )}
           </Button>
         </div>
       </div>
