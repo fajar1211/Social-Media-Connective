@@ -248,9 +248,9 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
 
           const platformRules: Record<string, string> = {
-            Instagram: "100-2200 chars. Storytelling. Engaging.",
-            Facebook: "100-500 chars. Informative. Conversational.",
-            Twitter: "Under 280 chars. Punchy. Direct.",
+            Instagram: "Write an engaging caption.",
+            Facebook: "Write a conversational caption.",
+            Twitter: "Write a short caption.",
           };
 
           const knowledgeText = knowledge_files.length > 0
