@@ -78,8 +78,8 @@ function parseJsonResponse(text: string): { topic?: string; caption?: string; ha
           if (depth === 0) {
             try {
               const parsed = JSON.parse(text.slice(searchIdx, i + 1));
-              // Only accept if it has caption AND hashtags array
-              if (parsed?.caption && Array.isArray(parsed.hashtags)) {
+              // Only accept if it has caption AND non-empty hashtags array
+              if (parsed?.caption && Array.isArray(parsed.hashtags) && parsed.hashtags.length > 0) {
                 return parsed;
               }
             } catch { /* not valid JSON, continue */ }
