@@ -138,19 +138,38 @@ function parseJsonResponse(text: string): ApiResponse | null {
 async function callGemini(
   apiKey: string,
   fullPrompt: string,
-  maxTokens: number
+  maxTokens: number,
+  jsonMode = false
 ): Promise<{ ok: boolean; content: string; error?: string }> {
+  const config: Record<string, unknown> = {
+    temperature: 0.7,
+    topP: 0.8,
+    topK: 40,
+    maxOutputTokens: maxTokens,
+  };
+
+  if (jsonMode) {
+    config.responseMimeType = "application/json";
+    config.responseSchema = {
+      type: "OBJECT",
+      properties: {
+        topic: { type: "STRING" },
+        caption: { type: "STRING" },
+        hashtags: { type: "ARRAY", items: { type: "STRING" } },
+        cta: { type: "STRING" },
+        image_prompt: { type: "STRING" },
+        content_type: { type: "STRING" },
+      },
+      required: ["topic", "caption", "hashtags", "cta", "image_prompt", "content_type"],
+    };
+  }
+
   const resp = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.8,
-        topK: 40,
-        maxOutputTokens: maxTokens,
-      },
+      generationConfig: config,
     }),
   });
 
@@ -228,9 +247,9 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
 
           if (!parsed) {
-            const retryPrompt = `Output ONLY this JSON. No other text.\n{"topic":"${topic.slice(0,60)}","caption":"Write a ${platform} post about ${topic.slice(0,50)} for ${client_name||"brand"}. Max 300 chars.","hashtags":["tag1","tag2"],"cta":"Call to action","image_prompt":"Image description","content_type":"Image"}`;
+            const retryPrompt = `Create a ${platform} post about "${topic.trim()}" for ${client_name || "brand"}. Tone: ${tone}. Caption max 300 chars. Use brand details: ${knowledgeText.slice(0, 200)}`;
 
-            const attempt2 = await callGemini(apiKey, retryPrompt, 2048);
+            const attempt2 = await callGemini(apiKey, retryPrompt, 2048, true);
             lastRaw = attempt2.content;
 
             if (attempt2.ok) {
