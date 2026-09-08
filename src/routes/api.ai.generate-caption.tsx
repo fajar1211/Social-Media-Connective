@@ -302,6 +302,14 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             }
           }
 
+          if (!parsed) {
+            const attempt4 = await callGemini(apiKey, `JSON only: {"topic":"${topic.slice(0,30)}","caption":"${client_name||"brand"} delivers quality. Visit us today.","hashtags":["${(client_name||"brand").toLowerCase().replace(/\s/g,"")}"],"cta":"Visit us","image_prompt":"Professional photo","content_type":"Image"}`, 512);
+            lastRaw = attempt4.content;
+            if (attempt4.ok) {
+              parsed = parseJsonResponse(attempt4.content);
+            }
+          }
+
           if (parsed?.caption) {
             return new Response(
               JSON.stringify({
