@@ -14,19 +14,9 @@ const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models
 
 const GOALS = ["Education", "Promotion", "Engagement", "Awareness", "Announcement"];
 
-const SYSTEM_PROMPT = `You are a social media content expert. Create ONE post.
-
-The "Knowledge Context" below is your PRIMARY source of truth.
-Write content that references SPECIFIC details from it:
-- Exact brand name, products, location, chef, values
-- Target audience preferences and behaviors
-- Brand voice, personality, and style
-- Specific menu items, services, or offerings mentioned
-
-Do NOT write generic content. Every post must feel specific to this brand.
-
-Output ONLY a JSON object:
-{"topic":"...","caption":"...","hashtags":[...],"cta":"...","image_prompt":"...","content_type":"Image"}`;
+function getApiKey(): string {
+  return (import.meta.env as Record<string, string>)["VITE_GEMINI_API_KEY"] || "";
+}
 
 async function callGemini(apiKey: string, prompt: string, maxTokens: number): Promise<string> {
   const resp = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
@@ -47,117 +37,47 @@ async function callGemini(apiKey: string, prompt: string, maxTokens: number): Pr
 }
 
 function extractJson(text: string): Record<string, unknown> | null {
-  const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  cleaned = cleaned.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
-  if (firstBrace === -1 || lastBrace === -1) return null;
-  try {
-    return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
-  } catch {
-    return null;
-  }
-}
-
-async function fetchUrlContent(url: string): Promise<string> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const resp = await fetch(url, {
-      signal: controller.signal,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; ContentBot/1.0)" },
-    });
-    clearTimeout(timeout);
-    if (!resp.ok) return "";
-    const html = await resp.text();
-    return html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 1500);
-  } catch {
-    return "";
-  }
-}
-
-async function runFallbackGeneration(
-  apiKey: string,
-  topic: string,
-  clientName: string,
-  platform: string,
-  tone: string,
-  selectedGoal: string,
-  knowledgeBlocks: string[]
-): Promise<Record<string, unknown> | null> {
-  const knowledgeText = knowledgeBlocks.length > 0
-    ? `\nBrand info: ${knowledgeBlocks.join(" | ").slice(0, 500)}`
-    : "";
-
-  const prompt = [
-    SYSTEM_PROMPT,
-    "",
-    "Knowledge Context:",
-    ...knowledgeBlocks,
-    "",
-    `Topic: ${topic}. Goal: ${selectedGoal}. Platform: ${platform}. Tone: ${tone}.`,
-    "",
-    `Write a ${platform} post using the knowledge above.`,
-  ].filter(Boolean).join("\n");
-
-  const content = await callGemini(apiKey, prompt, 4000);
-  const parsed = extractJson(content);
-
-  if (parsed && typeof (parsed as Record<string, unknown>)["caption"] === "string" && ((parsed as Record<string, unknown>)["caption"] as string).length >= 20) {
-    const p = parsed as Record<string, unknown>;
-    return {
-      topic: (p["topic"] as string) || topic,
-      caption: p["caption"],
-      hashtags: p["hashtags"] || [],
-      cta: p["cta"] || "",
-      image_prompt: p["image_prompt"] || "",
-      content_type: p["content_type"] || "Image",
-    };
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+    } catch { /* continue */ }
   }
 
-  if (knowledgeText) {
-    const retryPrompt = [
-      `Generate ONE ${platform} post as JSON.`,
-      `Topic: ${topic}. Goal: ${selectedGoal}. Tone: ${tone}.`,
-      knowledgeText,
-      `Example: {"topic":"Topic","caption":"Post body text here","hashtags":["tag1","tag2"],"cta":"Call to action","image_prompt":"Image description","content_type":"Image"}`,
-    ].filter(Boolean).join("\n");
-
-    const retryContent = await callGemini(apiKey, retryPrompt, 2048);
-    const retryParsed = extractJson(retryContent);
-
-    if (retryParsed && typeof (retryParsed as Record<string, unknown>)["caption"] === "string" && ((retryParsed as Record<string, unknown>)["caption"] as string).length >= 20) {
-      const rp = retryParsed as Record<string, unknown>;
-      return {
-        topic: (rp["topic"] as string) || topic,
-        caption: rp["caption"],
-        hashtags: rp["hashtags"] || [],
-        cta: rp["cta"] || "",
-        image_prompt: rp["image_prompt"] || "",
-        content_type: rp["content_type"] || "Image",
-      };
-    }
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      return JSON.parse(match[0]);
+    } catch { /* continue */ }
   }
 
   return null;
+}
+
+function extractBrandFromKnowledge(knowledge: string[]): string {
+  for (const block of knowledge) {
+    const match = block.match(/\[([^\]]+)\]/);
+    if (match && match[1] && !match[1].includes("New Knowledge")) {
+      return match[1];
+    }
+  }
+  return "";
 }
 
 export const Route = createFileRoute("/api/ai/generate-caption")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const startTime = Date.now();
+
         try {
           const body = await request.json();
           const {
             topic = "",
-            body: contentBody = "",
             platform = "Facebook",
             tone = "professional",
             client_name = "",
@@ -174,7 +94,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             );
           }
 
-          const apiKey = (import.meta.env as Record<string, string>)["VITE_GEMINI_API_KEY"] || "";
+          const apiKey = getApiKey();
           if (!apiKey) {
             return new Response(
               JSON.stringify({ error: "Gemini API key not configured" }),
@@ -184,11 +104,6 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
 
           const selectedGoal = goal || GOALS[Math.floor(Math.random() * GOALS.length)];
 
-          let referenceContent = "";
-          if (reference_url) {
-            referenceContent = await fetchUrlContent(reference_url);
-          }
-
           const knowledgeBlocks: string[] = [];
           for (const kf of knowledge_files) {
             if (kf.content?.trim()) {
@@ -196,11 +111,10 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             }
           }
 
-          const brandNiche = knowledgeBlocks.length > 0
-            ? knowledgeBlocks.join(" ").slice(0, 500)
-            : client_name || "general business";
+          const brandFromKnowledge = extractBrandFromKnowledge(knowledgeBlocks);
+          const brandNiche = brandFromKnowledge || client_name || "general business";
 
-          // Agent 0: Trend Researcher
+          // ── Step 1: Trends (fast, 1 call) ──
           const trends: TrendData = await runTrendsAgent({
             date: new Date().toISOString().slice(0, 10),
             country: "Indonesia",
@@ -208,32 +122,60 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             brand_niche: brandNiche,
           });
 
-          // Agent 1: Content Strategist
-          const strategy: StrategyData | null = await runStrategyAgent({
+          // ── Step 2: Strategy (with retry) ──
+          let strategy: StrategyData | null = await runStrategyAgent({
             knowledge: knowledgeBlocks,
             trends,
             topic: topic.trim(),
             goal: selectedGoal,
-            reference: referenceContent,
+            reference: "",
           });
 
+          // If strategy failed, create minimal strategy from knowledge
+          if (!strategy && brandFromKnowledge) {
+            strategy = {
+              brand_name: brandFromKnowledge,
+              key_points: [],
+              target_audience: "",
+              brand_voice: tone,
+              emotional_hook: "",
+              content_angle: topic.trim(),
+              trend_integration: "",
+              viral_elements: [],
+            };
+          }
+
           if (!strategy) {
-            const fallback = await runFallbackGeneration(
-              apiKey, topic.trim(), client_name, platform, tone, selectedGoal, knowledgeBlocks
-            );
-            if (fallback) {
-              return new Response(
-                JSON.stringify({ success: true, ...fallback, goal: selectedGoal }),
-                { status: 200, headers: { "Content-Type": "application/json" } }
-              );
-            }
+            // Last resort: direct Gemini call
+            const directPrompt = `Write a ${platform} post about "${topic.trim()}" for ${client_name}. Output JSON: {"topic":"...","caption":"...","hashtags":[...],"cta":"...","image_prompt":"..."}`;
+            try {
+              const content = await callGemini(apiKey, directPrompt, 2048);
+              const parsed = extractJson(content);
+              if (parsed && typeof (parsed as Record<string, unknown>)["caption"] === "string") {
+                const p = parsed as Record<string, unknown>;
+                return new Response(
+                  JSON.stringify({
+                    success: true,
+                    topic: (p["topic"] as string) || topic.trim().slice(0, 80),
+                    caption: p["caption"],
+                    hashtags: p["hashtags"] || [],
+                    cta: p["cta"] || "",
+                    image_prompt: p["image_prompt"] || "",
+                    content_type: "Image",
+                    goal: selectedGoal,
+                  }),
+                  { status: 200, headers: { "Content-Type": "application/json" } }
+                );
+              }
+            } catch { /* fallback failed too */ }
+
             return new Response(
               JSON.stringify({ error: "Failed to generate content strategy" }),
               { status: 422, headers: { "Content-Type": "application/json" } }
             );
           }
 
-          // Agent 2: Caption Writer
+          // ── Step 3: Caption (with retry) ──
           const caption = await runCaptionAgent({
             strategy,
             knowledge: knowledgeBlocks,
@@ -243,22 +185,36 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           });
 
           if (!caption) {
-            const fallback = await runFallbackGeneration(
-              apiKey, topic.trim(), client_name, platform, tone, selectedGoal, knowledgeBlocks
-            );
-            if (fallback) {
-              return new Response(
-                JSON.stringify({ success: true, ...fallback, goal: selectedGoal }),
-                { status: 200, headers: { "Content-Type": "application/json" } }
-              );
-            }
+            // Fallback: direct Gemini call
+            const directPrompt = `Write a ${platform} social media post about ${strategy.brand_name}: ${topic.trim()}. Goal: ${selectedGoal}. Tone: ${tone}. Output JSON: {"topic":"...","caption":"...","hashtags":[...],"cta":"...","image_prompt":"..."}`;
+            try {
+              const content = await callGemini(apiKey, directPrompt, 2048);
+              const parsed = extractJson(content);
+              if (parsed && typeof (parsed as Record<string, unknown>)["caption"] === "string") {
+                const p = parsed as Record<string, unknown>;
+                return new Response(
+                  JSON.stringify({
+                    success: true,
+                    topic: (p["topic"] as string) || `${strategy!.brand_name}: ${topic.trim()}`.slice(0, 80),
+                    caption: p["caption"],
+                    hashtags: p["hashtags"] || [],
+                    cta: p["cta"] || "",
+                    image_prompt: p["image_prompt"] || "",
+                    content_type: "Image",
+                    goal: selectedGoal,
+                  }),
+                  { status: 200, headers: { "Content-Type": "application/json" } }
+                );
+              }
+            } catch { /* fallback failed too */ }
+
             return new Response(
               JSON.stringify({ error: "Failed to generate caption" }),
               { status: 422, headers: { "Content-Type": "application/json" } }
             );
           }
 
-          // Agent 3 + 4: Hashtags + Image Prompt (PARALLEL)
+          // ── Step 4: Hashtags + Image (PARALLEL) ──
           const [hashtagResult, imageResult] = await Promise.all([
             runHashtagAgent({
               caption,
@@ -276,26 +232,31 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           ]);
 
           const topicTitle = strategy.brand_name
-            ? `${strategy.brand_name}: ${strategy.content_angle || topic.trim()}`
-            : topic.trim();
+            ? `${strategy.brand_name}: ${strategy.content_angle || topic.trim()}`.slice(0, 80)
+            : topic.trim().slice(0, 80);
+
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
           return new Response(
             JSON.stringify({
               success: true,
-              topic: topicTitle.slice(0, 80),
+              topic: topicTitle,
               caption,
               hashtags: hashtagResult.hashtags,
               cta: hashtagResult.cta,
               image_prompt: imageResult,
               content_type: "Image",
               goal: selectedGoal,
+              _elapsed: `${elapsed}s`,
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
         } catch (err) {
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
           return new Response(
             JSON.stringify({
               error: err instanceof Error ? err.message : "Unknown error",
+              _elapsed: `${elapsed}s`,
             }),
             { status: 500, headers: { "Content-Type": "application/json" } }
           );
