@@ -193,6 +193,7 @@ function CreateContent() {
   const [gbpTerms, setGbpTerms] = useState("");
   const [gbpUrl, setGbpUrl] = useState("");
   const [aiCaptionLoading, setAiCaptionLoading] = useState(false);
+  const [aiImageLoading, setAiImageLoading] = useState(false);
   const [agentUrl, setAgentUrl] = useState("http://localhost:8000");
 
   const client = clients.find((c) => c.id === selectedClientId);
@@ -316,6 +317,73 @@ function CreateContent() {
       toast.error("Could not reach AI agent. Make sure it's running on " + agentUrl);
     } finally {
       setAiCaptionLoading(false);
+    }
+  };
+
+  const generateAiImage = async () => {
+    const imagePrompt = aiImagePrompt.trim() || topic.trim();
+    if (!imagePrompt) {
+      toast.error("Enter a prompt to generate image.");
+      return;
+    }
+    setAiImageLoading(true);
+    try {
+      const payload: Record<string, unknown> = {
+        prompt: imagePrompt,
+        width: 1024,
+        height: 1024,
+        style: "photorealistic",
+        model: "flux",
+      };
+      if (referenceImage) {
+        payload.reference_image = referenceImage;
+      }
+      if (gbpImageUrl) {
+        payload.gbp_url = gbpImageUrl;
+      }
+
+      if (type === "Carousel") {
+        const resp = await fetch("/api/ai/generate-carousel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompts: [imagePrompt, imagePrompt, imagePrompt],
+            width: 1024,
+            height: 1024,
+            style: "photorealistic",
+            model: "flux",
+          }),
+        });
+        if (!resp.ok) throw new Error("Generation failed");
+        const data = await resp.json();
+        if (data.success && data.images?.length > 0) {
+          setMediaPreview(data.images[0].image_url);
+          setMediaType("image");
+          toast.success(`Generated ${data.images.length} carousel images!`);
+        } else {
+          throw new Error(data.error || "Generation failed");
+        }
+      } else {
+        const resp = await fetch("/api/ai/generate-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!resp.ok) throw new Error("Generation failed");
+        const data = await resp.json();
+        if (data.success && data.image_url) {
+          setMediaPreview(data.image_url);
+          setMediaType("image");
+          setType("Image");
+          toast.success("Image generated!");
+        } else {
+          throw new Error(data.error || "Generation failed");
+        }
+      }
+    } catch {
+      toast.error("Failed to generate image. Please try again.");
+    } finally {
+      setAiImageLoading(false);
     }
   };
 
@@ -1279,8 +1347,23 @@ function CreateContent() {
                   placeholder={`${aiMediaType === "video" ? "Video" : "Image"} prompt (used to generate)...`}
                   className="text-xs"
                 />
-                <Button size="sm" className="w-full" onClick={() => toast.success("AI generation started...")}>
-                  Run
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={generateAiImage}
+                  disabled={aiImageLoading || (!aiImagePrompt.trim() && !topic.trim())}
+                >
+                  {aiImageLoading ? (
+                    <>
+                      <svg className="mr-2 size-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Generating...
+                    </>
+                  ) : (
+                    "Run"
+                  )}
                 </Button>
               </div>
             )}
