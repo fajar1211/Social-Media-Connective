@@ -211,31 +211,25 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
 
           const platformRules: Record<string, string> = {
-            Instagram: "100-2200 chars. Storytelling. Engaging. Personal connection.",
-            Facebook: "100-500 chars. Informative. Conversational. Community-focused.",
+            Instagram: "100-2200 chars. Storytelling. Engaging.",
+            Facebook: "100-500 chars. Informative. Conversational.",
             Twitter: "Under 280 chars. Punchy. Direct.",
           };
 
+          const knowledgeText = knowledge_files.length > 0
+            ? knowledge_files
+                .filter((kf: { name: string; content: string }) => kf.content?.trim())
+                .map((kf: { name: string; content: string }) => `${kf.name}: ${kf.content.trim()}`)
+                .join(" | ")
+            : "";
+
           const fullPrompt = [
             SYSTEM_PROMPT,
-            "",
-            `Create ONE ${platform} post.`,
-            `Topic: ${topic.trim()}`,
-            contentBody?.trim() ? `Content details: ${contentBody.trim()}` : "",
-            client_name?.trim() ? `Brand/Business: ${client_name.trim()}` : "",
-            knowledge_files.length > 0 ? [
-              "",
-              "Knowledge Context — USE these brand-specific details in your content:",
-              ...knowledge_files.flatMap((kf: { name: string; content: string }) =>
-                kf.content?.trim() ? [`[${kf.name}]: ${kf.content.trim()}`] : []
-              ),
-            ].join("\n") : "",
-            `Tone: ${tone}`,
-            `Platform: ${platform}`,
+            `Topic: ${topic.trim()}. Brand: ${client_name || "Unknown"}. Platform: ${platform}. Tone: ${tone}.`,
             `Caption rules: ${platformRules[platform] || platformRules.Facebook}`,
-            variety ? `Post style: ${variety}` : "",
-            "",
-            "Output ONLY a valid JSON object. No thinking. No explanation.",
+            knowledgeText ? `Brand details: ${knowledgeText}` : "",
+            contentBody?.trim() ? `Extra: ${contentBody.trim()}` : "",
+            variety ? `Style: ${variety}` : "",
           ].filter(Boolean).join("\n");
 
           let parsed: ApiResponse | null = null;
@@ -250,13 +244,8 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
 
           if (!parsed) {
             const retryPrompt = [
-              "Output ONLY a JSON object. No other text.",
-              `Create a ${platform} post about "${topic.trim()}" for ${client_name || "the brand"}.`,
-              knowledge_files.length > 0
-                ? `Use these details: ${knowledge_files.map((kf: { content: string }) => kf.content?.trim()).filter(Boolean).join(". ")}`
-                : "",
-              `Tone: ${tone}. Platform: ${platform}.`,
-              "",
+              `Output ONLY JSON. Topic: ${topic.trim()}. Brand: ${client_name || "Unknown"}. Platform: ${platform}. Tone: ${tone}.`,
+              knowledgeText ? `Details: ${knowledgeText}` : "",
               '{"topic":"...","caption":"...","hashtags":["..."],"cta":"...","image_prompt":"...","content_type":"Image"}',
             ].filter(Boolean).join("\n");
 
