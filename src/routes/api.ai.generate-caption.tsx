@@ -247,9 +247,16 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
 
           if (!parsed) {
-            const retryPrompt = `Create a ${platform} post about "${topic.trim()}" for ${client_name || "brand"}. Tone: ${tone}. Caption max 300 chars. Use brand details: ${knowledgeText.slice(0, 200)}`;
+            const retryPrompt = [
+              `Create ONE ${platform} post. Output ONLY a JSON object.`,
+              `Topic: ${topic.trim()}. Brand: ${client_name || "brand"}.`,
+              `Tone: ${tone}.`,
+              `Caption: ${platform === "Instagram" ? "100-2200 chars, storytelling, engaging." : "100-500 chars, informative, conversational."}`,
+              "",
+              `Example: {"topic":"...","caption":"...","hashtags":["..."],"cta":"...","image_prompt":"...","content_type":"Image"}`,
+            ].join("\n");
 
-            const attempt2 = await callGemini(apiKey, retryPrompt, 2048, true);
+            const attempt2 = await callGemini(apiKey, retryPrompt, 2048);
             lastRaw = attempt2.content;
 
             if (attempt2.ok) {
