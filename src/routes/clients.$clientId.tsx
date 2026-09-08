@@ -2150,6 +2150,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const [referenceUrl, setReferenceUrl] = useState("");
   const [knowledgeNotes, setKnowledgeNotes] = useState("");
   const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
+  const [selectedKnowledge, setSelectedKnowledge] = useState<Set<string>>(new Set());
   const [knowledgeLoading, setKnowledgeLoading] = useState(false);
   const [postsPerPlatform, setPostsPerPlatform] = useState<Record<string, number>>({});
   const [startDate, setStartDate] = useState("");
@@ -2194,6 +2195,26 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     setKnowledgeFiles((prev) => prev.map((f) => (f.id === id ? { ...f, [field]: value } : f)));
   };
 
+  const toggleKnowledgeSelection = (id: string) => {
+    setSelectedKnowledge((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllKnowledge = () => {
+    if (selectedKnowledge.size === knowledgeFiles.length) {
+      setSelectedKnowledge(new Set());
+    } else {
+      setSelectedKnowledge(new Set(knowledgeFiles.map((f) => f.id)));
+    }
+  };
+
   const clientData = clients.find((c) => c.id === client.id);
   const connectedPlatforms = SOCIAL_PLATFORMS.filter(
     (p) => clientData?.socialIntegrations?.[p]?.connected === true
@@ -2218,7 +2239,35 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   };
 
   const handleGenerate = async () => {
+    if (!postsAbout.trim()) {
+      toast.error("Enter a topic first.");
+      return;
+    }
     toast.success("Generating AI content...");
+    try {
+      const selected = knowledgeFiles.filter((f) => selectedKnowledge.has(f.id));
+      const resp = await fetch("/api/ai/generate-caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: postsAbout.trim(),
+          body: "",
+          platform: connectedPlatforms[0] || "Facebook",
+          tone: "professional",
+          client_name: client.name,
+          knowledge_files: selected.map((f) => ({ name: f.name, content: f.content })),
+        }),
+      });
+      if (!resp.ok) throw new Error("Generation failed");
+      const data = await resp.json();
+      if (data.caption) {
+        toast.success("AI content generated!", {
+          description: data.caption.slice(0, 100) + "...",
+        });
+      }
+    } catch {
+      toast.error("Failed to generate content.");
+    }
   };
 
   const suggestedContent = content.filter(
@@ -2345,13 +2394,25 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
               <div>
                 <h3 className="text-sm font-semibold">Include Knowledge Files</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Add knowledge files to include in content generation.
+                  Select knowledge files to include in content generation.
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={addKnowledgeFile}>
-                <PlusCircle className="mr-1.5 size-3.5" />
-                Add New
-              </Button>
+              <div className="flex items-center gap-2">
+                {knowledgeFiles.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleSelectAllKnowledge}
+                    className="text-xs"
+                  >
+                    {selectedKnowledge.size === knowledgeFiles.length ? "Deselect All" : "Select All"}
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={addKnowledgeFile}>
+                  <PlusCircle className="mr-1.5 size-3.5" />
+                  Add New
+                </Button>
+              </div>
             </div>
             {knowledgeLoading ? (
               <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
@@ -2366,15 +2427,26 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
                 No knowledge files yet. Click "Add New" to create one.
               </p>
             ) : (
-              <div className="mt-3 space-y-3">
+              <div className="mt-3 space-y-2">
                 {knowledgeFiles.map((file) => (
-                  <div key={file.id} className="rounded-lg border p-3 space-y-2">
-                    <div className="flex items-center gap-2">
+                  <div
+                    key={file.id}
+                    className={`rounded-lg border p-3 transition-colors ${
+                      selectedKnowledge.has(file.id) ? "bg-primary/5 border-primary/30" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedKnowledge.has(file.id)}
+                        onChange={() => toggleKnowledgeSelection(file.id)}
+                        className="size-4 rounded border-gray-300"
+                      />
                       <input
                         type="text"
                         value={file.name}
                         onChange={(e) => updateKnowledgeFileLocal(file.id, "name", e.target.value)}
-                        className="flex-1 rounded border px-2 py-1 text-sm font-medium"
+                        className="flex-1 rounded border px-2 py-1 text-sm font-medium bg-transparent"
                         placeholder="Knowledge file name..."
                       />
                       <Button
@@ -2390,18 +2462,24 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
                       value={file.content}
                       onChange={(e) => updateKnowledgeFileLocal(file.id, "content", e.target.value)}
                       placeholder="Enter knowledge content here..."
-                      className="w-full rounded border px-2 py-1 text-sm min-h-[80px]"
+                      className="mt-2 w-full rounded border px-2 py-1 text-sm min-h-[60px] bg-transparent"
                     />
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => saveKnowledgeFile(file)}
+                      className="mt-2"
                     >
                       Save
                     </Button>
                   </div>
                 ))}
               </div>
+            )}
+            {selectedKnowledge.size > 0 && (
+              <p className="mt-2 text-xs text-primary">
+                {selectedKnowledge.size} of {knowledgeFiles.length} knowledge files selected for content generation
+              </p>
             )}
           </div>
 
