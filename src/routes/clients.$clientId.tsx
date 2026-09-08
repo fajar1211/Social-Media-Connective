@@ -2334,7 +2334,10 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
             }),
           });
 
-          if (!resp.ok) throw new Error(`Failed to generate post ${i + 1}`);
+          if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({}));
+            throw new Error(errData.error || `API error ${resp.status}`);
+          }
           const data = await resp.json();
 
           if (data.caption) {
@@ -2374,8 +2377,9 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       setKnowledgeNotes("");
       setReferenceUrl("");
       setGoal("");
-    } catch {
-      toast.error(`Failed at post ${currentPost}/${totalPosts}. Some posts may have been saved.`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed: ${msg}`);
     } finally {
       setGeneratingContent(false);
       setGeneratingProgress({ current: 0, total: 0, platform: "" });
