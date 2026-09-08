@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,12 @@ from pydantic import BaseModel
 from config import AGENT_HOST, AGENT_PORT
 from scheduler import create_scheduler, check_and_publish
 from ai_engine import generate_caption, generate_hashtags, check_ollama_health
+from image_engine import (
+    generate_single_image,
+    generate_carousel,
+    generate_variations,
+    describe_reference_image,
+)
 from supabase_client import (
     get_content_by_id,
     get_client,
@@ -58,7 +65,12 @@ async def health():
     ollama_ok = await check_ollama_health()
     return {
         "status": "ok",
-        "ollama": "connected" if ollama_ok else "disconnected",
+        "version": "2.0.0",
+        "modules": {
+            "ollama": "connected" if ollama_ok else "disconnected",
+            "image_engine": "pollinations.ai (free)",
+            "ai_caption": "gemini" if os.getenv("GEMINI_API_KEY") else "ollama",
+        },
     }
 
 
@@ -100,6 +112,107 @@ async def ai_hashtags(req: HashtagRequest):
         return {"hashtags": tags}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── AI Image Generation ─────────────────────────────────
+
+class ImageGenerateRequest(BaseModel):
+    prompt: str
+    reference_image: str = ""
+    gbp_url: str = ""
+    width: int = 1024
+    height: int = 1024
+    style: str = "photorealistic"
+    model: str = "flux"
+
+
+@app.post("/ai/generate-image")
+async def ai_generate_image(req: ImageGenerateRequest):
+    """Generate a single image via Pollinations.ai."""
+    try:
+        result = await generate_single_image(
+            prompt=req.prompt,
+            reference_image=req.reference_image,
+            gbp_url=req.gbp_url,
+            width=req.width,
+            height=req.height,
+            style=req.style,
+            model=req.model,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class CarouselGenerateRequest(BaseModel):
+    prompts: list[str]
+    width: int = 1024
+    height: int = 1024
+    style: str = "photorealistic"
+    model: str = "flux"
+
+
+@app.post("/ai/generate-carousel")
+async def ai_generate_carousel(req: CarouselGenerateRequest):
+    """Generate multiple images for a carousel."""
+    try:
+        result = await generate_carousel(
+            prompts=req.prompts,
+            width=req.width,
+            height=req.height,
+            style=req.style,
+            model=req.model,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class VariationGenerateRequest(BaseModel):
+    prompt: str
+    count: int = 3
+    width: int = 1024
+    height: int = 1024
+    style: str = "photorealistic"
+    model: str = "flux"
+
+
+@app.post("/ai/generate-variations")
+async def ai_generate_variations(req: VariationGenerateRequest):
+    """Generate multiple variations of the same prompt."""
+    try:
+        result = await generate_variations(
+            prompt=req.prompt,
+            count=req.count,
+            width=req.width,
+            height=req.height,
+            style=req.style,
+            model=req.model,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class DescribeImageRequest(BaseModel):
+    image_data: str
+
+
+@app.post("/ai/describe-image")
+async def ai_describe_image(req: DescribeImageRequest):
+    """Describe a reference image using Gemini Vision."""
+    try:
+        description = await describe_reference_image(req.image_data)
+        return {"description": description}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/ai/image-styles")
+async def image_styles():
+    """List available image style presets."""
+    from image_engine import STYLE_SUFFIXES
+    return {"styles": list(STYLE_SUFFIXES.keys())}
 
 
 # ── Publish ─────────────────────────────────────────────
