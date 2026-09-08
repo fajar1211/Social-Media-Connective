@@ -3,39 +3,78 @@ import { createFileRoute } from "@tanstack/react-router";
 const GEMINI_MODEL = "gemma-4-26b-a4b-it";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `You are a social media content expert. Generate ONE social media post.
+const SYSTEM_PROMPT = `Create ONE social media post. Output ONLY a JSON object. No other text before or after the JSON.
 
-RESPOND WITH VALID JSON ONLY. No markdown, no code blocks, no thinking, no explanation.
+MANDATORY: Use the Knowledge Context provided below. Reference specific details like brand name, products, location, chef, audience, values. Generic content without brand-specific details is wrong.
 
 {
-  "topic": "Short title (max 80 chars)",
-  "caption": "Post body text ONLY - no hashtags, no CTA, no extra text",
+  "topic": "Short title max 80 chars describing the post theme",
+  "caption": "Post body text only. Clean. No hashtags. No CTA. No image_prompt.",
   "hashtags": ["tag1", "tag2"],
-  "cta": "Call to action sentence",
-  "image_prompt": "Description for AI image generation",
+  "cta": "One sentence call to action",
+  "image_prompt": "Detailed visual description for AI image generation",
   "content_type": "Image"
 }
 
-CRITICAL RULES:
-- caption: The main post text. Do NOT include hashtags, CTA, or image prompt in caption. Keep it clean and engaging. Max 2200 chars for Instagram, 280 for Twitter.
-- hashtags: Array of 3-15 relevant tags WITHOUT # symbol. Separate from caption.
+Platform rules:
+- Instagram: caption 100-2200 chars. Storytelling. Engaging. Natural emojis. Personal connection.
+- Facebook: caption 100-500 chars. Informative. Conversational. Community-focused.
+- Twitter: caption under 280 chars. Punchy. Direct.
+
+Field rules:
+- caption: Main post body. No hashtags. No CTA. No image_prompt. No reasoning. No explanation.
+- hashtags: 3-15 tags WITHOUT # symbol. Brand-specific and relevant.
 - cta: One sentence telling readers what to do next.
-- image_prompt: Detailed visual description for image generation.
-- content_type: One of "Image", "Carousel", "Text Post", "Short Video".
-- Use the Knowledge Context below to make content specific and authentic to the brand.
-- Match the tone requested.
-- Do NOT explain your reasoning. Output JSON only.`;
+- image_prompt: Detailed visual for AI image generation. Include colors, setting, mood.
+- content_type: "Image", "Carousel", "Text Post", or "Short Video".
+
+NEVER output thinking text, reasoning, drafts, or explanations. ONLY output the JSON object.`;
 
 function parseJsonResponse(text: string): { topic?: string; caption?: string; hashtags?: string[]; cta?: string; image_prompt?: string; content_type?: string } | null {
-  // Helper: validate JSON has all required fields with real content
+  const THINKING_PATTERNS = [
+    "Social Media Content Expert",
+    "Valid JSON only",
+    "One Instagram post",
+    "One Facebook post",
+    "Generate engaging",
+    "act as a social media",
+    "you are a social media",
+    "Create ONE social media",
+    "caption:",
+    "hashtags:",
+    "image_prompt:",
+    "content_type:",
+    "---",
+    "Draft:",
+    "Refining",
+    "Self-Correction",
+    "Final check",
+    "Final JSON",
+    "JSON valid",
+    "Checking constraints",
+    "Wait,",
+    "I should",
+    "I will",
+    "This is",
+  ];
+
   const isValidResponse = (obj: Record<string, unknown>): boolean => {
     if (!obj || typeof obj !== "object") return false;
-    if (typeof obj.caption !== "string" || obj.caption.length < 10) return false;
+    if (typeof obj.caption !== "string" || obj.caption.length < 20) return false;
     if (!Array.isArray(obj.hashtags) || obj.hashtags.length < 1) return false;
-    // Reject if caption contains thinking patterns
-    const caption = obj.caption as string;
-    if (caption.includes("Social Media Content Expert") || caption.includes("Valid JSON only")) return false;
-    if (caption.includes("caption:") || caption.includes("hashtags:")) return false;
+    if (typeof obj.topic !== "string" || obj.topic.length < 5) return false;
+
+    const caption = (obj.caption as string).toLowerCase();
+
+    for (const pattern of THINKING_PATTERNS) {
+      if (caption.includes(pattern.toLowerCase())) return false;
+    }
+
+    if (caption.includes("{") && caption.includes("}")) return false;
+    if (caption.includes('"topic"')) return false;
+    if (caption.includes('"caption"')) return false;
+    if (caption.length > 2500) return false;
+
     return true;
   };
 
@@ -118,7 +157,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
 
           // Build user prompt
           const userParts: string[] = [
-            `Generate a social media post for ${platform}.`,
+            `Create ONE ${platform} post.`,
             "",
             `Topic: ${topic.trim()}`,
           ];
@@ -130,10 +169,10 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
           if (knowledge_files.length > 0) {
             userParts.push("");
-            userParts.push("Knowledge Context:");
+            userParts.push("Knowledge Context — USE THESE DETAILS in your content:");
             for (const kf of knowledge_files) {
               if (kf.content?.trim()) {
-                userParts.push(`--- ${kf.name} ---`);
+                userParts.push(`[${kf.name}]:`);
                 userParts.push(kf.content.trim());
                 userParts.push("");
               }
@@ -142,10 +181,10 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           userParts.push(`Tone: ${tone}`);
           userParts.push(`Platform: ${platform}`);
           if (variety) {
-            userParts.push(`Variation focus: ${variety}`);
+            userParts.push(`Post style: ${variety}`);
           }
           userParts.push("");
-          userParts.push("Respond with JSON only. No extra text.");
+          userParts.push("Output ONLY a valid JSON object. No other text.");
 
           const fullPrompt = `${SYSTEM_PROMPT}\n\n${userParts.join("\n")}`;
 
@@ -191,18 +230,13 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             );
           }
 
-          // Fallback: use raw content as caption
+          // Fallback: return error instead of using thinking text as caption
           return new Response(
             JSON.stringify({
-              success: true,
-              topic: topic.trim(),
-              caption: content,
-              hashtags: [],
-              cta: "",
-              image_prompt: "",
-              content_type: "Image",
+              error: "Failed to parse AI response. The AI returned thinking text instead of valid JSON.",
+              raw: content.slice(0, 500),
             }),
-            { status: 200, headers: { "Content-Type": "application/json" } }
+            { status: 422, headers: { "Content-Type": "application/json" } }
           );
         } catch (err) {
           return new Response(
