@@ -3,89 +3,116 @@ import { createFileRoute } from "@tanstack/react-router";
 const GEMINI_MODEL = "gemma-4-26b-a4b-it";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `Create ONE social media post. Output ONLY a JSON object. No other text before or after the JSON.
-
-MANDATORY: Use the Knowledge Context provided below. Reference specific details like brand name, products, location, chef, audience, values. Generic content without brand-specific details is wrong.
+const SYSTEM_PROMPT = `Output ONLY a valid JSON object. No text before or after.
 
 {
-  "topic": "Short title max 80 chars describing the post theme",
-  "caption": "Post body text only. Clean. No hashtags. No CTA. No image_prompt.",
+  "topic": "Short title max 80 chars",
+  "caption": "Post body text only. No hashtags. No CTA.",
   "hashtags": ["tag1", "tag2"],
   "cta": "One sentence call to action",
-  "image_prompt": "Detailed visual description for AI image generation",
+  "image_prompt": "Detailed visual description",
   "content_type": "Image"
+}`;
+
+interface ApiResponse {
+  topic?: string;
+  caption?: string;
+  hashtags?: string[];
+  cta?: string;
+  image_prompt?: string;
+  content_type?: string;
 }
 
-Platform rules:
-- Instagram: caption 100-2200 chars. Storytelling. Engaging. Natural emojis. Personal connection.
-- Facebook: caption 100-500 chars. Informative. Conversational. Community-focused.
-- Twitter: caption under 280 chars. Punchy. Direct.
+function preProcessResponse(text: string): string {
+  let cleaned = text;
 
-Field rules:
-- caption: Main post body. No hashtags. No CTA. No image_prompt. No reasoning. No explanation.
-- hashtags: 3-15 tags WITHOUT # symbol. Brand-specific and relevant.
-- cta: One sentence telling readers what to do next.
-- image_prompt: Detailed visual for AI image generation. Include colors, setting, mood.
-- content_type: "Image", "Carousel", "Text Post", or "Short Video".
+  const markers = [
+    "```json",
+    "```",
+    "JSON object only.",
+    "Output ONLY a valid JSON object.",
+    "No other text.",
+  ];
+  for (const marker of markers) {
+    const idx = cleaned.lastIndexOf(marker);
+    if (idx !== -1) {
+      cleaned = cleaned.slice(idx + marker.length);
+      break;
+    }
+  }
 
-NEVER output thinking text, reasoning, drafts, or explanations. ONLY output the JSON object.`;
+  const firstBrace = cleaned.indexOf("{");
+  if (firstBrace > 0) {
+    cleaned = cleaned.slice(firstBrace);
+  }
 
-function parseJsonResponse(text: string): { topic?: string; caption?: string; hashtags?: string[]; cta?: string; image_prompt?: string; content_type?: string } | null {
-  const THINKING_PATTERNS = [
-    "Social Media Content Expert",
-    "Valid JSON only",
-    "One Instagram post",
-    "One Facebook post",
-    "Generate engaging",
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
+    cleaned = cleaned.slice(0, lastBrace + 1);
+  }
+
+  return cleaned.trim();
+}
+
+function isValidResponse(obj: Record<string, unknown>): boolean {
+  if (!obj || typeof obj !== "object") return false;
+  if (typeof obj.caption !== "string" || obj.caption.length < 20) return false;
+  if (!Array.isArray(obj.hashtags) || obj.hashtags.length < 1) return false;
+  if (typeof obj.topic !== "string" || obj.topic.length < 3) return false;
+
+  const caption = (obj.caption as string).toLowerCase();
+
+  const badPatterns = [
+    "social media content expert",
+    "valid json only",
+    "one instagram post",
+    "one facebook post",
+    "generate engaging",
     "act as a social media",
     "you are a social media",
-    "Create ONE social media",
-    "caption:",
-    "hashtags:",
-    "image_prompt:",
-    "content_type:",
-    "---",
-    "Draft:",
-    "Refining",
-    "Self-Correction",
-    "Final check",
-    "Final JSON",
-    "JSON valid",
-    "Checking constraints",
-    "Wait,",
-    "I should",
-    "I will",
-    "This is",
+    "create one social media",
+    "output only a valid json",
+    "no other text",
+    "draft:",
+    "refining",
+    "self-correction",
+    "final check",
+    "json valid",
+    "checking constraints",
+    "i should",
+    "i will",
+    "topic:",
+    "\"topic\":",
+    "\"caption\":",
+    "\"hashtags\":",
+    "\"cta\":",
+    "\"image_prompt\":",
   ];
 
-  const isValidResponse = (obj: Record<string, unknown>): boolean => {
-    if (!obj || typeof obj !== "object") return false;
-    if (typeof obj.caption !== "string" || obj.caption.length < 20) return false;
-    if (!Array.isArray(obj.hashtags) || obj.hashtags.length < 1) return false;
-    if (typeof obj.topic !== "string" || obj.topic.length < 5) return false;
+  for (const pattern of badPatterns) {
+    if (caption.includes(pattern)) return false;
+  }
 
-    const caption = (obj.caption as string).toLowerCase();
+  if (caption.includes("{") && caption.includes("}")) return false;
+  if (caption.length > 2500) return false;
 
-    for (const pattern of THINKING_PATTERNS) {
-      if (caption.includes(pattern.toLowerCase())) return false;
-    }
+  const topic = (obj.topic as string || "").toLowerCase();
+  for (const pattern of badPatterns) {
+    if (topic.includes(pattern)) return false;
+  }
 
-    if (caption.includes("{") && caption.includes("}")) return false;
-    if (caption.includes('"topic"')) return false;
-    if (caption.includes('"caption"')) return false;
-    if (caption.length > 2500) return false;
+  return true;
+}
 
-    return true;
-  };
+function parseJsonResponse(text: string): ApiResponse | null {
+  const cleaned = preProcessResponse(text);
 
-  // Strategy 1: Try raw JSON parse (fastest)
   try {
-    const parsed = JSON.parse(text.trim());
+    const parsed = JSON.parse(cleaned);
     if (isValidResponse(parsed)) return parsed;
   } catch { /* continue */ }
 
-  // Strategy 2: Extract from markdown code blocks
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  const codeBlockMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (codeBlockMatch) {
     try {
       const parsed = JSON.parse(codeBlockMatch[1].trim());
@@ -93,14 +120,13 @@ function parseJsonResponse(text: string): { topic?: string; caption?: string; ha
     } catch { /* continue */ }
   }
 
-  // Strategy 3: Scan backwards from end of text, find LAST valid JSON
-  for (let i = text.length - 1; i >= 0; i--) {
-    if (text[i] === "{") {
+  for (let i = cleaned.length - 1; i >= 0; i--) {
+    if (cleaned[i] === "{") {
       let depth = 0;
       let inString = false;
       let escape = false;
-      for (let j = i; j < text.length; j++) {
-        const ch = text[j];
+      for (let j = i; j < cleaned.length; j++) {
+        const ch = cleaned[j];
         if (escape) { escape = false; continue; }
         if (ch === "\\") { escape = true; continue; }
         if (ch === '"') { inString = !inString; continue; }
@@ -110,7 +136,7 @@ function parseJsonResponse(text: string): { topic?: string; caption?: string; ha
           depth--;
           if (depth === 0) {
             try {
-              const candidate = text.slice(i, j + 1);
+              const candidate = cleaned.slice(i, j + 1);
               const parsed = JSON.parse(candidate);
               if (isValidResponse(parsed)) return parsed;
             } catch { /* not valid JSON */ }
@@ -122,6 +148,35 @@ function parseJsonResponse(text: string): { topic?: string; caption?: string; ha
   }
 
   return null;
+}
+
+async function callGemini(
+  apiKey: string,
+  fullPrompt: string,
+  maxTokens: number
+): Promise<{ ok: boolean; content: string; error?: string }> {
+  const resp = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: fullPrompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.8,
+        topK: 40,
+        maxOutputTokens: maxTokens,
+      },
+    }),
+  });
+
+  const data = await resp.json();
+  const content = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+  if (!content) {
+    return { ok: false, content: "", error: data?.error?.message || "Empty response from AI" };
+  }
+
+  return { ok: true, content };
 }
 
 export const Route = createFileRoute("/api/ai/generate-caption")({
@@ -155,65 +210,63 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             );
           }
 
-          // Build user prompt
-          const userParts: string[] = [
-            `Create ONE ${platform} post.`,
+          const platformRules: Record<string, string> = {
+            Instagram: "100-2200 chars. Storytelling. Engaging. Personal connection.",
+            Facebook: "100-500 chars. Informative. Conversational. Community-focused.",
+            Twitter: "Under 280 chars. Punchy. Direct.",
+          };
+
+          const fullPrompt = [
+            SYSTEM_PROMPT,
             "",
+            `Create ONE ${platform} post.`,
             `Topic: ${topic.trim()}`,
-          ];
-          if (contentBody?.trim()) {
-            userParts.push(`Content details: ${contentBody.trim()}`);
+            contentBody?.trim() ? `Content details: ${contentBody.trim()}` : "",
+            client_name?.trim() ? `Brand/Business: ${client_name.trim()}` : "",
+            knowledge_files.length > 0 ? [
+              "",
+              "Knowledge Context — USE these brand-specific details in your content:",
+              ...knowledge_files.flatMap((kf: { name: string; content: string }) =>
+                kf.content?.trim() ? [`[${kf.name}]: ${kf.content.trim()}`] : []
+              ),
+            ].join("\n") : "",
+            `Tone: ${tone}`,
+            `Platform: ${platform}`,
+            `Caption rules: ${platformRules[platform] || platformRules.Facebook}`,
+            variety ? `Post style: ${variety}` : "",
+            "",
+            "Output ONLY a valid JSON object. No thinking. No explanation.",
+          ].filter(Boolean).join("\n");
+
+          let parsed: ApiResponse | null = null;
+          let lastRaw = "";
+
+          const attempt1 = await callGemini(apiKey, fullPrompt, 4096);
+          lastRaw = attempt1.content;
+
+          if (attempt1.ok) {
+            parsed = parseJsonResponse(attempt1.content);
           }
-          if (client_name?.trim()) {
-            userParts.push(`Brand/Business: ${client_name.trim()}`);
-          }
-          if (knowledge_files.length > 0) {
-            userParts.push("");
-            userParts.push("Knowledge Context — USE THESE DETAILS in your content:");
-            for (const kf of knowledge_files) {
-              if (kf.content?.trim()) {
-                userParts.push(`[${kf.name}]:`);
-                userParts.push(kf.content.trim());
-                userParts.push("");
-              }
+
+          if (!parsed) {
+            const retryPrompt = [
+              "Output ONLY a JSON object. No other text.",
+              `Create a ${platform} post about "${topic.trim()}" for ${client_name || "the brand"}.`,
+              knowledge_files.length > 0
+                ? `Use these details: ${knowledge_files.map((kf: { content: string }) => kf.content?.trim()).filter(Boolean).join(". ")}`
+                : "",
+              `Tone: ${tone}. Platform: ${platform}.`,
+              "",
+              '{"topic":"...","caption":"...","hashtags":["..."],"cta":"...","image_prompt":"...","content_type":"Image"}',
+            ].filter(Boolean).join("\n");
+
+            const attempt2 = await callGemini(apiKey, retryPrompt, 2048);
+            lastRaw = attempt2.content;
+
+            if (attempt2.ok) {
+              parsed = parseJsonResponse(attempt2.content);
             }
           }
-          userParts.push(`Tone: ${tone}`);
-          userParts.push(`Platform: ${platform}`);
-          if (variety) {
-            userParts.push(`Post style: ${variety}`);
-          }
-          userParts.push("");
-          userParts.push("Output ONLY a valid JSON object. No other text.");
-
-          const fullPrompt = `${SYSTEM_PROMPT}\n\n${userParts.join("\n")}`;
-
-          const resp = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: fullPrompt }] }],
-              generationConfig: {
-                temperature: 0.7,
-                topP: 0.8,
-                topK: 40,
-                maxOutputTokens: 2048,
-              },
-            }),
-          });
-
-          const data = await resp.json();
-          const content = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-
-          if (!content) {
-            return new Response(
-              JSON.stringify({ error: "Empty response from AI", raw: data }),
-              { status: 500, headers: { "Content-Type": "application/json" } }
-            );
-          }
-
-          // Parse JSON response with fallbacks
-          const parsed = parseJsonResponse(content);
 
           if (parsed?.caption) {
             return new Response(
@@ -230,11 +283,10 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             );
           }
 
-          // Fallback: return error instead of using thinking text as caption
           return new Response(
             JSON.stringify({
-              error: "Failed to parse AI response. The AI returned thinking text instead of valid JSON.",
-              raw: content.slice(0, 500),
+              error: "AI returned thinking text instead of valid JSON. Please try again.",
+              raw: lastRaw.slice(0, 300),
             }),
             { status: 422, headers: { "Content-Type": "application/json" } }
           );
