@@ -67,6 +67,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             platform = "Facebook",
             tone = "professional",
             client_name = "",
+            knowledge_files = [],
           } = body;
 
           if (!topic || !topic.trim()) {
@@ -95,6 +96,17 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
           if (client_name?.trim()) {
             userParts.push(`Brand/Business: ${client_name.trim()}`);
+          }
+          if (knowledge_files.length > 0) {
+            userParts.push("");
+            userParts.push("Knowledge Context:");
+            for (const kf of knowledge_files) {
+              if (kf.content?.trim()) {
+                userParts.push(`--- ${kf.name} ---`);
+                userParts.push(kf.content.trim());
+                userParts.push("");
+              }
+            }
           }
           userParts.push(`Tone: ${tone}`);
           userParts.push(`Platform: ${platform}`);

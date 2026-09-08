@@ -57,6 +57,7 @@ import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from 
 import { ContentList } from "@/components/content-list";
 import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem, type SocialConnection } from "@/lib/content-store";
 import * as db from "@/lib/db";
+import type { KnowledgeFile } from "@/lib/database.types";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/clients/$clientId")({
@@ -2148,12 +2149,50 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const [referenceDocument, setReferenceDocument] = useState<File | null>(null);
   const [referenceUrl, setReferenceUrl] = useState("");
   const [knowledgeNotes, setKnowledgeNotes] = useState("");
-  const [knowledgeFiles, setKnowledgeFiles] = useState<string[]>([]);
+  const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
+  const [knowledgeLoading, setKnowledgeLoading] = useState(false);
   const [postsPerPlatform, setPostsPerPlatform] = useState<Record<string, number>>({});
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const knowledgeOptions = ["BKB", "BE", "Persona 1", "Persona 2", "Persona 3"];
+  useEffect(() => {
+    loadKnowledgeFiles();
+  }, [client.id]);
+
+  const loadKnowledgeFiles = async () => {
+    setKnowledgeLoading(true);
+    const files = await db.getKnowledgeFiles(client.id);
+    setKnowledgeFiles(files);
+    setKnowledgeLoading(false);
+  };
+
+  const addKnowledgeFile = async () => {
+    const newFile = await db.createKnowledgeFile(client.id, "New Knowledge", "");
+    if (newFile) {
+      setKnowledgeFiles((prev) => [...prev, newFile]);
+      toast.success("Knowledge file added");
+    }
+  };
+
+  const saveKnowledgeFile = async (file: KnowledgeFile) => {
+    const updated = await db.updateKnowledgeFile(file.id, file.name, file.content);
+    if (updated) {
+      setKnowledgeFiles((prev) => prev.map((f) => (f.id === file.id ? updated : f)));
+      toast.success("Knowledge file saved");
+    }
+  };
+
+  const deleteKnowledgeFile = async (id: string) => {
+    const ok = await db.deleteKnowledgeFile(id);
+    if (ok) {
+      setKnowledgeFiles((prev) => prev.filter((f) => f.id !== id));
+      toast.success("Knowledge file deleted");
+    }
+  };
+
+  const updateKnowledgeFileLocal = (id: string, field: "name" | "content", value: string) => {
+    setKnowledgeFiles((prev) => prev.map((f) => (f.id === id ? { ...f, [field]: value } : f)));
+  };
 
   const clientData = clients.find((c) => c.id === client.id);
   const connectedPlatforms = SOCIAL_PLATFORMS.filter(
@@ -2178,13 +2217,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     toast.success("Reference document added");
   };
 
-  const toggleKnowledgeFiles = (value: string) => {
-    setKnowledgeFiles((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    );
-  };
-
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     toast.success("Generating AI content...");
   };
 
@@ -2308,26 +2341,68 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
           </div>
 
           <div className="rounded-lg border p-4">
-            <h3 className="text-sm font-semibold">Include Knowledge Files</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Select knowledge files to include in content generation.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {knowledgeOptions.map((option) => (
-                <label
-                  key={`files-${option}`}
-                  className="flex items-center gap-2 rounded-lg border px-3 py-2 transition-colors hover:bg-accent/40"
-                >
-                  <input
-                    type="checkbox"
-                    checked={knowledgeFiles.includes(option)}
-                    onChange={() => toggleKnowledgeFiles(option)}
-                    className="size-4 rounded border-gray-300"
-                  />
-                  <span className="text-sm">{option}</span>
-                </label>
-              ))}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold">Include Knowledge Files</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Add knowledge files to include in content generation.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={addKnowledgeFile}>
+                <PlusCircle className="mr-1.5 size-3.5" />
+                Add New
+              </Button>
             </div>
+            {knowledgeLoading ? (
+              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Loading knowledge files...
+              </div>
+            ) : knowledgeFiles.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                No knowledge files yet. Click "Add New" to create one.
+              </p>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {knowledgeFiles.map((file) => (
+                  <div key={file.id} className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={file.name}
+                        onChange={(e) => updateKnowledgeFileLocal(file.id, "name", e.target.value)}
+                        className="flex-1 rounded border px-2 py-1 text-sm font-medium"
+                        placeholder="Knowledge file name..."
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive hover:text-destructive"
+                        onClick={() => deleteKnowledgeFile(file.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                    <textarea
+                      value={file.content}
+                      onChange={(e) => updateKnowledgeFileLocal(file.id, "content", e.target.value)}
+                      placeholder="Enter knowledge content here..."
+                      className="w-full rounded border px-2 py-1 text-sm min-h-[80px]"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => saveKnowledgeFile(file)}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg border p-4">

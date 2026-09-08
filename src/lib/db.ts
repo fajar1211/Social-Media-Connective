@@ -6,6 +6,7 @@ import type {
   SocialConnection,
   Platform,
   ContentStatus,
+  KnowledgeFile,
 } from "@/lib/database.types";
 
 // ============================================
@@ -467,4 +468,72 @@ export async function getContentCounts(): Promise<{
   });
 
   return counts;
+}
+
+// ============================================
+// KNOWLEDGE FILES QUERIES
+// ============================================
+
+export async function getKnowledgeFiles(clientId: string): Promise<KnowledgeFile[]> {
+  if (!supabaseConfigured) return [];
+  const { data, error } = await supabase
+    .from("knowledge_files")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("Error fetching knowledge files:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function createKnowledgeFile(
+  clientId: string,
+  name: string,
+  content: string
+): Promise<KnowledgeFile | null> {
+  if (!supabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from("knowledge_files")
+    .insert({ client_id: clientId, name, content })
+    .select()
+    .single();
+  if (error) {
+    console.error("Error creating knowledge file:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function updateKnowledgeFile(
+  id: string,
+  name: string,
+  content: string
+): Promise<KnowledgeFile | null> {
+  if (!supabaseConfigured) return null;
+  const { data, error } = await supabase
+    .from("knowledge_files")
+    .update({ name, content, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) {
+    console.error("Error updating knowledge file:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function deleteKnowledgeFile(id: string): Promise<boolean> {
+  if (!supabaseConfigured) return false;
+  const { error } = await supabase
+    .from("knowledge_files")
+    .delete()
+    .eq("id", id);
+  if (error) {
+    console.error("Error deleting knowledge file:", error);
+    return false;
+  }
+  return true;
 }

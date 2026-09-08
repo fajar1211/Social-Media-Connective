@@ -70,6 +70,15 @@ export interface SocialConnection {
   updated_at: string;
 }
 
+export interface KnowledgeFile {
+  id: string;
+  client_id: string;
+  name: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface FacebookPage {
   id: string;
   name: string;
