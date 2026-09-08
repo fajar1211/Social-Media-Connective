@@ -132,44 +132,76 @@ function parseJsonResponse(text: string): ApiResponse | null {
     }
   }
 
+  const partial = tryExtractPartialJson(text);
+  if (partial && partial.caption && partial.caption.length >= 20) return partial;
+
   return null;
+}
+
+function tryExtractPartialJson(text: string): ApiResponse | null {
+  const topicMatch = text.match(/"topic"\s*:\s*"([^"]+)"/);
+  const captionMatch = text.match(/"caption"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  const hashtagsMatch = text.match(/"hashtags"\s*:\s*\[((?:[^"\]]|"([^"]+)")*)\]/);
+  const ctaMatch = text.match(/"cta"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  const imagePromptMatch = text.match(/"image_prompt"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  const contentTypeMatch = text.match(/"content_type"\s*:\s*"([^"]+)"/);
+
+  if (!captionMatch || !hashtagsMatch) return null;
+
+  const caption = captionMatch[1]
+    .replace(/\\"/g, '"')
+    .replace(/\\n/g, '\n');
+
+  if (caption.length < 20) return null;
+  if (caption.includes('"topic"') || caption.includes('"caption"')) return null;
+
+  const tags: string[] = [];
+  const tagRegex = /"([^"]+)"/g;
+  let tagMatch = tagRegex.exec(hashtagsMatch[1]);
+  while (tagMatch !== null) {
+    tags.push(tagMatch[1]);
+    tagMatch = tagRegex.exec(hashtagsMatch[1]);
+  }
+  if (tags.length === 0) {
+    const rawTags = hashtagsMatch[1].replace(/[\[\]]/g, "").split(",");
+    for (const t of rawTags) {
+      const cleaned = t.trim().replace(/^#/, "").replace(/"/g, "");
+      if (cleaned) tags.push(cleaned);
+    }
+  }
+
+  const cta = ctaMatch ? ctaMatch[1].replace(/\\"/g, '"') : "";
+  const imagePrompt = imagePromptMatch ? imagePromptMatch[1].replace(/\\"/g, '"') : "";
+  const topic = topicMatch ? topicMatch[1] : "";
+
+  if (caption.includes(cta) || caption.includes(imagePrompt)) return null;
+
+  return {
+    topic: topic || "",
+    caption,
+    hashtags: tags,
+    cta,
+    image_prompt: imagePrompt,
+    content_type: contentTypeMatch ? contentTypeMatch[1] : "Image",
+  };
 }
 
 async function callGemini(
   apiKey: string,
   fullPrompt: string,
-  maxTokens: number,
-  jsonMode = false
+  maxTokens: number
 ): Promise<{ ok: boolean; content: string; error?: string }> {
-  const config: Record<string, unknown> = {
-    temperature: 0.7,
-    topP: 0.8,
-    topK: 40,
-    maxOutputTokens: maxTokens,
-  };
-
-  if (jsonMode) {
-    config.responseMimeType = "application/json";
-    config.responseSchema = {
-      type: "OBJECT",
-      properties: {
-        topic: { type: "STRING" },
-        caption: { type: "STRING" },
-        hashtags: { type: "ARRAY", items: { type: "STRING" } },
-        cta: { type: "STRING" },
-        image_prompt: { type: "STRING" },
-        content_type: { type: "STRING" },
-      },
-      required: ["topic", "caption", "hashtags", "cta", "image_prompt", "content_type"],
-    };
-  }
-
   const resp = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: fullPrompt }] }],
-      generationConfig: config,
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.8,
+        topK: 40,
+        maxOutputTokens: maxTokens,
+      },
     }),
   });
 
