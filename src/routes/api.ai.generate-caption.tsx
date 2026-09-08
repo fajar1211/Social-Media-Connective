@@ -1,4 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  runTrendsAgent,
+  runStrategyAgent,
+  runCaptionAgent,
+  runHashtagAgent,
+  runImagePromptAgent,
+  type TrendData,
+  type StrategyData,
+} from "@/lib/ai-agents";
 
 const GEMINI_MODEL = "gemma-4-26b-a4b-it";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -18,35 +27,6 @@ Do NOT write generic content. Every post must feel specific to this brand.
 
 Output ONLY a JSON object:
 {"topic":"...","caption":"...","hashtags":[...],"cta":"...","image_prompt":"...","content_type":"Image"}`;
-
-interface ApiResponse {
-  topic?: string;
-  caption?: string;
-  hashtags?: string[];
-  cta?: string;
-  image_prompt?: string;
-  content_type?: string;
-}
-
-interface TrendData {
-  date_events: string[];
-  trending_topics: string[];
-  viral_patterns: string[];
-  emotional_triggers: string[];
-  trending_hashtags: string[];
-  content_angle_suggestion: string;
-}
-
-interface StrategyData {
-  brand_name: string;
-  key_points: string[];
-  target_audience: string;
-  brand_voice: string;
-  emotional_hook: string;
-  content_angle: string;
-  trend_integration: string;
-  viral_elements: string[];
-}
 
 async function callGemini(apiKey: string, prompt: string, maxTokens: number): Promise<string> {
   const resp = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
@@ -103,20 +83,6 @@ async function fetchUrlContent(url: string): Promise<string> {
   }
 }
 
-async function callAgent(url: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
-  try {
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (!resp.ok) return {};
-    return await resp.json();
-  } catch {
-    return {};
-  }
-}
-
 async function runFallbackGeneration(
   apiKey: string,
   topic: string,
@@ -125,7 +91,7 @@ async function runFallbackGeneration(
   tone: string,
   selectedGoal: string,
   knowledgeBlocks: string[]
-): Promise<ApiResponse | null> {
+): Promise<Record<string, unknown> | null> {
   const knowledgeText = knowledgeBlocks.length > 0
     ? `\nBrand info: ${knowledgeBlocks.join(" | ").slice(0, 500)}`
     : "";
@@ -148,11 +114,11 @@ async function runFallbackGeneration(
     const p = parsed as Record<string, unknown>;
     return {
       topic: (p["topic"] as string) || topic,
-      caption: p["caption"] as string,
-      hashtags: (p["hashtags"] as string[]) || [],
-      cta: (p["cta"] as string) || "",
-      image_prompt: (p["image_prompt"] as string) || "",
-      content_type: (p["content_type"] as string) || "Image",
+      caption: p["caption"],
+      hashtags: p["hashtags"] || [],
+      cta: p["cta"] || "",
+      image_prompt: p["image_prompt"] || "",
+      content_type: p["content_type"] || "Image",
     };
   }
 
@@ -171,11 +137,11 @@ async function runFallbackGeneration(
       const rp = retryParsed as Record<string, unknown>;
       return {
         topic: (rp["topic"] as string) || topic,
-        caption: rp["caption"] as string,
-        hashtags: (rp["hashtags"] as string[]) || [],
-        cta: (rp["cta"] as string) || "",
-        image_prompt: (rp["image_prompt"] as string) || "",
-        content_type: (rp["content_type"] as string) || "Image",
+        caption: rp["caption"],
+        hashtags: rp["hashtags"] || [],
+        cta: rp["cta"] || "",
+        image_prompt: rp["image_prompt"] || "",
+        content_type: rp["content_type"] || "Image",
       };
     }
   }
@@ -234,22 +200,24 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             ? knowledgeBlocks.join(" ").slice(0, 500)
             : client_name || "general business";
 
-          const trends = await callAgent("/api/ai/research-trends", {
+          // Agent 0: Trend Researcher
+          const trends: TrendData = await runTrendsAgent({
             date: new Date().toISOString().slice(0, 10),
             country: "Indonesia",
             platform,
             brand_niche: brandNiche,
-          }) as unknown as TrendData;
+          });
 
-          const strategy = await callAgent("/api/ai/strategize", {
+          // Agent 1: Content Strategist
+          const strategy: StrategyData | null = await runStrategyAgent({
             knowledge: knowledgeBlocks,
             trends,
             topic: topic.trim(),
             goal: selectedGoal,
             reference: referenceContent,
-          }) as unknown as StrategyData;
+          });
 
-          if (!strategy.brand_name) {
+          if (!strategy) {
             const fallback = await runFallbackGeneration(
               apiKey, topic.trim(), client_name, platform, tone, selectedGoal, knowledgeBlocks
             );
@@ -265,7 +233,8 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             );
           }
 
-          const captionResult = await callAgent("/api/ai/write-caption", {
+          // Agent 2: Caption Writer
+          const caption = await runCaptionAgent({
             strategy,
             knowledge: knowledgeBlocks,
             platform,
@@ -273,8 +242,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             variety,
           });
 
-          const captionText = (captionResult as Record<string, unknown>)["caption"];
-          if (!captionText || typeof captionText !== "string" || captionText.length < 20) {
+          if (!caption) {
             const fallback = await runFallbackGeneration(
               apiKey, topic.trim(), client_name, platform, tone, selectedGoal, knowledgeBlocks
             );
@@ -290,34 +258,22 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             );
           }
 
-          const caption = captionText as string;
-
+          // Agent 3 + 4: Hashtags + Image Prompt (PARALLEL)
           const [hashtagResult, imageResult] = await Promise.all([
-            callAgent("/api/ai/generate-hashtags", {
+            runHashtagAgent({
               caption,
               brand_name: strategy.brand_name,
               platform,
-              trending_tags: trends.trending_hashtags || [],
+              trending_tags: trends.trending_hashtags,
               emotional_hook: strategy.emotional_hook,
             }),
-            callAgent("/api/ai/generate-image-prompt", {
+            runImagePromptAgent({
               caption,
               brand_name: strategy.brand_name,
-              key_points: strategy.key_points || [],
-              viral_patterns: trends.viral_patterns || [],
+              key_points: strategy.key_points,
+              viral_patterns: trends.viral_patterns,
             }),
           ]);
-
-          const hashtagsRaw = (hashtagResult as Record<string, unknown>)["hashtags"];
-          const hashtags = Array.isArray(hashtagsRaw)
-            ? (hashtagsRaw as string[]).map((t: string) => t.replace(/^#/, ""))
-            : [];
-          const cta = typeof (hashtagResult as Record<string, unknown>)["cta"] === "string"
-            ? (hashtagResult as Record<string, unknown>)["cta"] as string
-            : "";
-          const image_prompt = typeof (imageResult as Record<string, unknown>)["image_prompt"] === "string"
-            ? (imageResult as Record<string, unknown>)["image_prompt"] as string
-            : "";
 
           const topicTitle = strategy.brand_name
             ? `${strategy.brand_name}: ${strategy.content_angle || topic.trim()}`
@@ -328,9 +284,9 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
               success: true,
               topic: topicTitle.slice(0, 80),
               caption,
-              hashtags,
-              cta,
-              image_prompt,
+              hashtags: hashtagResult.hashtags,
+              cta: hashtagResult.cta,
+              image_prompt: imageResult,
               content_type: "Image",
               goal: selectedGoal,
             }),
