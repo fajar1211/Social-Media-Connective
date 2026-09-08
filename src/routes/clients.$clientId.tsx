@@ -2156,6 +2156,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [generatingContent, setGeneratingContent] = useState(false);
+  const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, platform: "" });
 
   useEffect(() => {
     loadKnowledgeFiles();
@@ -2248,6 +2249,31 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     toast.success("Reference document added");
   };
 
+  const distributeSchedule = (
+    start: string,
+    end: string,
+    count: number
+  ): { date: string; time: string }[] => {
+    const defaultTimes = ["10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "09:00", "11:00", "13:00", "15:00"];
+    if (!start || !end || count <= 0) {
+      return Array.from({ length: count }, (_, i) => ({
+        date: start || new Date().toISOString().slice(0, 10),
+        time: defaultTimes[i % defaultTimes.length],
+      }));
+    }
+    const startMs = new Date(start).getTime();
+    const endMs = new Date(end).getTime();
+    const range = endMs - startMs;
+    return Array.from({ length: count }, (_, i) => {
+      const ms = count === 1 ? startMs : startMs + (range * i) / (count - 1);
+      const d = new Date(ms);
+      return {
+        date: d.toISOString().slice(0, 10),
+        time: defaultTimes[i % defaultTimes.length],
+      };
+    });
+  };
+
   const handleGenerate = async () => {
     if (!postsAbout.trim()) {
       toast.error("Enter a topic first.");
@@ -2258,55 +2284,81 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       return;
     }
 
+    const totalPosts = connectedPlatforms.reduce(
+      (sum, p) => sum + (postsPerPlatform[p] || 5), 0
+    );
+
     setGeneratingContent(true);
+    setGeneratingProgress({ current: 0, total: totalPosts, platform: "" });
+
+    const selected = knowledgeFiles.filter((f) => selectedKnowledge.has(f.id));
+    let currentPost = 0;
+
     try {
-      const selected = knowledgeFiles.filter((f) => selectedKnowledge.has(f.id));
-      const resp = await fetch("/api/ai/generate-caption", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic: postsAbout.trim(),
-          body: knowledgeNotes.trim(),
-          platform: connectedPlatforms[0] || "Facebook",
-          tone: "professional",
-          client_name: client.name,
-          knowledge_files: selected.map((f) => ({ name: f.name, content: f.content })),
-        }),
-      });
-      if (!resp.ok) throw new Error("Generation failed");
-      const data = await resp.json();
+      for (const platform of connectedPlatforms) {
+        const postCount = postsPerPlatform[platform] || 5;
+        const schedule = distributeSchedule(startDate, endDate, postCount);
 
-      if (data.caption) {
-        await actions.addContent({
-          title: postsAbout.trim(),
-          client: client.name,
-          clientId: client.id,
-          platform: (connectedPlatforms[0] || "Facebook") as SocialPlatform,
-          type: "Image",
-          status: "Suggested",
-          date: new Date().toISOString().slice(0, 10),
-          caption: data.caption,
-          body: data.caption,
-          hashtags: data.hashtags || [],
-          cta: "",
-          notes: knowledgeNotes.trim() ? `Notes: ${knowledgeNotes.trim()}` : "",
-          media: campaignImage ? [campaignImage] : [],
-          timezone: "Asia/Jakarta",
-        });
+        for (let i = 0; i < postCount; i++) {
+          currentPost++;
+          setGeneratingProgress({
+            current: currentPost,
+            total: totalPosts,
+            platform,
+          });
 
-        toast.success("Content generated and saved!", {
-          description: "Check Suggested Posts below or go to All Content.",
-        });
+          const resp = await fetch("/api/ai/generate-caption", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic: postsAbout.trim(),
+              body: `Post ${i + 1} of ${postCount}. ${knowledgeNotes.trim()}`,
+              platform,
+              tone: "professional",
+              client_name: client.name,
+              knowledge_files: selected.map((f) => ({ name: f.name, content: f.content })),
+            }),
+          });
 
-        setPostsAbout("");
-        setCampaignImage(null);
-        setKnowledgeNotes("");
-        setReferenceUrl("");
+          if (!resp.ok) throw new Error(`Failed to generate post ${i + 1}`);
+          const data = await resp.json();
+
+          if (data.caption) {
+            await actions.addContent({
+              title: `${postsAbout.trim()} - ${platform} Post ${i + 1}`,
+              client: client.name,
+              clientId: client.id,
+              platform: platform as SocialPlatform,
+              type: "Image",
+              status: "Suggested",
+              date: new Date().toISOString().slice(0, 10),
+              caption: data.caption,
+              body: data.caption,
+              hashtags: data.hashtags || [],
+              cta: "",
+              notes: knowledgeNotes.trim() ? `Notes: ${knowledgeNotes.trim()}` : "",
+              media: campaignImage ? [campaignImage] : [],
+              timezone: "Asia/Jakarta",
+              scheduledDate: schedule[i]?.date || "",
+              scheduledTime: schedule[i]?.time || "",
+            });
+          }
+        }
       }
+
+      toast.success(`${currentPost} posts generated and saved!`, {
+        description: "Check Suggested Posts below or go to All Content.",
+      });
+
+      setPostsAbout("");
+      setCampaignImage(null);
+      setKnowledgeNotes("");
+      setReferenceUrl("");
     } catch {
-      toast.error("Failed to generate content. Please try again.");
+      toast.error(`Failed at post ${currentPost}/${totalPosts}. Some posts may have been saved.`);
     } finally {
       setGeneratingContent(false);
+      setGeneratingProgress({ current: 0, total: 0, platform: "" });
     }
   };
 
@@ -2582,13 +2634,16 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
 
           <Button onClick={handleGenerate} className="w-full" disabled={generatingContent}>
             {generatingContent ? (
-              <>
-                <svg className="mr-2 size-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Generating...
-              </>
+              <div className="w-full space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Generating {generatingProgress.platform}...</span>
+                  <span>{generatingProgress.current} / {generatingProgress.total}</span>
+                </div>
+                <Progress
+                  value={(generatingProgress.current / generatingProgress.total) * 100}
+                  className="h-2"
+                />
+              </div>
             ) : (
               <>
                 <Sparkles className="mr-2 size-4" />
