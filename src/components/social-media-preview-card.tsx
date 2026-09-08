@@ -129,6 +129,7 @@ function LazyImage({
   const imgRef = useRef<HTMLImageElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [inView, setInView] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const el = imgRef.current;
@@ -141,7 +142,7 @@ function LazyImage({
           observer.disconnect();
         }
       },
-      { rootMargin: "200px" },
+      { rootMargin: "500px" },
     );
 
     observer.observe(el);
@@ -149,18 +150,35 @@ function LazyImage({
   }, []);
 
   return (
-    <img
-      ref={imgRef}
-      src={inView ? src : undefined}
-      alt={alt || ""}
-      loading="lazy"
-      onLoad={() => setLoaded(true)}
-      className={cn(
-        "transition-opacity duration-300",
-        loaded ? "opacity-100" : "opacity-0",
-        className,
+    <div className={cn("relative overflow-hidden bg-muted", className)}>
+      {!loaded && !loadError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted">
+          <svg className="h-8 w-8 animate-spin text-muted-foreground/50" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        </div>
       )}
-    />
+      {loadError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted text-xs text-muted-foreground">
+          Failed to load image
+        </div>
+      )}
+      <img
+        ref={imgRef}
+        src={inView ? src : undefined}
+        alt={alt || ""}
+        loading="eager"
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoadError(true)}
+        className={cn(
+          "transition-opacity duration-300",
+          loaded ? "opacity-100" : "opacity-0",
+          !loaded && "absolute inset-0",
+          "h-full w-full object-cover",
+        )}
+      />
+    </div>
   );
 }
 
@@ -193,7 +211,7 @@ function Gallery({
         }}
       >
         {lazyLoad ? (
-          <LazyImage src={img.src} alt={img.alt || `Photo ${i + 1}`} className="h-full w-full object-cover" />
+          <LazyImage src={img.src} alt={img.alt || `Photo ${i + 1}`} className="h-full w-full" />
         ) : (
           <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
         )}
