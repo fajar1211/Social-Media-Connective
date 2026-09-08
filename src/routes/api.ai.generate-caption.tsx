@@ -228,11 +228,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
 
           if (!parsed) {
-            const retryPrompt = [
-              `Output ONLY JSON. Topic: ${topic.trim()}. Brand: ${client_name || "Unknown"}. Platform: ${platform}. Tone: ${tone}.`,
-              knowledgeText ? `Details: ${knowledgeText}` : "",
-              '{"topic":"...","caption":"...","hashtags":["..."],"cta":"...","image_prompt":"...","content_type":"Image"}',
-            ].filter(Boolean).join("\n");
+            const retryPrompt = `Output ONLY this JSON. No other text.\n{"topic":"${topic.slice(0,60)}","caption":"Write a ${platform} post about ${topic.slice(0,50)} for ${client_name||"brand"}. Max 300 chars.","hashtags":["tag1","tag2"],"cta":"Call to action","image_prompt":"Image description","content_type":"Image"}`;
 
             const attempt2 = await callGemini(apiKey, retryPrompt, 2048);
             lastRaw = attempt2.content;
