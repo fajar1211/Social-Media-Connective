@@ -3,71 +3,65 @@ import { createFileRoute } from "@tanstack/react-router";
 const GEMINI_MODEL = "gemma-4-26b-a4b-it";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `You are a social media content expert. Generate engaging social media posts.
-You MUST respond with valid JSON only. No markdown, no code blocks, no extra text.
+const SYSTEM_PROMPT = `You are a social media content expert. Generate ONE social media post.
 
-The JSON must have this exact structure:
+RESPOND WITH VALID JSON ONLY. No markdown, no code blocks, no thinking, no explanation.
+
 {
-  "topic": "Short topic title (max 80 chars)",
-  "caption": "The post caption/body text",
-  "hashtags": ["tag1", "tag2", "tag3"],
-  "cta": "A call-to-action sentence",
-  "image_prompt": "Detailed prompt for generating a relevant image",
+  "topic": "Short title (max 80 chars)",
+  "caption": "Post body text ONLY - no hashtags, no CTA, no extra text",
+  "hashtags": ["tag1", "tag2"],
+  "cta": "Call to action sentence",
+  "image_prompt": "Description for AI image generation",
   "content_type": "Image"
 }
 
-Rules:
-- topic: short, descriptive title for the post (max 80 chars)
-- caption: engaging, platform-appropriate text (max 2200 chars for Instagram, 280 for Twitter)
-- hashtags: 3-15 tags WITHOUT the # symbol
-- cta: a single sentence call-to-action relevant to the content
-- image_prompt: detailed description for AI image generation
-- content_type: one of "Image", "Carousel", "Text Post", "Short Video"
-- Match the tone requested
-- Do NOT include hashtags in the caption text
-- If knowledge context is provided, use it to make content more specific and authentic`;
+CRITICAL RULES:
+- caption: The main post text. Do NOT include hashtags, CTA, or image prompt in caption. Keep it clean and engaging. Max 2200 chars for Instagram, 280 for Twitter.
+- hashtags: Array of 3-15 relevant tags WITHOUT # symbol. Separate from caption.
+- cta: One sentence telling readers what to do next.
+- image_prompt: Detailed visual description for image generation.
+- content_type: One of "Image", "Carousel", "Text Post", "Short Video".
+- Use the Knowledge Context below to make content specific and authentic to the brand.
+- Match the tone requested.
+- Do NOT explain your reasoning. Output JSON only.`;
 
 function parseJsonResponse(text: string): { topic?: string; caption?: string; hashtags?: string[]; cta?: string; image_prompt?: string; content_type?: string } | null {
-  // Strategy 1: Extract from markdown code blocks
+  // Helper: validate JSON has all required fields with real content
+  const isValidResponse = (obj: Record<string, unknown>): boolean => {
+    if (!obj || typeof obj !== "object") return false;
+    if (typeof obj.caption !== "string" || obj.caption.length < 10) return false;
+    if (!Array.isArray(obj.hashtags) || obj.hashtags.length < 1) return false;
+    // Reject if caption contains thinking patterns
+    const caption = obj.caption as string;
+    if (caption.includes("Social Media Content Expert") || caption.includes("Valid JSON only")) return false;
+    if (caption.includes("caption:") || caption.includes("hashtags:")) return false;
+    return true;
+  };
+
+  // Strategy 1: Try raw JSON parse (fastest)
+  try {
+    const parsed = JSON.parse(text.trim());
+    if (isValidResponse(parsed)) return parsed;
+  } catch { /* continue */ }
+
+  // Strategy 2: Extract from markdown code blocks
   const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (codeBlockMatch) {
     try {
-      return JSON.parse(codeBlockMatch[1].trim());
+      const parsed = JSON.parse(codeBlockMatch[1].trim());
+      if (isValidResponse(parsed)) return parsed;
     } catch { /* continue */ }
   }
 
-  // Strategy 2: Raw json.loads on entire string
-  try {
-    return JSON.parse(text.trim());
-  } catch { /* continue */ }
-
-  // Strategy 3: Find lines starting with {
-  const lines = text.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim().startsWith("{")) {
-      const candidate = lines.slice(i).join("\n");
-      let depth = 0;
-      for (const ch of candidate) {
-        if (ch === "{") depth++;
-        if (ch === "}") depth--;
-        if (depth === 0) {
-          try {
-            return JSON.parse(candidate.slice(0, candidate.indexOf("}") + 1));
-          } catch { break; }
-        }
-      }
-    }
-  }
-
-  // Strategy 4: Find LAST JSON object with "caption" and non-empty "hashtags"
-  // Scan from end of text backwards to find the actual response JSON
-  for (let searchIdx = text.length - 1; searchIdx >= 0; searchIdx--) {
-    if (text[searchIdx] === "{") {
+  // Strategy 3: Scan backwards from end of text, find LAST valid JSON
+  for (let i = text.length - 1; i >= 0; i--) {
+    if (text[i] === "{") {
       let depth = 0;
       let inString = false;
       let escape = false;
-      for (let i = searchIdx; i < text.length; i++) {
-        const ch = text[i];
+      for (let j = i; j < text.length; j++) {
+        const ch = text[j];
         if (escape) { escape = false; continue; }
         if (ch === "\\") { escape = true; continue; }
         if (ch === '"') { inString = !inString; continue; }
@@ -77,12 +71,10 @@ function parseJsonResponse(text: string): { topic?: string; caption?: string; ha
           depth--;
           if (depth === 0) {
             try {
-              const parsed = JSON.parse(text.slice(searchIdx, i + 1));
-              // Only accept if it has caption AND non-empty hashtags array
-              if (parsed?.caption && Array.isArray(parsed.hashtags) && parsed.hashtags.length > 0) {
-                return parsed;
-              }
-            } catch { /* not valid JSON, continue */ }
+              const candidate = text.slice(i, j + 1);
+              const parsed = JSON.parse(candidate);
+              if (isValidResponse(parsed)) return parsed;
+            } catch { /* not valid JSON */ }
             break;
           }
         }
