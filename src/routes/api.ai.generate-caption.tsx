@@ -241,7 +241,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           let parsed: ApiResponse | null = null;
           let lastRaw = "";
 
-          const attempt1 = await callGemini(apiKey, fullPrompt, 4096);
+          const attempt1 = await callGemini(apiKey, fullPrompt, 3072);
           lastRaw = attempt1.content;
 
           if (attempt1.ok) {
