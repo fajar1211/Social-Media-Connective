@@ -2306,6 +2306,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
 
     const selected = knowledgeFiles.filter((f) => selectedKnowledge.has(f.id));
     let currentPost = 0;
+    const errors: string[] = [];
 
     try {
       for (const platform of connectedPlatforms) {
@@ -2320,57 +2321,72 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
             platform,
           });
 
-          const resp = await fetch("/api/ai/generate-caption", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              topic: postsAbout.trim(),
-              body: knowledgeNotes.trim(),
-              platform,
-              tone,
-              client_name: client.name,
-              knowledge_files: selected.map((f) => ({ name: f.name, content: f.content })),
-              variety: varietyAspects[i % varietyAspects.length],
-            }),
-          });
-
-          if (!resp.ok) {
-            const errData = await resp.json().catch(() => ({}));
-            throw new Error(errData.error || `API error ${resp.status}`);
-          }
-          const data = await resp.json();
-
-          if (data.caption) {
-            const topicTitle = data.topic || postsAbout.trim().slice(0, 80);
-
-            await actions.addContent({
-              title: topicTitle,
-              client: client.name,
-              clientId: client.id,
-              platform: platform as SocialPlatform,
-              type: (data.content_type || "Image") as ContentType,
-              status: "Suggested",
-              date: new Date().toISOString().slice(0, 10),
-              caption: data.caption,
-              body: data.caption,
-              hashtags: data.hashtags || [],
-              cta: data.cta || "",
-              notes: [
-                goal ? `Goal: ${goal}` : "",
-                data.image_prompt ? `Image Prompt: ${data.image_prompt}` : "",
-              ].filter(Boolean).join("\n"),
-              media: campaignImage ? [campaignImage] : [],
-              timezone: "Asia/Jakarta",
-              scheduledDate: schedule[i]?.date || "",
-              scheduledTime: schedule[i]?.time || "",
+          try {
+            const resp = await fetch("/api/ai/generate-caption", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                topic: postsAbout.trim(),
+                body: knowledgeNotes.trim(),
+                platform,
+                tone,
+                client_name: client.name,
+                knowledge_files: selected.map((f) => ({ name: f.name, content: f.content })),
+                variety: varietyAspects[i % varietyAspects.length],
+              }),
             });
+
+            if (!resp.ok) {
+              const errData = await resp.json().catch(() => ({}));
+              errors.push(`${platform} post ${i + 1}: ${errData.error || `API error ${resp.status}`}`);
+              continue;
+            }
+            const data = await resp.json();
+
+            if (data.caption) {
+              const topicTitle = data.topic || postsAbout.trim().slice(0, 80);
+
+              await actions.addContent({
+                title: topicTitle,
+                client: client.name,
+                clientId: client.id,
+                platform: platform as SocialPlatform,
+                type: (data.content_type || "Image") as ContentType,
+                status: "Suggested",
+                date: new Date().toISOString().slice(0, 10),
+                caption: data.caption,
+                body: data.caption,
+                hashtags: data.hashtags || [],
+                cta: data.cta || "",
+                notes: [
+                  goal ? `Goal: ${goal}` : "",
+                  data.image_prompt ? `Image Prompt: ${data.image_prompt}` : "",
+                ].filter(Boolean).join("\n"),
+                media: campaignImage ? [campaignImage] : [],
+                timezone: "Asia/Jakarta",
+                scheduledDate: schedule[i]?.date || "",
+                scheduledTime: schedule[i]?.time || "",
+              });
+            } else {
+              errors.push(`${platform} post ${i + 1}: No caption in response`);
+            }
+          } catch (postErr) {
+            errors.push(`${platform} post ${i + 1}: ${postErr instanceof Error ? postErr.message : "Network error"}`);
           }
         }
       }
 
-      toast.success(`${currentPost} posts generated and saved!`, {
-        description: "Check Suggested Posts below or go to All Content.",
-      });
+      const savedCount = totalPosts - errors.length;
+      if (errors.length === 0) {
+        toast.success(`${savedCount} posts generated and saved!`, {
+          description: "Check Suggested Posts below or go to All Content.",
+        });
+      } else {
+        toast.warning(`${savedCount}/${totalPosts} posts saved. ${errors.length} failed.`, {
+          description: errors.slice(0, 3).join("\n"),
+          duration: 10000,
+        });
+      }
 
       setPostsAbout("");
       setCampaignImage(null);
