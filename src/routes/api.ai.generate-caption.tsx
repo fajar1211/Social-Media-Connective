@@ -3,6 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 const GEMINI_MODEL = "gemma-4-26b-a4b-it";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
+const GOALS = ["Education", "Promotion", "Engagement", "Awareness", "Announcement"];
+
 const SYSTEM_PROMPT = `You are a social media content expert. Create ONE post.
 
 The "Knowledge Context" below is your PRIMARY source of truth.
@@ -17,8 +19,6 @@ Do NOT write generic content. Every post must feel specific to this brand.
 Output ONLY a JSON object:
 {"topic":"...","caption":"...","hashtags":[...],"cta":"...","image_prompt":"...","content_type":"Image"}`;
 
-const GOALS = ["Education", "Promotion", "Engagement", "Awareness", "Announcement"];
-
 interface ApiResponse {
   topic?: string;
   caption?: string;
@@ -28,179 +28,32 @@ interface ApiResponse {
   content_type?: string;
 }
 
-function preProcessResponse(text: string): string {
-  let cleaned = text;
-
-  const lastBrace = cleaned.lastIndexOf("}");
-  if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
-    cleaned = cleaned.slice(0, lastBrace + 1);
-  }
-
-  const firstBrace = cleaned.indexOf("{");
-  if (firstBrace > 0) {
-    cleaned = cleaned.slice(firstBrace);
-  }
-
-  return cleaned.trim();
+interface TrendData {
+  date_events: string[];
+  trending_topics: string[];
+  viral_patterns: string[];
+  emotional_triggers: string[];
+  trending_hashtags: string[];
+  content_angle_suggestion: string;
 }
 
-function isValidResponse(obj: Record<string, unknown>): boolean {
-  if (!obj || typeof obj !== "object") return false;
-  if (typeof obj.caption !== "string" || obj.caption.length < 20) return false;
-  if (!Array.isArray(obj.hashtags) || obj.hashtags.length < 1) return false;
-  if (typeof obj.topic !== "string" || obj.topic.length < 3) return false;
-
-  const caption = (obj.caption as string).toLowerCase();
-
-  const badPatterns = [
-    "social media content expert",
-    "valid json only",
-    "one instagram post",
-    "one facebook post",
-    "generate engaging",
-    "act as a social media",
-    "you are a social media",
-    "create one social media",
-    "output only a valid json",
-    "no other text",
-    "draft:",
-    "refining",
-    "self-correction",
-    "final check",
-    "json valid",
-    "checking constraints",
-    "i should",
-    "i will",
-    "topic:",
-    "\"topic\":",
-    "\"caption\":",
-    "\"hashtags\":",
-    "\"cta\":",
-    "\"image_prompt\":",
-  ];
-
-  for (const pattern of badPatterns) {
-    if (caption.includes(pattern)) return false;
-  }
-
-  if (caption.includes("{") && caption.includes("}")) return false;
-  if (caption.length > 2500) return false;
-
-  const topic = (obj.topic as string || "").toLowerCase();
-  for (const pattern of badPatterns) {
-    if (topic.includes(pattern)) return false;
-  }
-
-  return true;
+interface StrategyData {
+  brand_name: string;
+  key_points: string[];
+  target_audience: string;
+  brand_voice: string;
+  emotional_hook: string;
+  content_angle: string;
+  trend_integration: string;
+  viral_elements: string[];
 }
 
-function parseJsonResponse(text: string): ApiResponse | null {
-  const cleaned = preProcessResponse(text);
-
-  try {
-    const parsed = JSON.parse(cleaned);
-    if (isValidResponse(parsed)) return parsed;
-  } catch { /* continue */ }
-
-  const codeBlockMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (codeBlockMatch) {
-    try {
-      const parsed = JSON.parse(codeBlockMatch[1].trim());
-      if (isValidResponse(parsed)) return parsed;
-    } catch { /* continue */ }
-  }
-
-  for (let i = cleaned.length - 1; i >= 0; i--) {
-    if (cleaned[i] === "{") {
-      let depth = 0;
-      let inString = false;
-      let escape = false;
-      for (let j = i; j < cleaned.length; j++) {
-        const ch = cleaned[j];
-        if (escape) { escape = false; continue; }
-        if (ch === "\\") { escape = true; continue; }
-        if (ch === '"') { inString = !inString; continue; }
-        if (inString) continue;
-        if (ch === "{") depth++;
-        if (ch === "}") {
-          depth--;
-          if (depth === 0) {
-            try {
-              const candidate = cleaned.slice(i, j + 1);
-              const parsed = JSON.parse(candidate);
-              if (isValidResponse(parsed)) return parsed;
-            } catch { /* not valid JSON */ }
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  const partial = tryExtractPartialJson(text);
-  if (partial && partial.caption && partial.caption.length >= 20) return partial;
-
-  return null;
-}
-
-function tryExtractPartialJson(text: string): ApiResponse | null {
-  const topicMatch = text.match(/"topic"\s*:\s*"([^"]+)"/);
-  const captionMatch = text.match(/"caption"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-  const hashtagsMatch = text.match(/"hashtags"\s*:\s*\[((?:[^"\]]|"([^"]+)")*)\]/);
-  const ctaMatch = text.match(/"cta"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-  const imagePromptMatch = text.match(/"image_prompt"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-  const contentTypeMatch = text.match(/"content_type"\s*:\s*"([^"]+)"/);
-
-  if (!captionMatch || !hashtagsMatch) return null;
-
-  const caption = captionMatch[1]
-    .replace(/\\"/g, '"')
-    .replace(/\\n/g, '\n');
-
-  if (caption.length < 20) return null;
-  if (caption.includes('"topic"') || caption.includes('"caption"')) return null;
-
-  const tags: string[] = [];
-  const tagRegex = /"([^"]+)"/g;
-  let tagMatch = tagRegex.exec(hashtagsMatch[1]);
-  while (tagMatch !== null) {
-    tags.push(tagMatch[1]);
-    tagMatch = tagRegex.exec(hashtagsMatch[1]);
-  }
-  if (tags.length === 0) {
-    const rawTags = hashtagsMatch[1].replace(/[\[\]]/g, "").split(",");
-    for (const t of rawTags) {
-      const cleaned = t.trim().replace(/^#/, "").replace(/"/g, "");
-      if (cleaned) tags.push(cleaned);
-    }
-  }
-
-  const cta = ctaMatch ? ctaMatch[1].replace(/\\"/g, '"') : "";
-  const imagePrompt = imagePromptMatch ? imagePromptMatch[1].replace(/\\"/g, '"') : "";
-  const topic = topicMatch ? topicMatch[1] : "";
-
-  if (caption.includes(cta) || caption.includes(imagePrompt)) return null;
-
-  return {
-    topic: topic || "",
-    caption,
-    hashtags: tags,
-    cta,
-    image_prompt: imagePrompt,
-    content_type: contentTypeMatch ? contentTypeMatch[1] : "Image",
-  };
-}
-
-async function callGemini(
-  apiKey: string,
-  fullPrompt: string,
-  maxTokens: number
-): Promise<{ ok: boolean; content: string; error?: string }> {
+async function callGemini(apiKey: string, prompt: string, maxTokens: number): Promise<string> {
   const resp = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: fullPrompt }] }],
+      contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.7,
         topP: 0.8,
@@ -209,50 +62,125 @@ async function callGemini(
       },
     }),
   });
-
   const data = await resp.json();
-  const content = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+}
 
-  if (!content) {
-    return { ok: false, content: "", error: data?.error?.message || "Empty response from AI" };
+function extractJson(text: string): Record<string, unknown> | null {
+  const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (firstBrace === -1 || lastBrace === -1) return null;
+  try {
+    return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+  } catch {
+    return null;
   }
-
-  return { ok: true, content };
 }
 
 async function fetchUrlContent(url: string): Promise<string> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
-
     const resp = await fetch(url, {
       signal: controller.signal,
       headers: { "User-Agent": "Mozilla/5.0 (compatible; ContentBot/1.0)" },
     });
     clearTimeout(timeout);
-
     if (!resp.ok) return "";
-
     const html = await resp.text();
-    const text = html
+    return html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
-      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
-      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
       .replace(/<[^>]+>/g, " ")
       .replace(/&nbsp;/g, " ")
       .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 1500);
-
-    return text;
   } catch {
     return "";
   }
+}
+
+async function callAgent(url: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!resp.ok) return {};
+    return await resp.json();
+  } catch {
+    return {};
+  }
+}
+
+async function runFallbackGeneration(
+  apiKey: string,
+  topic: string,
+  clientName: string,
+  platform: string,
+  tone: string,
+  selectedGoal: string,
+  knowledgeBlocks: string[]
+): Promise<ApiResponse | null> {
+  const knowledgeText = knowledgeBlocks.length > 0
+    ? `\nBrand info: ${knowledgeBlocks.join(" | ").slice(0, 500)}`
+    : "";
+
+  const prompt = [
+    SYSTEM_PROMPT,
+    "",
+    "Knowledge Context:",
+    ...knowledgeBlocks,
+    "",
+    `Topic: ${topic}. Goal: ${selectedGoal}. Platform: ${platform}. Tone: ${tone}.`,
+    "",
+    `Write a ${platform} post using the knowledge above.`,
+  ].filter(Boolean).join("\n");
+
+  const content = await callGemini(apiKey, prompt, 4000);
+  const parsed = extractJson(content);
+
+  if (parsed && typeof (parsed as Record<string, unknown>)["caption"] === "string" && ((parsed as Record<string, unknown>)["caption"] as string).length >= 20) {
+    const p = parsed as Record<string, unknown>;
+    return {
+      topic: (p["topic"] as string) || topic,
+      caption: p["caption"] as string,
+      hashtags: (p["hashtags"] as string[]) || [],
+      cta: (p["cta"] as string) || "",
+      image_prompt: (p["image_prompt"] as string) || "",
+      content_type: (p["content_type"] as string) || "Image",
+    };
+  }
+
+  if (knowledgeText) {
+    const retryPrompt = [
+      `Generate ONE ${platform} post as JSON.`,
+      `Topic: ${topic}. Goal: ${selectedGoal}. Tone: ${tone}.`,
+      knowledgeText,
+      `Example: {"topic":"Topic","caption":"Post body text here","hashtags":["tag1","tag2"],"cta":"Call to action","image_prompt":"Image description","content_type":"Image"}`,
+    ].filter(Boolean).join("\n");
+
+    const retryContent = await callGemini(apiKey, retryPrompt, 2048);
+    const retryParsed = extractJson(retryContent);
+
+    if (retryParsed && typeof (retryParsed as Record<string, unknown>)["caption"] === "string" && ((retryParsed as Record<string, unknown>)["caption"] as string).length >= 20) {
+      const rp = retryParsed as Record<string, unknown>;
+      return {
+        topic: (rp["topic"] as string) || topic,
+        caption: rp["caption"] as string,
+        hashtags: (rp["hashtags"] as string[]) || [],
+        cta: (rp["cta"] as string) || "",
+        image_prompt: (rp["image_prompt"] as string) || "",
+        content_type: (rp["content_type"] as string) || "Image",
+      };
+    }
+  }
+
+  return null;
 }
 
 export const Route = createFileRoute("/api/ai/generate-caption")({
@@ -280,7 +208,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             );
           }
 
-          const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+          const apiKey = (import.meta.env as Record<string, string>)["VITE_GEMINI_API_KEY"] || "";
           if (!apiKey) {
             return new Response(
               JSON.stringify({ error: "Gemini API key not configured" }),
@@ -302,82 +230,111 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             }
           }
 
-          const fullPrompt = [
-            SYSTEM_PROMPT,
-            "",
-            "Knowledge Context (PRIMARY SOURCE — use these specific details):",
-            ...knowledgeBlocks,
-            referenceContent ? `\nReference Content from website:\n${referenceContent}` : "",
-            "",
-            `Topic: ${topic.trim()}`,
-            `Goal: ${selectedGoal}`,
-            `Platform: ${platform}`,
-            `Tone: ${tone}`,
-            contentBody?.trim() ? `Additional notes: ${contentBody.trim()}` : "",
-            variety ? `Post style: ${variety}` : "",
-            "",
-            `Write a ${platform} post using the knowledge above. Reference specific details like brand name, products, location, values, audience.`,
-          ].filter(Boolean).join("\n");
+          const brandNiche = knowledgeBlocks.length > 0
+            ? knowledgeBlocks.join(" ").slice(0, 500)
+            : client_name || "general business";
 
-          let parsed: ApiResponse | null = null;
-          let lastRaw = "";
+          const trends = await callAgent("/api/ai/research-trends", {
+            date: new Date().toISOString().slice(0, 10),
+            country: "Indonesia",
+            platform,
+            brand_niche: brandNiche,
+          }) as unknown as TrendData;
 
-          const attempt1 = await callGemini(apiKey, fullPrompt, 4000);
-          lastRaw = attempt1.content;
+          const strategy = await callAgent("/api/ai/strategize", {
+            knowledge: knowledgeBlocks,
+            trends,
+            topic: topic.trim(),
+            goal: selectedGoal,
+            reference: referenceContent,
+          }) as unknown as StrategyData;
 
-          if (attempt1.ok) {
-            parsed = parseJsonResponse(attempt1.content);
-          }
-
-          if (!parsed) {
-            const knowledgeForRetry = knowledgeBlocks.length > 0
-              ? `\nBrand info: ${knowledgeBlocks.join(" | ").slice(0, 500)}`
-              : "";
-            const retryPrompt = [
-              `Generate ONE ${platform} post as JSON.`,
-              `Topic: ${topic.trim()}. Goal: ${selectedGoal}. Tone: ${tone}.`,
-              knowledgeForRetry,
-              `Example: {"topic":"Topic","caption":"Post body text here","hashtags":["tag1","tag2"],"cta":"Call to action","image_prompt":"Image description","content_type":"Image"}`,
-            ].filter(Boolean).join("\n");
-
-            const attempt2 = await callGemini(apiKey, retryPrompt, 2048);
-            lastRaw = attempt2.content;
-
-            if (attempt2.ok) {
-              parsed = parseJsonResponse(attempt2.content);
+          if (!strategy.brand_name) {
+            const fallback = await runFallbackGeneration(
+              apiKey, topic.trim(), client_name, platform, tone, selectedGoal, knowledgeBlocks
+            );
+            if (fallback) {
+              return new Response(
+                JSON.stringify({ success: true, ...fallback, goal: selectedGoal }),
+                { status: 200, headers: { "Content-Type": "application/json" } }
+              );
             }
-          }
-
-          if (!parsed) {
-            const attempt3 = await callGemini(apiKey, `Post about ${topic.slice(0,40)} for ${client_name||"brand"}. Goal: ${selectedGoal}. Output JSON: {"topic":"...","caption":"...","hashtags":[],"cta":"...","image_prompt":"...","content_type":"Image"}`, 2048);
-            lastRaw = attempt3.content;
-            if (attempt3.ok) {
-              parsed = parseJsonResponse(attempt3.content);
-            }
-          }
-
-          if (parsed?.caption) {
             return new Response(
-              JSON.stringify({
-                success: true,
-                topic: parsed.topic || topic.trim(),
-                caption: parsed.caption,
-                hashtags: parsed.hashtags || [],
-                cta: parsed.cta || "",
-                image_prompt: parsed.image_prompt || "",
-                content_type: parsed.content_type || "Image",
-                goal: selectedGoal,
-              }),
-              { status: 200, headers: { "Content-Type": "application/json" } }
+              JSON.stringify({ error: "Failed to generate content strategy" }),
+              { status: 422, headers: { "Content-Type": "application/json" } }
             );
           }
 
+          const captionResult = await callAgent("/api/ai/write-caption", {
+            strategy,
+            knowledge: knowledgeBlocks,
+            platform,
+            tone,
+            variety,
+          });
+
+          const captionText = (captionResult as Record<string, unknown>)["caption"];
+          if (!captionText || typeof captionText !== "string" || captionText.length < 20) {
+            const fallback = await runFallbackGeneration(
+              apiKey, topic.trim(), client_name, platform, tone, selectedGoal, knowledgeBlocks
+            );
+            if (fallback) {
+              return new Response(
+                JSON.stringify({ success: true, ...fallback, goal: selectedGoal }),
+                { status: 200, headers: { "Content-Type": "application/json" } }
+              );
+            }
+            return new Response(
+              JSON.stringify({ error: "Failed to generate caption" }),
+              { status: 422, headers: { "Content-Type": "application/json" } }
+            );
+          }
+
+          const caption = captionText as string;
+
+          const [hashtagResult, imageResult] = await Promise.all([
+            callAgent("/api/ai/generate-hashtags", {
+              caption,
+              brand_name: strategy.brand_name,
+              platform,
+              trending_tags: trends.trending_hashtags || [],
+              emotional_hook: strategy.emotional_hook,
+            }),
+            callAgent("/api/ai/generate-image-prompt", {
+              caption,
+              brand_name: strategy.brand_name,
+              key_points: strategy.key_points || [],
+              viral_patterns: trends.viral_patterns || [],
+            }),
+          ]);
+
+          const hashtagsRaw = (hashtagResult as Record<string, unknown>)["hashtags"];
+          const hashtags = Array.isArray(hashtagsRaw)
+            ? (hashtagsRaw as string[]).map((t: string) => t.replace(/^#/, ""))
+            : [];
+          const cta = typeof (hashtagResult as Record<string, unknown>)["cta"] === "string"
+            ? (hashtagResult as Record<string, unknown>)["cta"] as string
+            : "";
+          const image_prompt = typeof (imageResult as Record<string, unknown>)["image_prompt"] === "string"
+            ? (imageResult as Record<string, unknown>)["image_prompt"] as string
+            : "";
+
+          const topicTitle = strategy.brand_name
+            ? `${strategy.brand_name}: ${strategy.content_angle || topic.trim()}`
+            : topic.trim();
+
           return new Response(
             JSON.stringify({
-              error: "AI returned thinking text instead of valid JSON. Please try again.",
-              raw: lastRaw.slice(0, 300),
+              success: true,
+              topic: topicTitle.slice(0, 80),
+              caption,
+              hashtags,
+              cta,
+              image_prompt,
+              content_type: "Image",
+              goal: selectedGoal,
             }),
-            { status: 422, headers: { "Content-Type": "application/json" } }
+            { status: 200, headers: { "Content-Type": "application/json" } }
           );
         } catch (err) {
           return new Response(

@@ -2156,7 +2156,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [generatingContent, setGeneratingContent] = useState(false);
-  const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, platform: "" });
+  const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, platform: "", step: "" });
   const [goal, setGoal] = useState("");
   const [tone, setTone] = useState("professional");
 
@@ -2302,7 +2302,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     ];
 
     setGeneratingContent(true);
-    setGeneratingProgress({ current: 0, total: totalPosts, platform: "" });
+    setGeneratingProgress({ current: 0, total: totalPosts, platform: "", step: "Researching trends..." });
 
     const selected = knowledgeFiles.filter((f) => selectedKnowledge.has(f.id));
     let currentPost = 0;
@@ -2319,6 +2319,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
             current: currentPost,
             total: totalPosts,
             platform,
+            step: `Generating ${platform} post ${i + 1}/${postCount}...`,
           });
 
           try {
@@ -2400,7 +2401,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       toast.error(`Failed: ${msg}`);
     } finally {
       setGeneratingContent(false);
-      setGeneratingProgress({ current: 0, total: 0, platform: "" });
+      setGeneratingProgress({ current: 0, total: 0, platform: "", step: "" });
     }
   };
 
@@ -2713,7 +2714,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
             {generatingContent ? (
               <div className="w-full space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span>Generating {generatingProgress.platform}...</span>
+                  <span>{generatingProgress.step || "Generating content..."}</span>
                   <span>{generatingProgress.current} / {generatingProgress.total}</span>
                 </div>
                 <Progress
