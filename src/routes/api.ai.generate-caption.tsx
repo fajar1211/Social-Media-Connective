@@ -3,16 +3,17 @@ import { createFileRoute } from "@tanstack/react-router";
 const GEMINI_MODEL = "gemma-4-26b-a4b-it";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `Output ONLY a valid JSON object. No text before or after.
+const SYSTEM_PROMPT = `Generate ONE social media post as a JSON object.
 
-{
-  "topic": "Short title max 80 chars",
-  "caption": "Post body text only. No hashtags. No CTA.",
-  "hashtags": ["tag1", "tag2"],
-  "cta": "One sentence call to action",
-  "image_prompt": "Detailed visual description",
-  "content_type": "Image"
-}`;
+Example output:
+{"topic":"Welcome to Our Restaurant","caption":"We are thrilled to open our doors and share our passion for food with you. Every dish tells a story.","hashtags":["restaurant","foodie","dining"],"cta":"Book your table today!","image_prompt":"Elegant restaurant interior with warm lighting","content_type":"Image"}
+
+Rules:
+- caption: actual post text only, no hashtags or CTA
+- hashtags: 3-15 tags without # symbol
+- cta: one sentence call to action
+- image_prompt: detailed visual description
+- content_type: Image, Carousel, Text Post, or Short Video`;
 
 interface ApiResponse {
   topic?: string;
@@ -280,12 +281,9 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
 
           if (!parsed) {
             const retryPrompt = [
-              `Create ONE ${platform} post. Output ONLY a JSON object.`,
-              `Topic: ${topic.trim()}. Brand: ${client_name || "brand"}.`,
-              `Tone: ${tone}.`,
-              `Caption: ${platform === "Instagram" ? "100-2200 chars, storytelling, engaging." : "100-500 chars, informative, conversational."}`,
-              "",
-              `Example: {"topic":"...","caption":"...","hashtags":["..."],"cta":"...","image_prompt":"...","content_type":"Image"}`,
+              `Generate ONE ${platform} post as JSON.`,
+              `Topic: ${topic.trim()}. Brand: ${client_name || "brand"}. Tone: ${tone}.`,
+              `Example: {"topic":"Topic","caption":"Post body text here","hashtags":["tag1","tag2"],"cta":"Call to action","image_prompt":"Image description","content_type":"Image"}`,
             ].join("\n");
 
             const attempt2 = await callGemini(apiKey, retryPrompt, 2048);
