@@ -59,12 +59,35 @@ function parseJsonResponse(text: string): { topic?: string; caption?: string; ha
     }
   }
 
-  // Strategy 4: Regex find JSON object with "caption" key (handles thinking text before JSON)
-  const jsonMatch = text.match(/\{[\s\S]*?"caption"[\s\S]*?\}/);
-  if (jsonMatch) {
-    try {
-      return JSON.parse(jsonMatch[0]);
-    } catch { /* continue */ }
+  // Strategy 4: Find LAST JSON object with "caption" and non-empty "hashtags"
+  // Scan from end of text backwards to find the actual response JSON
+  for (let searchIdx = text.length - 1; searchIdx >= 0; searchIdx--) {
+    if (text[searchIdx] === "{") {
+      let depth = 0;
+      let inString = false;
+      let escape = false;
+      for (let i = searchIdx; i < text.length; i++) {
+        const ch = text[i];
+        if (escape) { escape = false; continue; }
+        if (ch === "\\") { escape = true; continue; }
+        if (ch === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (ch === "{") depth++;
+        if (ch === "}") {
+          depth--;
+          if (depth === 0) {
+            try {
+              const parsed = JSON.parse(text.slice(searchIdx, i + 1));
+              // Only accept if it has caption AND hashtags array
+              if (parsed?.caption && Array.isArray(parsed.hashtags)) {
+                return parsed;
+              }
+            } catch { /* not valid JSON, continue */ }
+            break;
+          }
+        }
+      }
+    }
   }
 
   return null;
