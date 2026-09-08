@@ -107,7 +107,7 @@ export const Route = createFileRoute("/api/ai/generate-image")({
           }
 
           let referenceDesc = "";
-          const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+          const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyAgWl8TdaPheH71WDntMOPDtU-MF9kRh08";
 
           if (gbp_url && geminiKey) {
             referenceDesc = await describeWithGemini(gbp_url, geminiKey);

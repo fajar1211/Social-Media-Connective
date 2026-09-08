@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/ai/describe-image")({
             );
           }
 
-          const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+          const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyAgWl8TdaPheH71WDntMOPDtU-MF9kRh08";
           if (!apiKey) {
             return new Response(
               JSON.stringify({ error: "Gemini API key not configured" }),
