@@ -3,17 +3,21 @@ import { createFileRoute } from "@tanstack/react-router";
 const GEMINI_MODEL = "gemma-4-26b-a4b-it";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `Generate ONE social media post as a JSON object.
+const SYSTEM_PROMPT = `You are a social media content expert. Create ONE post.
 
-Example output:
-{"topic":"Welcome to Our Restaurant","caption":"We are thrilled to open our doors and share our passion for food with you. Every dish tells a story.","hashtags":["restaurant","foodie","dining"],"cta":"Book your table today!","image_prompt":"Elegant restaurant interior with warm lighting","content_type":"Image"}
+The "Knowledge Context" below is your PRIMARY source of truth.
+Write content that references SPECIFIC details from it:
+- Exact brand name, products, location, chef, values
+- Target audience preferences and behaviors
+- Brand voice, personality, and style
+- Specific menu items, services, or offerings mentioned
 
-Rules:
-- caption: actual post text only, no hashtags or CTA
-- hashtags: 3-15 tags without # symbol
-- cta: one sentence call to action
-- image_prompt: detailed visual description
-- content_type: Image, Carousel, Text Post, or Short Video`;
+Do NOT write generic content. Every post must feel specific to this brand.
+
+Output ONLY a JSON object:
+{"topic":"...","caption":"...","hashtags":[...],"cta":"...","image_prompt":"...","content_type":"Image"}`;
+
+const GOALS = ["Education", "Promotion", "Engagement", "Awareness", "Announcement"];
 
 interface ApiResponse {
   topic?: string;
@@ -216,6 +220,41 @@ async function callGemini(
   return { ok: true, content };
 }
 
+async function fetchUrlContent(url: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; ContentBot/1.0)" },
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) return "";
+
+    const html = await resp.text();
+    const text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 1500);
+
+    return text;
+  } catch {
+    return "";
+  }
+}
+
 export const Route = createFileRoute("/api/ai/generate-caption")({
   server: {
     handlers: {
@@ -230,6 +269,8 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             client_name = "",
             knowledge_files = [],
             variety = "",
+            reference_url = "",
+            goal = "",
           } = body;
 
           if (!topic || !topic.trim()) {
@@ -247,26 +288,35 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             );
           }
 
-          const platformRules: Record<string, string> = {
-            Instagram: "Write an engaging caption.",
-            Facebook: "Write a conversational caption.",
-            Twitter: "Write a short caption.",
-          };
+          const selectedGoal = goal || GOALS[Math.floor(Math.random() * GOALS.length)];
 
-          const knowledgeText = knowledge_files.length > 0
-            ? knowledge_files
-                .filter((kf: { name: string; content: string }) => kf.content?.trim())
-                .map((kf: { name: string; content: string }) => `${kf.name}: ${kf.content.trim().slice(0, 300)}`)
-                .join(" | ")
-            : "";
+          let referenceContent = "";
+          if (reference_url) {
+            referenceContent = await fetchUrlContent(reference_url);
+          }
+
+          const knowledgeBlocks: string[] = [];
+          for (const kf of knowledge_files) {
+            if (kf.content?.trim()) {
+              knowledgeBlocks.push(`[${kf.name}]:\n${kf.content.trim()}`);
+            }
+          }
 
           const fullPrompt = [
             SYSTEM_PROMPT,
-            `Topic: ${topic.trim()}. Brand: ${client_name || "Unknown"}. Platform: ${platform}. Tone: ${tone}.`,
-            `Caption rules: ${platformRules[platform] || platformRules.Facebook}`,
-            knowledgeText ? `Brand details: ${knowledgeText}` : "",
-            contentBody?.trim() ? `Extra: ${contentBody.trim()}` : "",
-            variety ? `Style: ${variety}` : "",
+            "",
+            "Knowledge Context (PRIMARY SOURCE — use these specific details):",
+            ...knowledgeBlocks,
+            referenceContent ? `\nReference Content from website:\n${referenceContent}` : "",
+            "",
+            `Topic: ${topic.trim()}`,
+            `Goal: ${selectedGoal}`,
+            `Platform: ${platform}`,
+            `Tone: ${tone}`,
+            contentBody?.trim() ? `Additional notes: ${contentBody.trim()}` : "",
+            variety ? `Post style: ${variety}` : "",
+            "",
+            `Write a ${platform} post using the knowledge above. Reference specific details like brand name, products, location, values, audience.`,
           ].filter(Boolean).join("\n");
 
           let parsed: ApiResponse | null = null;
@@ -280,11 +330,15 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
 
           if (!parsed) {
+            const knowledgeForRetry = knowledgeBlocks.length > 0
+              ? `\nBrand info: ${knowledgeBlocks.join(" | ").slice(0, 500)}`
+              : "";
             const retryPrompt = [
               `Generate ONE ${platform} post as JSON.`,
-              `Topic: ${topic.trim()}. Brand: ${client_name || "brand"}. Tone: ${tone}.`,
+              `Topic: ${topic.trim()}. Goal: ${selectedGoal}. Tone: ${tone}.`,
+              knowledgeForRetry,
               `Example: {"topic":"Topic","caption":"Post body text here","hashtags":["tag1","tag2"],"cta":"Call to action","image_prompt":"Image description","content_type":"Image"}`,
-            ].join("\n");
+            ].filter(Boolean).join("\n");
 
             const attempt2 = await callGemini(apiKey, retryPrompt, 2048);
             lastRaw = attempt2.content;
@@ -295,7 +349,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
 
           if (!parsed) {
-            const attempt3 = await callGemini(apiKey, `Post about ${topic.slice(0,40)} for ${client_name||"brand"}. Output JSON: {"topic":"...","caption":"...","hashtags":[],"cta":"...","image_prompt":"...","content_type":"Image"}`, 2048);
+            const attempt3 = await callGemini(apiKey, `Post about ${topic.slice(0,40)} for ${client_name||"brand"}. Goal: ${selectedGoal}. Output JSON: {"topic":"...","caption":"...","hashtags":[],"cta":"...","image_prompt":"...","content_type":"Image"}`, 2048);
             lastRaw = attempt3.content;
             if (attempt3.ok) {
               parsed = parseJsonResponse(attempt3.content);
@@ -312,6 +366,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
                 cta: parsed.cta || "",
                 image_prompt: parsed.image_prompt || "",
                 content_type: parsed.content_type || "Image",
+                goal: selectedGoal,
               }),
               { status: 200, headers: { "Content-Type": "application/json" } }
             );

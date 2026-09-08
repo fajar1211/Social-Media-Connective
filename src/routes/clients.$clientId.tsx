@@ -2333,6 +2333,8 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
                 client_name: client.name,
                 knowledge_files: selected.map((f) => ({ name: f.name, content: f.content })),
                 variety: varietyAspects[i % varietyAspects.length],
+                reference_url: referenceUrl.trim(),
+                goal: goal || "",
               }),
             });
 
