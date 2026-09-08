@@ -26,29 +26,14 @@ interface ApiResponse {
 function preProcessResponse(text: string): string {
   let cleaned = text;
 
-  const markers = [
-    "```json",
-    "```",
-    "JSON object only.",
-    "Output ONLY a valid JSON object.",
-    "No other text.",
-  ];
-  for (const marker of markers) {
-    const idx = cleaned.lastIndexOf(marker);
-    if (idx !== -1) {
-      cleaned = cleaned.slice(idx + marker.length);
-      break;
-    }
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
+    cleaned = cleaned.slice(0, lastBrace + 1);
   }
 
   const firstBrace = cleaned.indexOf("{");
   if (firstBrace > 0) {
     cleaned = cleaned.slice(firstBrace);
-  }
-
-  const lastBrace = cleaned.lastIndexOf("}");
-  if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
-    cleaned = cleaned.slice(0, lastBrace + 1);
   }
 
   return cleaned.trim();
@@ -219,7 +204,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           const knowledgeText = knowledge_files.length > 0
             ? knowledge_files
                 .filter((kf: { name: string; content: string }) => kf.content?.trim())
-                .map((kf: { name: string; content: string }) => `${kf.name}: ${kf.content.trim()}`)
+                .map((kf: { name: string; content: string }) => `${kf.name}: ${kf.content.trim().slice(0, 300)}`)
                 .join(" | ")
             : "";
 
