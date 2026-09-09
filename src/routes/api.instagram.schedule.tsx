@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const GRAPH_API_VERSION = "v21.0";
 
-export const Route = createFileRoute("/api/instagram/schedule" as any)({
+export const Route = createFileRoute("/api/instagram/schedule")({
   server: {
     handlers: {
       POST: async ({ request }) => {

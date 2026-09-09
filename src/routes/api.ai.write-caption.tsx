@@ -59,7 +59,7 @@ function extractJson(text: string): Record<string, unknown> | null {
   }
 }
 
-export const Route = createFileRoute("/api/ai/write-caption" as any)({
+export const Route = createFileRoute("/api/ai/write-caption")({
   server: {
     handlers: {
       POST: async ({ request }) => {

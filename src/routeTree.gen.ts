@@ -32,6 +32,15 @@ import { Route as ClientTokenRouteImport } from './routes/client.$token'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
 import { Route as ContentIndexRouteImport } from './routes/content.index'
 import { Route as ContentCreateRouteImport } from './routes/content.create'
+import { Route as ApiAiDescribeImageRouteImport } from './routes/api.ai.describe-image'
+import { Route as ApiAiGenerateCaptionRouteImport } from './routes/api.ai.generate-caption'
+import { Route as ApiAiGenerateCarouselRouteImport } from './routes/api.ai.generate-carousel'
+import { Route as ApiAiGenerateHashtagsRouteImport } from './routes/api.ai.generate-hashtags'
+import { Route as ApiAiGenerateImageRouteImport } from './routes/api.ai.generate-image'
+import { Route as ApiAiGenerateImagePromptRouteImport } from './routes/api.ai.generate-image-prompt'
+import { Route as ApiAiResearchTrendsRouteImport } from './routes/api.ai.research-trends'
+import { Route as ApiAiStrategizeRouteImport } from './routes/api.ai.strategize'
+import { Route as ApiAiWriteCaptionRouteImport } from './routes/api.ai.write-caption'
 import { Route as ApiAuthFacebookRouteImport } from './routes/api.auth.facebook'
 import { Route as ApiAuthInstagramRouteImport } from './routes/api.auth.instagram'
 import { Route as ApiAuthInstagramDirectRouteImport } from './routes/api.auth.instagram-direct'
@@ -40,6 +49,8 @@ import { Route as ApiFacebookEditRouteImport } from './routes/api.facebook.edit'
 import { Route as ApiFacebookPhotoRouteImport } from './routes/api.facebook.photo'
 import { Route as ApiFacebookPostRouteImport } from './routes/api.facebook.post'
 import { Route as ApiFacebookScheduleRouteImport } from './routes/api.facebook.schedule'
+import { Route as ApiInstagramPostRouteImport } from './routes/api.instagram.post'
+import { Route as ApiInstagramScheduleRouteImport } from './routes/api.instagram.schedule'
 import { Route as ApiWebhookInstagramRouteImport } from './routes/api.webhook.instagram'
 import { Route as ApiAuthFacebookCallbackRouteImport } from './routes/api.auth.facebook.callback'
 import { Route as ApiAuthInstagramDirectCallbackRouteImport } from './routes/api.auth.instagram-direct.callback'
@@ -162,6 +173,52 @@ const ContentCreateRoute = ContentCreateRouteImport.update({
   path: '/content/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiDescribeImageRoute = ApiAiDescribeImageRouteImport.update({
+  id: '/api/ai/describe-image',
+  path: '/api/ai/describe-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiGenerateCaptionRoute = ApiAiGenerateCaptionRouteImport.update({
+  id: '/api/ai/generate-caption',
+  path: '/api/ai/generate-caption',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiGenerateCarouselRoute = ApiAiGenerateCarouselRouteImport.update({
+  id: '/api/ai/generate-carousel',
+  path: '/api/ai/generate-carousel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiGenerateHashtagsRoute = ApiAiGenerateHashtagsRouteImport.update({
+  id: '/api/ai/generate-hashtags',
+  path: '/api/ai/generate-hashtags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiGenerateImageRoute = ApiAiGenerateImageRouteImport.update({
+  id: '/api/ai/generate-image',
+  path: '/api/ai/generate-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiGenerateImagePromptRoute =
+  ApiAiGenerateImagePromptRouteImport.update({
+    id: '/api/ai/generate-image-prompt',
+    path: '/api/ai/generate-image-prompt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAiResearchTrendsRoute = ApiAiResearchTrendsRouteImport.update({
+  id: '/api/ai/research-trends',
+  path: '/api/ai/research-trends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiStrategizeRoute = ApiAiStrategizeRouteImport.update({
+  id: '/api/ai/strategize',
+  path: '/api/ai/strategize',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiWriteCaptionRoute = ApiAiWriteCaptionRouteImport.update({
+  id: '/api/ai/write-caption',
+  path: '/api/ai/write-caption',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthFacebookRoute = ApiAuthFacebookRouteImport.update({
   id: '/api/auth/facebook',
   path: '/api/auth/facebook',
@@ -200,6 +257,16 @@ const ApiFacebookPostRoute = ApiFacebookPostRouteImport.update({
 const ApiFacebookScheduleRoute = ApiFacebookScheduleRouteImport.update({
   id: '/api/facebook/schedule',
   path: '/api/facebook/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInstagramPostRoute = ApiInstagramPostRouteImport.update({
+  id: '/api/instagram/post',
+  path: '/api/instagram/post',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInstagramScheduleRoute = ApiInstagramScheduleRouteImport.update({
+  id: '/api/instagram/schedule',
+  path: '/api/instagram/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWebhookInstagramRoute = ApiWebhookInstagramRouteImport.update({
@@ -261,6 +328,15 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
+  '/api/ai/describe-image': typeof ApiAiDescribeImageRoute
+  '/api/ai/generate-caption': typeof ApiAiGenerateCaptionRoute
+  '/api/ai/generate-carousel': typeof ApiAiGenerateCarouselRoute
+  '/api/ai/generate-hashtags': typeof ApiAiGenerateHashtagsRoute
+  '/api/ai/generate-image': typeof ApiAiGenerateImageRoute
+  '/api/ai/generate-image-prompt': typeof ApiAiGenerateImagePromptRoute
+  '/api/ai/research-trends': typeof ApiAiResearchTrendsRoute
+  '/api/ai/strategize': typeof ApiAiStrategizeRoute
+  '/api/ai/write-caption': typeof ApiAiWriteCaptionRoute
   '/api/auth/facebook': typeof ApiAuthFacebookRouteWithChildren
   '/api/auth/instagram': typeof ApiAuthInstagramRouteWithChildren
   '/api/auth/instagram-direct': typeof ApiAuthInstagramDirectRouteWithChildren
@@ -269,6 +345,8 @@ export interface FileRoutesByFullPath {
   '/api/facebook/photo': typeof ApiFacebookPhotoRoute
   '/api/facebook/post': typeof ApiFacebookPostRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
+  '/api/instagram/post': typeof ApiInstagramPostRoute
+  '/api/instagram/schedule': typeof ApiInstagramScheduleRoute
   '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
   '/api/auth/facebook/callback': typeof ApiAuthFacebookCallbackRoute
   '/api/auth/instagram-direct/callback': typeof ApiAuthInstagramDirectCallbackRoute
@@ -300,6 +378,15 @@ export interface FileRoutesByTo {
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content': typeof ContentIndexRoute
+  '/api/ai/describe-image': typeof ApiAiDescribeImageRoute
+  '/api/ai/generate-caption': typeof ApiAiGenerateCaptionRoute
+  '/api/ai/generate-carousel': typeof ApiAiGenerateCarouselRoute
+  '/api/ai/generate-hashtags': typeof ApiAiGenerateHashtagsRoute
+  '/api/ai/generate-image': typeof ApiAiGenerateImageRoute
+  '/api/ai/generate-image-prompt': typeof ApiAiGenerateImagePromptRoute
+  '/api/ai/research-trends': typeof ApiAiResearchTrendsRoute
+  '/api/ai/strategize': typeof ApiAiStrategizeRoute
+  '/api/ai/write-caption': typeof ApiAiWriteCaptionRoute
   '/api/auth/facebook': typeof ApiAuthFacebookRouteWithChildren
   '/api/auth/instagram': typeof ApiAuthInstagramRouteWithChildren
   '/api/auth/instagram-direct': typeof ApiAuthInstagramDirectRouteWithChildren
@@ -308,6 +395,8 @@ export interface FileRoutesByTo {
   '/api/facebook/photo': typeof ApiFacebookPhotoRoute
   '/api/facebook/post': typeof ApiFacebookPostRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
+  '/api/instagram/post': typeof ApiInstagramPostRoute
+  '/api/instagram/schedule': typeof ApiInstagramScheduleRoute
   '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
   '/api/auth/facebook/callback': typeof ApiAuthFacebookCallbackRoute
   '/api/auth/instagram-direct/callback': typeof ApiAuthInstagramDirectCallbackRoute
@@ -340,6 +429,15 @@ export interface FileRoutesById {
   '/clients/$clientId': typeof ClientsClientIdRoute
   '/content/create': typeof ContentCreateRoute
   '/content/': typeof ContentIndexRoute
+  '/api/ai/describe-image': typeof ApiAiDescribeImageRoute
+  '/api/ai/generate-caption': typeof ApiAiGenerateCaptionRoute
+  '/api/ai/generate-carousel': typeof ApiAiGenerateCarouselRoute
+  '/api/ai/generate-hashtags': typeof ApiAiGenerateHashtagsRoute
+  '/api/ai/generate-image': typeof ApiAiGenerateImageRoute
+  '/api/ai/generate-image-prompt': typeof ApiAiGenerateImagePromptRoute
+  '/api/ai/research-trends': typeof ApiAiResearchTrendsRoute
+  '/api/ai/strategize': typeof ApiAiStrategizeRoute
+  '/api/ai/write-caption': typeof ApiAiWriteCaptionRoute
   '/api/auth/facebook': typeof ApiAuthFacebookRouteWithChildren
   '/api/auth/instagram': typeof ApiAuthInstagramRouteWithChildren
   '/api/auth/instagram-direct': typeof ApiAuthInstagramDirectRouteWithChildren
@@ -348,6 +446,8 @@ export interface FileRoutesById {
   '/api/facebook/photo': typeof ApiFacebookPhotoRoute
   '/api/facebook/post': typeof ApiFacebookPostRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
+  '/api/instagram/post': typeof ApiInstagramPostRoute
+  '/api/instagram/schedule': typeof ApiInstagramScheduleRoute
   '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
   '/api/auth/facebook/callback': typeof ApiAuthFacebookCallbackRoute
   '/api/auth/instagram-direct/callback': typeof ApiAuthInstagramDirectCallbackRoute
@@ -381,6 +481,15 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
+    | '/api/ai/describe-image'
+    | '/api/ai/generate-caption'
+    | '/api/ai/generate-carousel'
+    | '/api/ai/generate-hashtags'
+    | '/api/ai/generate-image'
+    | '/api/ai/generate-image-prompt'
+    | '/api/ai/research-trends'
+    | '/api/ai/strategize'
+    | '/api/ai/write-caption'
     | '/api/auth/facebook'
     | '/api/auth/instagram'
     | '/api/auth/instagram-direct'
@@ -389,6 +498,8 @@ export interface FileRouteTypes {
     | '/api/facebook/photo'
     | '/api/facebook/post'
     | '/api/facebook/schedule'
+    | '/api/instagram/post'
+    | '/api/instagram/schedule'
     | '/api/webhook/instagram'
     | '/api/auth/facebook/callback'
     | '/api/auth/instagram-direct/callback'
@@ -420,6 +531,15 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/content/create'
     | '/content'
+    | '/api/ai/describe-image'
+    | '/api/ai/generate-caption'
+    | '/api/ai/generate-carousel'
+    | '/api/ai/generate-hashtags'
+    | '/api/ai/generate-image'
+    | '/api/ai/generate-image-prompt'
+    | '/api/ai/research-trends'
+    | '/api/ai/strategize'
+    | '/api/ai/write-caption'
     | '/api/auth/facebook'
     | '/api/auth/instagram'
     | '/api/auth/instagram-direct'
@@ -428,6 +548,8 @@ export interface FileRouteTypes {
     | '/api/facebook/photo'
     | '/api/facebook/post'
     | '/api/facebook/schedule'
+    | '/api/instagram/post'
+    | '/api/instagram/schedule'
     | '/api/webhook/instagram'
     | '/api/auth/facebook/callback'
     | '/api/auth/instagram-direct/callback'
@@ -459,6 +581,15 @@ export interface FileRouteTypes {
     | '/clients/$clientId'
     | '/content/create'
     | '/content/'
+    | '/api/ai/describe-image'
+    | '/api/ai/generate-caption'
+    | '/api/ai/generate-carousel'
+    | '/api/ai/generate-hashtags'
+    | '/api/ai/generate-image'
+    | '/api/ai/generate-image-prompt'
+    | '/api/ai/research-trends'
+    | '/api/ai/strategize'
+    | '/api/ai/write-caption'
     | '/api/auth/facebook'
     | '/api/auth/instagram'
     | '/api/auth/instagram-direct'
@@ -467,6 +598,8 @@ export interface FileRouteTypes {
     | '/api/facebook/photo'
     | '/api/facebook/post'
     | '/api/facebook/schedule'
+    | '/api/instagram/post'
+    | '/api/instagram/schedule'
     | '/api/webhook/instagram'
     | '/api/auth/facebook/callback'
     | '/api/auth/instagram-direct/callback'
@@ -498,6 +631,15 @@ export interface RootRouteChildren {
   ClientTokenRoute: typeof ClientTokenRoute
   ContentCreateRoute: typeof ContentCreateRoute
   ContentIndexRoute: typeof ContentIndexRoute
+  ApiAiDescribeImageRoute: typeof ApiAiDescribeImageRoute
+  ApiAiGenerateCaptionRoute: typeof ApiAiGenerateCaptionRoute
+  ApiAiGenerateCarouselRoute: typeof ApiAiGenerateCarouselRoute
+  ApiAiGenerateHashtagsRoute: typeof ApiAiGenerateHashtagsRoute
+  ApiAiGenerateImageRoute: typeof ApiAiGenerateImageRoute
+  ApiAiGenerateImagePromptRoute: typeof ApiAiGenerateImagePromptRoute
+  ApiAiResearchTrendsRoute: typeof ApiAiResearchTrendsRoute
+  ApiAiStrategizeRoute: typeof ApiAiStrategizeRoute
+  ApiAiWriteCaptionRoute: typeof ApiAiWriteCaptionRoute
   ApiAuthFacebookRoute: typeof ApiAuthFacebookRouteWithChildren
   ApiAuthInstagramRoute: typeof ApiAuthInstagramRouteWithChildren
   ApiAuthInstagramDirectRoute: typeof ApiAuthInstagramDirectRouteWithChildren
@@ -506,6 +648,8 @@ export interface RootRouteChildren {
   ApiFacebookPhotoRoute: typeof ApiFacebookPhotoRoute
   ApiFacebookPostRoute: typeof ApiFacebookPostRoute
   ApiFacebookScheduleRoute: typeof ApiFacebookScheduleRoute
+  ApiInstagramPostRoute: typeof ApiInstagramPostRoute
+  ApiInstagramScheduleRoute: typeof ApiInstagramScheduleRoute
   ApiWebhookInstagramRoute: typeof ApiWebhookInstagramRoute
 }
 
@@ -672,6 +816,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/describe-image': {
+      id: '/api/ai/describe-image'
+      path: '/api/ai/describe-image'
+      fullPath: '/api/ai/describe-image'
+      preLoaderRoute: typeof ApiAiDescribeImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/generate-caption': {
+      id: '/api/ai/generate-caption'
+      path: '/api/ai/generate-caption'
+      fullPath: '/api/ai/generate-caption'
+      preLoaderRoute: typeof ApiAiGenerateCaptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/generate-carousel': {
+      id: '/api/ai/generate-carousel'
+      path: '/api/ai/generate-carousel'
+      fullPath: '/api/ai/generate-carousel'
+      preLoaderRoute: typeof ApiAiGenerateCarouselRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/generate-hashtags': {
+      id: '/api/ai/generate-hashtags'
+      path: '/api/ai/generate-hashtags'
+      fullPath: '/api/ai/generate-hashtags'
+      preLoaderRoute: typeof ApiAiGenerateHashtagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/generate-image': {
+      id: '/api/ai/generate-image'
+      path: '/api/ai/generate-image'
+      fullPath: '/api/ai/generate-image'
+      preLoaderRoute: typeof ApiAiGenerateImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/generate-image-prompt': {
+      id: '/api/ai/generate-image-prompt'
+      path: '/api/ai/generate-image-prompt'
+      fullPath: '/api/ai/generate-image-prompt'
+      preLoaderRoute: typeof ApiAiGenerateImagePromptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/research-trends': {
+      id: '/api/ai/research-trends'
+      path: '/api/ai/research-trends'
+      fullPath: '/api/ai/research-trends'
+      preLoaderRoute: typeof ApiAiResearchTrendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/strategize': {
+      id: '/api/ai/strategize'
+      path: '/api/ai/strategize'
+      fullPath: '/api/ai/strategize'
+      preLoaderRoute: typeof ApiAiStrategizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/write-caption': {
+      id: '/api/ai/write-caption'
+      path: '/api/ai/write-caption'
+      fullPath: '/api/ai/write-caption'
+      preLoaderRoute: typeof ApiAiWriteCaptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/facebook': {
       id: '/api/auth/facebook'
       path: '/api/auth/facebook'
@@ -726,6 +933,20 @@ declare module '@tanstack/react-router' {
       path: '/api/facebook/schedule'
       fullPath: '/api/facebook/schedule'
       preLoaderRoute: typeof ApiFacebookScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/instagram/post': {
+      id: '/api/instagram/post'
+      path: '/api/instagram/post'
+      fullPath: '/api/instagram/post'
+      preLoaderRoute: typeof ApiInstagramPostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/instagram/schedule': {
+      id: '/api/instagram/schedule'
+      path: '/api/instagram/schedule'
+      fullPath: '/api/instagram/schedule'
+      preLoaderRoute: typeof ApiInstagramScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/webhook/instagram': {
@@ -861,6 +1082,15 @@ const rootRouteChildren: RootRouteChildren = {
   ClientTokenRoute: ClientTokenRoute,
   ContentCreateRoute: ContentCreateRoute,
   ContentIndexRoute: ContentIndexRoute,
+  ApiAiDescribeImageRoute: ApiAiDescribeImageRoute,
+  ApiAiGenerateCaptionRoute: ApiAiGenerateCaptionRoute,
+  ApiAiGenerateCarouselRoute: ApiAiGenerateCarouselRoute,
+  ApiAiGenerateHashtagsRoute: ApiAiGenerateHashtagsRoute,
+  ApiAiGenerateImageRoute: ApiAiGenerateImageRoute,
+  ApiAiGenerateImagePromptRoute: ApiAiGenerateImagePromptRoute,
+  ApiAiResearchTrendsRoute: ApiAiResearchTrendsRoute,
+  ApiAiStrategizeRoute: ApiAiStrategizeRoute,
+  ApiAiWriteCaptionRoute: ApiAiWriteCaptionRoute,
   ApiAuthFacebookRoute: ApiAuthFacebookRouteWithChildren,
   ApiAuthInstagramRoute: ApiAuthInstagramRouteWithChildren,
   ApiAuthInstagramDirectRoute: ApiAuthInstagramDirectRouteWithChildren,
@@ -869,6 +1099,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFacebookPhotoRoute: ApiFacebookPhotoRoute,
   ApiFacebookPostRoute: ApiFacebookPostRoute,
   ApiFacebookScheduleRoute: ApiFacebookScheduleRoute,
+  ApiInstagramPostRoute: ApiInstagramPostRoute,
+  ApiInstagramScheduleRoute: ApiInstagramScheduleRoute,
   ApiWebhookInstagramRoute: ApiWebhookInstagramRoute,
 }
 export const routeTree = rootRouteImport

@@ -31,7 +31,7 @@ function buildPollinationsUrl(
   return `${POLLINATIONS_BASE}/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${model}&nologo=true`;
 }
 
-export const Route = createFileRoute("/api/ai/generate-carousel" as any)({
+export const Route = createFileRoute("/api/ai/generate-carousel")({
   server: {
     handlers: {
       POST: async ({ request }) => {

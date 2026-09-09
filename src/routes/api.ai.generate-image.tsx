@@ -82,7 +82,7 @@ async function describeWithGemini(
   return realPart?.text?.trim() || "";
 }
 
-export const Route = createFileRoute("/api/ai/generate-image" as any)({
+export const Route = createFileRoute("/api/ai/generate-image")({
   server: {
     handlers: {
       POST: async ({ request }) => {
