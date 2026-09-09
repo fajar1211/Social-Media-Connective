@@ -1943,10 +1943,14 @@ type Tab = "content" | "ai-content" | "media" | "settings" | "account";
 
 
 function MediaTab({ client }: { client: { id: string; name: string } }) {
-  const { content } = useStore();
+  const { content, clients } = useStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [filter, setFilter] = useState<"all" | "images" | "videos">("all");
+  const [filter, setFilter] = useState<"all" | "images" | "videos" | "gbp">("all");
+
+  const clientData = clients.find((c) => c.id === client.id);
+  const gbpConnection = clientData?.socialIntegrations?.GBP;
+  const gbpImages: string[] = (gbpConnection as any)?.images || [];
 
   const allMedia = content
     .filter((c) => (c.clientId === client.id || c.client === client.name) && c.media && c.media.length > 0)
@@ -1959,11 +1963,13 @@ function MediaTab({ client }: { client: { id: string; name: string } }) {
       }))
     );
 
-  const filteredMedia = allMedia.filter((m) => {
-    if (filter === "images") return m.type === "image";
-    if (filter === "videos") return m.type === "video";
-    return true;
-  });
+  const filteredMedia = filter === "gbp"
+    ? gbpImages.map((url, i) => ({ id: `gbp-${i}`, url, title: "GBP Image", type: "image" as const }))
+    : allMedia.filter((m) => {
+        if (filter === "images") return m.type === "image";
+        if (filter === "videos") return m.type === "video";
+        return true;
+      });
 
   const images = filteredMedia.filter((m) => m.type === "image");
   const videos = filteredMedia.filter((m) => m.type === "video");
@@ -2054,6 +2060,17 @@ function MediaTab({ client }: { client: { id: string; name: string } }) {
             >
               <Film className="mr-1 inline size-3" />
               Videos ({videos.length})
+            </button>
+            <button
+              onClick={() => setFilter("gbp")}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                filter === "gbp"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Globe className="mr-1 inline size-3" />
+              GBP Media ({gbpImages.length})
             </button>
           </div>
 
