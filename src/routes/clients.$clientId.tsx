@@ -2169,29 +2169,32 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const failedCount = gen.posts.filter((p) => p.status === "failed").length;
   const overallPercent = gen.total > 0 ? Math.round((completedCount / gen.total) * 100) : 0;
   const [animatedPercent, setAnimatedPercent] = useState(0);
+  const animTargetRef = useRef(0);
+  const animFrameRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!isGenerating && overallPercent >= 100) {
-      setAnimatedPercent(100);
-      return;
-    }
     if (!isGenerating) {
       setAnimatedPercent(overallPercent);
+      animTargetRef.current = overallPercent;
       return;
     }
-    if (animatedPercent < overallPercent) {
-      setAnimatedPercent(overallPercent);
-      return;
-    }
-    if (overallPercent >= 100) return;
-    const targetForThisPost = Math.min(overallPercent + 10, 99);
-    const interval = setInterval(() => {
+    animTargetRef.current = overallPercent;
+    let lastTime = performance.now();
+    const tick = (now: number) => {
+      const dt = now - lastTime;
+      lastTime = now;
       setAnimatedPercent((prev) => {
-        if (prev >= targetForThisPost) return prev;
-        return prev + 1;
+        const target = animTargetRef.current;
+        if (prev >= target) return prev;
+        const speed = 0.018;
+        const step = Math.max(0.2, (target - prev) * speed * (dt / 16));
+        const next = Math.min(prev + step, target);
+        return next;
       });
-    }, 120);
-    return () => clearInterval(interval);
+      animFrameRef.current = requestAnimationFrame(tick);
+    };
+    animFrameRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animFrameRef.current);
   }, [isGenerating, overallPercent]);
 
   useEffect(() => {
