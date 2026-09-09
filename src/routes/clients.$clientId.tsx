@@ -2168,6 +2168,24 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const completedCount = gen.posts.filter((p) => p.status === "completed").length;
   const failedCount = gen.posts.filter((p) => p.status === "failed").length;
   const overallPercent = gen.total > 0 ? Math.round((completedCount / gen.total) * 100) : 0;
+  const [animatedPercent, setAnimatedPercent] = useState(0);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      setAnimatedPercent(overallPercent);
+      return;
+    }
+    setAnimatedPercent(overallPercent);
+    if (overallPercent >= 100) return;
+    const interval = setInterval(() => {
+      setAnimatedPercent((prev) => {
+        if (prev >= overallPercent + 8) return prev + 0.3;
+        if (prev < overallPercent) return prev + 0.5;
+        return prev;
+      });
+    }, 400);
+    return () => clearInterval(interval);
+  }, [isGenerating, overallPercent]);
 
   useEffect(() => {
     loadKnowledgeFiles();
@@ -2315,7 +2333,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       startDate,
       endDate,
       postsPerPlatform: Object.fromEntries(
-        connectedPlatforms.map((p) => [p, postsPerPlatform[p] || 5])
+        connectedPlatforms.map((p) => [p, postsPerPlatform[p] || 0])
       ),
       connectedPlatforms,
       varietyAspects,
@@ -2596,10 +2614,10 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
                         </div>
                         <input
                           type="number"
-                          min="1"
+                          min="0"
                           max="30"
-                          value={postsPerPlatform[platform] || 5}
-                          onChange={(e) => setPostsPerPlatform({ ...postsPerPlatform, [platform]: parseInt(e.target.value) || 5 })}
+                          value={postsPerPlatform[platform] || 0}
+                          onChange={(e) => setPostsPerPlatform({ ...postsPerPlatform, [platform]: parseInt(e.target.value) || 0 })}
                           className="w-20 rounded-lg border px-2 py-1 text-center text-sm"
                         />
                       </div>
@@ -2620,7 +2638,11 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
                     <input
                       type="date"
                       value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
+                      min={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        if (endDate && e.target.value > endDate) setEndDate("");
+                      }}
                       className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
                     />
                   </div>
@@ -2629,9 +2651,15 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
                     <input
                       type="date"
                       value={endDate}
+                      min={startDate || new Date().toISOString().slice(0, 10)}
+                      max={startDate ? new Date(new Date(startDate).getTime() + 60 * 86400000).toISOString().slice(0, 10) : undefined}
                       onChange={(e) => setEndDate(e.target.value)}
                       className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+                      disabled={!startDate}
                     />
+                    {!startDate && (
+                      <p className="mt-1 text-[10px] text-muted-foreground">Select start date first</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2685,9 +2713,9 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
                   <span className="font-medium">
                     {completedCount} of {gen.total} posts completed
                   </span>
-                  <span className="font-semibold text-primary">{overallPercent}%</span>
+                  <span className="font-semibold text-primary">{Math.min(100, Math.round(animatedPercent))}%</span>
                 </div>
-                <Progress value={overallPercent} className="h-2.5" />
+                <Progress value={Math.min(100, animatedPercent)} className="h-2.5" />
                 {failedCount > 0 && (
                   <p className="mt-1.5 text-xs text-destructive">
                     {failedCount} post{failedCount > 1 ? "s" : ""} failed
