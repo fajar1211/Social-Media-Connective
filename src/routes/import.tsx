@@ -169,6 +169,10 @@ function ImportPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled>
+                <FileSpreadsheet className="mr-1.5 size-3.5" />
+                Download Template (Soon)
+              </Button>
               <input
                 ref={inputRef}
                 type="file"
