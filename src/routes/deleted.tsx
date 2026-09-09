@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { ContentList } from "@/components/content-list";
 import { counts, useStore } from "@/lib/content-store";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/deleted")({
   head: () => ({
@@ -17,13 +18,15 @@ export const Route = createFileRoute("/deleted")({
 
 function Page() {
   const { content } = useStore();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
   return (
     <>
       <PageHeader
         title={`Deleted (${counts(content).Deleted})`}
         subtitle="Deleted marketing content. Open an item to restore or permanently delete it."
       />
-      <ContentList status="Deleted" emptyMessage="No deleted content." />
+      <ContentList status="Deleted" emptyMessage="No deleted content." showCheckboxes={isAdmin} />
     </>
   );
 }

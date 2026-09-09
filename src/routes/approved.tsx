@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { ContentList } from "@/components/content-list";
 import { counts, useStore } from "@/lib/content-store";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/approved")({
   head: () => ({
@@ -17,13 +18,15 @@ export const Route = createFileRoute("/approved")({
 
 function Page() {
   const { content } = useStore();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
   return (
     <>
       <PageHeader
         title={`Approved (${counts(content).Approved})`}
         subtitle="Content that has been approved."
       />
-      <ContentList status="Approved" emptyMessage="No approved content yet." />
+      <ContentList status="Approved" emptyMessage="No approved content yet." showCheckboxes={isAdmin} />
     </>
   );
 }

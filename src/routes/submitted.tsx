@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { ContentList } from "@/components/content-list";
 import { counts, useStore } from "@/lib/content-store";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/submitted")({
   head: () => ({
@@ -17,13 +18,15 @@ export const Route = createFileRoute("/submitted")({
 
 function Page() {
   const { content } = useStore();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
   return (
     <>
       <PageHeader
         title={`Submitted (${counts(content).Submitted})`}
         subtitle="Content submitted for review."
       />
-      <ContentList status="Submitted" emptyMessage="No submitted content yet." dateLabel="Submitted Date" />
+      <ContentList status="Submitted" emptyMessage="No submitted content yet." dateLabel="Submitted Date" showCheckboxes={isAdmin} />
     </>
   );
 }

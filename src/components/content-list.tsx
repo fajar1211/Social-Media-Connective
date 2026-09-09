@@ -294,11 +294,13 @@ export function ContentTable({
   onSelect,
   showStatus = true,
   dateLabel = "Date",
+  showCheckboxes = true,
 }: {
   items: ContentItem[];
   onSelect: (item: ContentItem) => void;
   showStatus?: boolean;
   dateLabel?: string;
+  showCheckboxes?: boolean;
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -349,7 +351,7 @@ export function ContentTable({
 
   return (
     <>
-      {someSelected && (
+      {showCheckboxes && someSelected && (
         <div className="mb-3 flex items-center gap-2 rounded-lg border bg-accent/50 px-4 py-2">
           <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
           <div className="ml-auto flex gap-2">
@@ -369,14 +371,16 @@ export function ContentTable({
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-10">
-                <input
-                  type="checkbox"
-                  className="size-4 rounded border-muted-foreground/25"
-                  checked={allSelected}
-                  onChange={toggleAll}
-                />
-              </TableHead>
+              {showCheckboxes && (
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    className="size-4 rounded border-muted-foreground/25"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                  />
+                </TableHead>
+              )}
               <TableHead className="w-12"></TableHead>
               <TableHead>Content</TableHead>
               <TableHead>Platform</TableHead>
@@ -395,15 +399,17 @@ export function ContentTable({
                   onClick={() => onSelect(item)}
                   className="cursor-pointer"
                 >
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      className="size-4 rounded border-muted-foreground/25"
-                      checked={selectedIds.has(item.id)}
-                      onChange={() => toggleOne(item.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </TableCell>
+                  {showCheckboxes && (
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        className="size-4 rounded border-muted-foreground/25"
+                        checked={selectedIds.has(item.id)}
+                        onChange={() => toggleOne(item.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     {img ? (
                       <img src={img} alt="" className="h-10 w-10 rounded object-cover" />
@@ -458,6 +464,7 @@ export function ContentList({
   emptyMessage,
   showStatusFilter = true,
   showClientFilter = true,
+  showCheckboxes = true,
   dateLabel,
 }: {
   status?: ContentItem["status"];
@@ -466,6 +473,7 @@ export function ContentList({
   emptyMessage?: string;
   showStatusFilter?: boolean;
   showClientFilter?: boolean;
+  showCheckboxes?: boolean;
   dateLabel?: string;
 }) {
   const { content, clients } = useStore();
@@ -587,6 +595,7 @@ export function ContentList({
           items={items}
           onSelect={setSelected}
           showStatus={!status}
+          showCheckboxes={showCheckboxes}
           dateLabel={dateLabel ?? "Date"}
         />
       ) : (
