@@ -2171,19 +2171,26 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const [animatedPercent, setAnimatedPercent] = useState(0);
 
   useEffect(() => {
+    if (!isGenerating && overallPercent >= 100) {
+      setAnimatedPercent(100);
+      return;
+    }
     if (!isGenerating) {
       setAnimatedPercent(overallPercent);
       return;
     }
-    setAnimatedPercent(overallPercent);
+    if (animatedPercent < overallPercent) {
+      setAnimatedPercent(overallPercent);
+      return;
+    }
     if (overallPercent >= 100) return;
+    const targetForThisPost = Math.min(overallPercent + 10, 99);
     const interval = setInterval(() => {
       setAnimatedPercent((prev) => {
-        if (prev >= overallPercent + 8) return prev + 0.3;
-        if (prev < overallPercent) return prev + 0.5;
-        return prev;
+        if (prev >= targetForThisPost) return prev;
+        return prev + 1;
       });
-    }, 400);
+    }, 120);
     return () => clearInterval(interval);
   }, [isGenerating, overallPercent]);
 
@@ -2702,7 +2709,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
                   )}
                   {!isGenerating && (
                     <Button variant="outline" size="sm" onClick={() => { window.location.reload(); }}>
-                      Dismiss
+                      Done
                     </Button>
                   )}
                 </div>
