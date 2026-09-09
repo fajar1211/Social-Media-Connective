@@ -2798,69 +2798,269 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       </div>
 
       {suggestedContent.length > 0 && (
-        <div className="rounded-xl border bg-card p-6 shadow-soft">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold">Suggested Posts</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {suggestedContent.length} content suggestions ready for review.
-              </p>
+        <SuggestedPostsSection
+          content={suggestedContent}
+          clientName={client.name}
+        />
+      )}
+    </div>
+  );
+}
+
+function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]; clientName: string }) {
+  const navigate = useNavigate();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [viewItem, setViewItem] = useState<ContentItem | null>(null);
+  const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 10;
+
+  const months = Array.from(new Set(
+    content
+      .map((c) => c.scheduledDate || c.date)
+      .filter(Boolean)
+      .map((d) => d.slice(0, 7))
+  )).sort().reverse();
+
+  const filtered = monthFilter === "all"
+    ? content
+    : content.filter((c) => (c.scheduledDate || c.date || "").startsWith(monthFilter));
+
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [monthFilter]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paged.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paged.map((c) => c.id)));
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    for (const id of selectedIds) {
+      await actions.purge(id);
+    }
+    toast.success(`${selectedIds.size} posts deleted`);
+    setSelectedIds(new Set());
+  };
+
+  return (
+    <div className="rounded-xl border bg-card p-6 shadow-soft">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold">Suggested Posts</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {filtered.length} content suggestion{filtered.length !== 1 ? "s" : ""} ready for review.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <Button variant="destructive" size="sm" onClick={deleteSelected}>
+              <Trash2 className="mr-1.5 size-3.5" />
+              Delete ({selectedIds.size})
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {months.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setMonthFilter("all")}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              monthFilter === "all"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            All
+          </button>
+          {months.map((m) => {
+            const label = new Date(m + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" });
+            return (
+              <button
+                key={m}
+                onClick={() => setMonthFilter(m)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  monthFilter === m
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={selectedIds.size === paged.length && paged.length > 0}
+          onChange={toggleSelectAll}
+          className="size-4 rounded border-gray-300"
+        />
+        <span className="text-xs text-muted-foreground">
+          {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all on this page"}
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {paged.map((item) => (
+          <div
+            key={item.id}
+            className="rounded-lg border p-4 transition-colors hover:bg-muted/30"
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(item.id)}
+                onChange={() => toggleSelect(item.id)}
+                className="mt-1 size-4 shrink-0 rounded border-gray-300"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-medium leading-snug">{item.title}</h3>
+                  <StatusBadge status={item.status} />
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                  {item.caption}
+                </p>
+                {item.hashtags?.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {item.hashtags.slice(0, 6).map((tag, i) => (
+                      <span key={i} className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                        #{tag}
+                      </span>
+                    ))}
+                    {item.hashtags.length > 6 && (
+                      <span className="text-[10px] text-muted-foreground">+{item.hashtags.length - 6}</span>
+                    )}
+                  </div>
+                )}
+                <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <PlatformBadge platform={item.platform} />
+                  <ContentTypeBadge type={item.type} />
+                  {item.cta && (
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">CTA: {item.cta.slice(0, 40)}</span>
+                  )}
+                  {item.scheduledDate && (
+                    <span className="flex items-center gap-1 text-[10px]">
+                      <CalendarClock className="size-3" />
+                      {item.scheduledDate} {item.scheduledTime || ""}
+                    </span>
+                  )}
+                </div>
+                {item.media?.[0] && (
+                  <img src={item.media[0]} alt="" className="mt-2 h-16 w-16 rounded-lg object-cover" />
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0"
+                onClick={() => setViewItem(item)}
+              >
+                View
+              </Button>
             </div>
           </div>
+        ))}
+      </div>
 
-          <div className="mt-6 space-y-4">
-            {suggestedContent.map((item, index) => (
-              <div
-                key={item.id}
-                className="cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted/30"
-                onClick={() => navigate({ to: "/content" })}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-medium leading-snug">{item.title}</h3>
-                      <StatusBadge status={item.status} />
-                    </div>
-                    <p className="mt-1.5 text-xs text-muted-foreground line-clamp-4 leading-relaxed">
-                      {item.caption}
-                    </p>
-                    {item.hashtags?.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {item.hashtags.slice(0, 6).map((tag, i) => (
-                          <span key={i} className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                            #{tag}
-                          </span>
-                        ))}
-                        {item.hashtags.length > 6 && (
-                          <span className="text-[10px] text-muted-foreground">+{item.hashtags.length - 6}</span>
-                        )}
-                      </div>
-                    )}
-                    <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <PlatformBadge platform={item.platform} />
-                      <ContentTypeBadge type={item.type} />
-                      {item.cta && (
-                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">CTA: {item.cta}</span>
-                      )}
-                      {item.scheduledDate && (
-                        <span className="flex items-center gap-1 text-[10px]">
-                          <CalendarClock className="size-3" />
-                          {item.scheduledDate} {item.scheduledTime || ""}
-                        </span>
-                      )}
-                    </div>
-                    {item.media?.[0] && (
-                      <img src={item.media[0]} alt="" className="mt-2 h-20 w-20 rounded-lg object-cover" />
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
           </div>
         </div>
+      )}
+
+      {viewItem && (
+        <Dialog open={!!viewItem} onOpenChange={(open) => { if (!open) setViewItem(null); }}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{viewItem.title}</DialogTitle>
+              <DialogDescription>
+                <span className="flex items-center gap-2 mt-1">
+                  <PlatformBadge platform={viewItem.platform} />
+                  <ContentTypeBadge type={viewItem.type} />
+                  <StatusBadge status={viewItem.status} />
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              {viewItem.media?.[0] && (
+                <img src={viewItem.media[0]} alt="" className="w-full max-h-64 rounded-lg object-cover" />
+              )}
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground mb-1">Caption</h4>
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">{viewItem.caption}</p>
+              </div>
+              {viewItem.hashtags?.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-1">Hashtags</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {viewItem.hashtags.map((tag, i) => (
+                      <span key={i} className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {viewItem.cta && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-1">Call to Action</h4>
+                  <p className="text-sm">{viewItem.cta}</p>
+                </div>
+              )}
+              {viewItem.notes && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-1">Notes</h4>
+                  <p className="text-sm whitespace-pre-wrap text-muted-foreground">{viewItem.notes}</p>
+                </div>
+              )}
+              {viewItem.scheduledDate && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <CalendarClock className="size-3.5" />
+                  Scheduled: {viewItem.scheduledDate} {viewItem.scheduledTime || ""}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
