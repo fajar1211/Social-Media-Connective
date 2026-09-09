@@ -888,6 +888,37 @@ export function SocialMediaPreviewCard({
   gbpButtonLabel,
   gbpIsVerified,
 }: SocialMediaPreviewCardProps) {
+  // Hooks MUST be called before any conditional returns (Rules of Hooks)
+  const [liked, setLiked] = useState(isLiked);
+  const [likeCount, setLikeCount] = useState(likes);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  const handleLike = useCallback(() => {
+    setLiked((p) => !p);
+    setLikeCount((p) => (liked ? p - 1 : p + 1));
+    onLike?.();
+  }, [liked, onLike]);
+
+  const handleImageClick = useCallback((index: number) => {
+    setPreviewIndex(index);
+    setPreviewOpen(true);
+  }, []);
+
+  const parsedContent = useMemo(
+    () => parseContent(content, onHashtagClick),
+    [content, onHashtagClick],
+  );
+
+  const initials = useMemo(() => {
+    return profileName
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }, [profileName]);
+
   // Route to Instagram preview if platform is instagram
   if (platform === "instagram") {
     return (
@@ -922,36 +953,6 @@ export function SocialMediaPreviewCard({
       />
     );
   }
-
-  const [liked, setLiked] = useState(isLiked);
-  const [likeCount, setLikeCount] = useState(likes);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewIndex, setPreviewIndex] = useState(0);
-
-  const handleLike = useCallback(() => {
-    setLiked((p) => !p);
-    setLikeCount((p) => (liked ? p - 1 : p + 1));
-    onLike?.();
-  }, [liked, onLike]);
-
-  const handleImageClick = useCallback((index: number) => {
-    setPreviewIndex(index);
-    setPreviewOpen(true);
-  }, []);
-
-  const parsedContent = useMemo(
-    () => parseContent(content, onHashtagClick),
-    [content, onHashtagClick],
-  );
-
-  const initials = useMemo(() => {
-    return profileName
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-  }, [profileName]);
 
   return (
     <>

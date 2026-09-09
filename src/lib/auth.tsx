@@ -114,6 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setLoading(false);
       }
+    }).catch(() => {
+      setLoading(false);
     });
 
     const {

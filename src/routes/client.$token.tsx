@@ -333,7 +333,7 @@ function ClientPortal() {
         )}
       </main>
 
-      <ContentDetailOverlay item={selected} onClose={() => setSelected(null)} />
+      {selected && <ContentDetailOverlay item={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
