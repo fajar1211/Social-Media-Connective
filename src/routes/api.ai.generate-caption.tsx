@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { generatePost } from "@/lib/ai-agents";
+import { analyzeTrendsAndStrategy, generateContent } from "@/lib/ai-agents";
 
 const GOALS = ["Education", "Promotion", "Engagement", "Awareness", "Announcement"];
 
@@ -37,14 +37,31 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             }
           }
 
-          const result = await generatePost({
+          // ── Agent 1: Trend Research + Strategy (~25s) ──
+          const strategy = await analyzeTrendsAndStrategy({
+            topic: topic.trim(),
+            platform,
+            knowledge: knowledgeBlocks,
+            client_name,
+            goal: selectedGoal,
+          });
+
+          if (!strategy) {
+            return new Response(
+              JSON.stringify({ error: "Failed to analyze trends and strategy" }),
+              { status: 422, headers: { "Content-Type": "application/json" } }
+            );
+          }
+
+          // ── Agent 2: Content Generation (~25s) ──
+          const result = await generateContent({
             topic: topic.trim(),
             platform,
             tone,
             knowledge: knowledgeBlocks,
             client_name,
             variety,
-            goal: selectedGoal,
+            strategy,
           });
 
           if (!result) {
