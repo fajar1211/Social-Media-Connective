@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState, useEffect, useReducer } from "react";
+import { useRef, useState, useEffect, useReducer, useMemo } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/select";
 import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from "@/components/badges";
 import { ContentList } from "@/components/content-list";
-import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem, type SocialConnection, type ContentType, type Platform } from "@/lib/content-store";
+import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem, type SocialConnection, type ContentType, type Platform, type Client } from "@/lib/content-store";
 import * as db from "@/lib/db";
 import { useGenerationStore, startGeneration, cancelGeneration } from "@/lib/ai-generation-store";
 import type { KnowledgeFile } from "@/lib/database.types";
@@ -3073,6 +3073,249 @@ function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]
   );
 }
 
+function ContentTabSection({
+  client,
+  clientContent,
+  counts: c,
+  selectedStatusFilter,
+  setSelectedStatusFilter,
+}: {
+  client: Client;
+  clientContent: ContentItem[];
+  counts: Record<string, number>;
+  selectedStatusFilter: string | null;
+  setSelectedStatusFilter: (s: string | null) => void;
+}) {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
+  const [monthFilter, setMonthFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const months = Array.from(new Set(
+    clientContent
+      .map((c) => c.scheduledDate || c.date)
+      .filter(Boolean)
+      .map((d) => d.slice(0, 7))
+  )).sort().reverse();
+
+  const filteredByMonth = monthFilter === "all"
+    ? clientContent
+    : clientContent.filter((c) => (c.scheduledDate || c.date || "").startsWith(monthFilter));
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { Suggested: 0, Additional: 0, Submitted: 0, Approved: 0, Deleted: 0 };
+    filteredByMonth.forEach((c) => {
+      if (c.status in counts) counts[c.status] = (counts[c.status] || 0) + 1;
+    });
+    return counts;
+  }, [filteredByMonth]);
+
+  const displayedContent = useMemo(() => {
+    if (!selectedStatusFilter) return filteredByMonth;
+    return filteredByMonth.filter((c) => c.status === selectedStatusFilter);
+  }, [filteredByMonth, selectedStatusFilter]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const items = displayedContent;
+    if (selectedIds.size === items.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map((c) => c.id)));
+    }
+  };
+
+  const purgeSelected = async () => {
+    if (selectedIds.size === 0) return;
+    for (const id of selectedIds) {
+      await actions.purge(id);
+    }
+    toast.success(`${selectedIds.size} posts permanently deleted`);
+    setSelectedIds(new Set());
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {statusCards.map((card) => (
+          <button
+            key={card.key}
+            onClick={() => setSelectedStatusFilter(selectedStatusFilter === card.key ? null : card.key)}
+            className={`rounded-xl border bg-card p-4 shadow-soft text-left transition-all ${
+              selectedStatusFilter === card.key ? "ring-2 ring-primary/50" : "hover:shadow-md"
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <span className="text-2xl font-semibold tabular-nums">{statusCounts[card.key]}</span>
+              <card.icon className="size-4 text-muted-foreground" strokeWidth={1.75} />
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">{card.label}</p>
+            <div className="mt-3 h-1 rounded-full bg-muted">
+              <div
+                className="h-1 rounded-full bg-primary/70"
+                style={{
+                  width: `${clientContent.length ? Math.max(6, ((statusCounts[card.key] || 0) / clientContent.length) * 100) : 0}%`,
+                }}
+              />
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-10">
+        <ImportSection clientName={client.name} clientId={client.id} />
+      </div>
+
+      <section className="mt-10">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold">
+            {selectedStatusFilter ? `${selectedStatusFilter} Posts` : "All Content"}
+          </h2>
+          <div className="flex items-center gap-2">
+            {selectedStatusFilter && (
+              <Button variant="ghost" size="sm" onClick={() => setSelectedStatusFilter(null)}>
+                Show All
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {months.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setMonthFilter("all")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                monthFilter === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All Months
+            </button>
+            {months.map((m) => {
+              const label = new Date(m + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" });
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMonthFilter(m)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    monthFilter === m
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {selectedStatusFilter === "Deleted" && isAdmin && displayedContent.length > 0 && (
+          <div className="mb-3 flex items-center gap-2 rounded-lg border bg-accent/50 px-4 py-2">
+            <input
+              type="checkbox"
+              checked={selectedIds.size === displayedContent.length && displayedContent.length > 0}
+              onChange={toggleSelectAll}
+              className="size-4 rounded border-gray-300"
+            />
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+            </span>
+            {selectedIds.size > 0 && (
+              <Button variant="destructive" size="sm" className="ml-auto" onClick={purgeSelected}>
+                <Trash2 className="mr-1.5 size-3.5" />
+                Permanent Delete ({selectedIds.size})
+              </Button>
+            )}
+          </div>
+        )}
+
+        {displayedContent.length > 0 ? (
+          <div className="hidden overflow-hidden rounded-xl border bg-card shadow-soft md:block">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  {selectedStatusFilter === "Deleted" && isAdmin && (
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        className="size-4 rounded border-muted-foreground/25"
+                        checked={selectedIds.size === displayedContent.length && displayedContent.length > 0}
+                        onChange={toggleSelectAll}
+                      />
+                    </TableHead>
+                  )}
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead>Content</TableHead>
+                  <TableHead>Platform</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayedContent.map((item) => {
+                  const img = item.media?.[0] as string | undefined;
+                  return (
+                    <TableRow
+                      key={item.id}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        const overlay = document.querySelector("[data-content-overlay]") as HTMLElement | null;
+                        if (overlay) overlay.click();
+                      }}
+                    >
+                      {selectedStatusFilter === "Deleted" && isAdmin && (
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            className="size-4 rounded border-muted-foreground/25"
+                            checked={selectedIds.has(item.id)}
+                            onChange={() => toggleSelect(item.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        {img ? (
+                          <img src={img} alt="" className="h-10 w-10 rounded object-cover" />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs text-muted-foreground">
+                            {item.type === "Image" ? "IMG" : item.type === "Short Video" ? "VID" : item.type === "Carousel" ? "CAR" : "TXT"}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[280px] font-medium">{item.title}</TableCell>
+                      <TableCell><PlatformBadge platform={item.platform} /></TableCell>
+                      <TableCell><ContentTypeBadge type={item.type} /></TableCell>
+                      <TableCell><StatusBadge status={item.status} /></TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(item.date)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed bg-card px-6 py-16 text-center">
+            <p className="text-sm text-muted-foreground">
+              {selectedStatusFilter ? `No ${selectedStatusFilter.toLowerCase()} content.` : `No content for ${client.name} yet.`}
+            </p>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
 function ClientDetailPage() {
   const { clientId } = Route.useParams();
   const { clients, content } = useStore();
@@ -3091,6 +3334,17 @@ function ClientDetailPage() {
         actions.update(item.id, { status: "Additional" });
       } else if (item.status === "Additional" && scheduledDateTime > now) {
         actions.update(item.id, { status: "Suggested" });
+      }
+    }
+  });
+
+  // Auto-purge Deleted content from previous months
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  clientContent.forEach((item) => {
+    if (item.status === "Deleted") {
+      const deletedDate = item.date ? item.date.slice(0, 7) : null;
+      if (deletedDate && deletedDate < currentMonth) {
+        actions.purge(item.id);
       }
     }
   });
@@ -3205,59 +3459,13 @@ function ClientDetailPage() {
       </div>
 
       {tab === "content" && (
-        <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {statusCards.map((card) => (
-              <button
-                key={card.key}
-                onClick={() => setSelectedStatusFilter(selectedStatusFilter === card.key ? null : card.key)}
-                className={`rounded-xl border bg-card p-4 shadow-soft text-left transition-all ${
-                  selectedStatusFilter === card.key ? "ring-2 ring-primary/50" : "hover:shadow-md"
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <span className="text-2xl font-semibold tabular-nums">{c[card.key]}</span>
-                  <card.icon className="size-4 text-muted-foreground" strokeWidth={1.75} />
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{card.label}</p>
-                <div className="mt-3 h-1 rounded-full bg-muted">
-                  <div
-                    className="h-1 rounded-full bg-primary/70"
-                    style={{
-                      width: `${clientContent.length ? Math.max(6, (c[card.key] / clientContent.length) * 100) : 0}%`,
-                    }}
-                  />
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-10">
-            <ImportSection clientName={client.name} clientId={clientId} />
-          </div>
-
-          <section className="mt-10">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold">
-                {selectedStatusFilter ? `${selectedStatusFilter} Posts` : "All Content"}
-              </h2>
-              {selectedStatusFilter && (
-                <Button variant="ghost" size="sm" onClick={() => setSelectedStatusFilter(null)}>
-                  Show All
-                </Button>
-              )}
-            </div>
-            <ContentList
-              clientFilter={client.name}
-              clientIdFilter={clientId}
-              status={selectedStatusFilter as any}
-              showClientFilter={false}
-              showStatusFilter={!selectedStatusFilter}
-              dateLabel="Scheduled"
-              emptyMessage={`No content for ${client.name} yet.`}
-            />
-          </section>
-        </>
+        <ContentTabSection
+          client={client}
+          clientContent={clientContent}
+          counts={c}
+          selectedStatusFilter={selectedStatusFilter}
+          setSelectedStatusFilter={setSelectedStatusFilter}
+        />
       )}
 
       {tab === "settings" && <SettingsTab clientId={client.id} />}
