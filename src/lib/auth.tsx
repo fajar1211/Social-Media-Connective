@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const newProfile = await createProfile({
         id: userId,
         email: user?.email || "",
-        full_name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "",
+        full_name: user?.user_metadata?.["full_name"] || user?.email?.split("@")[0] || "",
         role: userRole,
         client_id: null,
       });
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: "local",
           email: local.email,
           user_metadata: { full_name: local.name },
-        } as User);
+        } as unknown as User);
         setProfile({ role: "admin", clientId: null, fullName: local.name });
       }
       setLoading(false);

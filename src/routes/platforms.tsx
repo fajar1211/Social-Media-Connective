@@ -204,7 +204,7 @@ function PlatformsPage() {
 
   useEffect(() => {
     if (clients.length > 0 && !selectedClientId) {
-      setSelectedClientId(clients[0].id);
+      setSelectedClientId(clients[0]!.id);
     }
   }, [clients, selectedClientId]);
 
@@ -413,7 +413,7 @@ function PlatformsPage() {
                 key={platform.id}
                 platform={platform}
                 client={selectedClient!}
-                connection={connections[platform.id]}
+                {...(connections[platform.id] ? { connection: connections[platform.id] } : {})}
                 onConnect={() => handleConnect(platform)}
                 onDisconnect={() => handleDisconnect(platform)}
               />

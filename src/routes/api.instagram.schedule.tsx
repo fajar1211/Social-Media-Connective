@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const GRAPH_API_VERSION = "v21.0";
 
-export const Route = createFileRoute("/api/instagram/schedule")({
+export const Route = createFileRoute("/api/instagram/schedule" as any)({
   server: {
     handlers: {
       POST: async ({ request }) => {
@@ -100,9 +100,9 @@ export const Route = createFileRoute("/api/instagram/schedule")({
               { status: 200, headers: { "Content-Type": "application/json" } }
             );
           } else if (imageUrl) {
-            containerParams.image_url = imageUrl;
+            containerParams['image_url'] = imageUrl;
             if (caption) {
-              containerParams.caption = caption;
+              containerParams['caption'] = caption;
             }
 
             const containerResponse = await fetch(
@@ -134,7 +134,7 @@ export const Route = createFileRoute("/api/instagram/schedule")({
             );
           } else {
             if (caption) {
-              containerParams.caption = caption;
+              containerParams['caption'] = caption;
             }
 
             const containerResponse = await fetch(

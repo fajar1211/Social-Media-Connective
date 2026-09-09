@@ -226,15 +226,15 @@ export async function loadStoreData(clientId?: string): Promise<void> {
       status: c.status as Status,
       date: c.date,
       caption: c.caption,
-      body: c.body || undefined,
+      ...(c.body ? { body: c.body } : {}),
       hashtags: c.hashtags || [],
       cta: c.cta,
-      notes: c.notes || undefined,
+      ...(c.notes ? { notes: c.notes } : {}),
       media: c.media || [],
-      previousStatus: (c.previous_status as Status) || undefined,
-      timezone: c.timezone || undefined,
-      scheduledDate: c.scheduled_date || undefined,
-      scheduledTime: c.scheduled_time || undefined,
+      ...((c.previous_status as Status) ? { previousStatus: c.previous_status as Status } : {}),
+      ...(c.timezone ? { timezone: c.timezone } : {}),
+      ...(c.scheduled_date ? { scheduledDate: c.scheduled_date } : {}),
+      ...(c.scheduled_time ? { scheduledTime: c.scheduled_time } : {}),
     }));
 
     const mappedClients: Client[] = clientsData.map((c) => {
@@ -330,21 +330,21 @@ export const actions = {
   async update(id: string, patch: Partial<ContentItem>) {
     if (supabaseConfigured) {
       const dbPatch: Record<string, unknown> = {};
-      if (patch.title !== undefined) dbPatch.title = patch.title;
-      if (patch.caption !== undefined) dbPatch.caption = patch.caption;
-      if (patch.body !== undefined) dbPatch.body = patch.body;
-      if (patch.platform !== undefined) dbPatch.platform = patch.platform;
-      if (patch.type !== undefined) dbPatch.type = patch.type;
-      if (patch.status !== undefined) dbPatch.status = patch.status;
-      if (patch.hashtags !== undefined) dbPatch.hashtags = patch.hashtags;
-      if (patch.cta !== undefined) dbPatch.cta = patch.cta;
-      if (patch.notes !== undefined) dbPatch.notes = patch.notes;
-      if (patch.media !== undefined) dbPatch.media = patch.media;
-      if (patch.date !== undefined) dbPatch.date = patch.date;
-      if (patch.previousStatus !== undefined) dbPatch.previous_status = patch.previousStatus;
-      if (patch.timezone !== undefined) dbPatch.timezone = patch.timezone;
-      if (patch.scheduledDate !== undefined) dbPatch.scheduled_date = patch.scheduledDate;
-      if (patch.scheduledTime !== undefined) dbPatch.scheduled_time = patch.scheduledTime;
+      if (patch['title'] !== undefined) dbPatch['title'] = patch['title'];
+      if (patch['caption'] !== undefined) dbPatch['caption'] = patch['caption'];
+      if (patch['body'] !== undefined) dbPatch['body'] = patch['body'];
+      if (patch['platform'] !== undefined) dbPatch['platform'] = patch['platform'];
+      if (patch['type'] !== undefined) dbPatch['type'] = patch['type'];
+      if (patch['status'] !== undefined) dbPatch['status'] = patch['status'];
+      if (patch['hashtags'] !== undefined) dbPatch['hashtags'] = patch['hashtags'];
+      if (patch['cta'] !== undefined) dbPatch['cta'] = patch['cta'];
+      if (patch['notes'] !== undefined) dbPatch['notes'] = patch['notes'];
+      if (patch['media'] !== undefined) dbPatch['media'] = patch['media'];
+      if (patch['date'] !== undefined) dbPatch['date'] = patch['date'];
+      if (patch['previousStatus'] !== undefined) dbPatch['previous_status'] = patch['previousStatus'];
+      if (patch['timezone'] !== undefined) dbPatch['timezone'] = patch['timezone'];
+      if (patch['scheduledDate'] !== undefined) dbPatch['scheduled_date'] = patch['scheduledDate'];
+      if (patch['scheduledTime'] !== undefined) dbPatch['scheduled_time'] = patch['scheduledTime'];
 
       await dbUpdateContent(id, dbPatch);
     }
@@ -377,7 +377,7 @@ export const actions = {
     }
 
     state.content = state.content.map((c) =>
-      c.id === id ? { ...c, previousStatus: undefined, status: newStatus } : c,
+      c.id === id ? { ...c, status: newStatus } : c,
     );
     emit();
   },
@@ -393,12 +393,12 @@ export const actions = {
 
   async addClient(clientId: string, name: string, platforms: Platform[]) {
     if (supabaseConfigured) {
-      const created = await dbCreateClient({ id: clientId, name, active: true });
+      const created = await dbCreateClient({ id: clientId, name, active: true, social_integrations: {}, magic_link_token: "", magic_link_active: true } as any);
       if (created) {
-        state.clients = [...state.clients, { id: created.id, name, active: true, platforms, socialIntegrations: {} }];
+        state.clients = [...state.clients, { id: created.id, name, active: true, platforms, socialIntegrations: {}, magicLinkToken: "", magicLinkActive: true }];
       }
     } else {
-      state.clients = [...state.clients, { id: clientId, name, active: true, platforms, socialIntegrations: {} }];
+      state.clients = [...state.clients, { id: clientId, name, active: true, platforms, socialIntegrations: {}, magicLinkToken: "", magicLinkActive: true }];
     }
     emit();
   },
@@ -431,11 +431,11 @@ export const actions = {
 
     if (supabaseConfigured) {
       const dbPatch: Record<string, unknown> = {};
-      if (patch.name !== undefined) dbPatch.name = patch.name;
-      if (patch.active !== undefined) dbPatch.active = patch.active;
-      if (patch.magicLinkToken !== undefined) dbPatch.magic_link_token = patch.magicLinkToken;
-      if (patch.magicLinkActive !== undefined) dbPatch.magic_link_active = patch.magicLinkActive;
-      if (patch.socialIntegrations !== undefined) dbPatch.social_integrations = patch.socialIntegrations;
+      if (patch['name'] !== undefined) dbPatch['name'] = patch['name'];
+      if (patch['active'] !== undefined) dbPatch['active'] = patch['active'];
+      if (patch['magicLinkToken'] !== undefined) dbPatch['magic_link_token'] = patch['magicLinkToken'];
+      if (patch['magicLinkActive'] !== undefined) dbPatch['magic_link_active'] = patch['magicLinkActive'];
+      if (patch['socialIntegrations'] !== undefined) dbPatch['social_integrations'] = patch['socialIntegrations'];
       if (Object.keys(dbPatch).length > 0) {
         await dbUpdateClient(id, dbPatch as any);
       }
@@ -535,7 +535,7 @@ export function parseImportFile(content: string, defaultClient: string, clientId
     const item: Omit<ContentItem, "id"> = {
       title: (meta["title"] as string) || "Untitled",
       client: defaultClient,
-      clientId,
+      ...(clientId ? { clientId } : {}),
       platform,
       type: contentType,
       status: "Additional",

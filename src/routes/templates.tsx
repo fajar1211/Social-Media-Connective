@@ -42,7 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useStore, type Platform, type ContentType, SOCIAL_PLATFORMS, CONTENT_TYPES } from "@/lib/content-store";
+import { useStore, type Platform, type ContentType, type SocialPlatform, SOCIAL_PLATFORMS, CONTENT_TYPES } from "@/lib/content-store";
 
 export const Route = createFileRoute("/templates")({
   head: () => ({

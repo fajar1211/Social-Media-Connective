@@ -53,7 +53,7 @@ function extractJson(text: string): Record<string, unknown> | null {
   }
 }
 
-export const Route = createFileRoute("/api/ai/generate-image-prompt")({
+export const Route = createFileRoute("/api/ai/generate-image-prompt" as any)({
   server: {
     handlers: {
       POST: async ({ request }) => {

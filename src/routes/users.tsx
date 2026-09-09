@@ -171,7 +171,7 @@ function UsersPage() {
       await db.createProfile({
         id: data.user.id,
         email: newEmail.trim(),
-        full_name: newName.trim() || null,
+        full_name: newName.trim() || "",
         role: newRole,
         client_id: newRole === "client" ? (newClientId || null) : null,
       });

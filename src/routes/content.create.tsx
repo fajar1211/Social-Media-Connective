@@ -222,7 +222,7 @@ function CreateContent() {
 
   useEffect(() => {
     if (isFacebook && pages.length === 1 && !selectedPage) {
-      setSelectedPage(pages[0].id);
+      setSelectedPage(pages[0]!.id);
     }
   }, [isFacebook, pages, selectedPage]);
 
@@ -263,12 +263,12 @@ function CreateContent() {
             `https://graph.facebook.com/v21.0/${ig.accountId}?fields=profile_picture_url&access_token=${ig.accessToken}`
           );
           const picData = await picRes.json();
-          if (picData.profile_picture_url) {
-            updatedFields.profilePicture = picData.profile_picture_url;
+          if (picData['profile_picture_url']) {
+            updatedFields['profilePicture'] = picData['profile_picture_url'];
           }
         }
-        if (needsAccountName && ig.selectedPageName) {
-          updatedFields.accountName = ig.selectedPageName;
+        if (needsAccountName && ig['selectedPageName']) {
+          updatedFields['accountName'] = ig['selectedPageName'];
         }
         if (Object.keys(updatedFields).length > 0) {
           const newIntegrations = {
@@ -395,10 +395,10 @@ function CreateContent() {
         model: "flux",
       };
       if (referenceImage) {
-        payload.reference_image = referenceImage;
+        payload['reference_image'] = referenceImage;
       }
       if (gbpImageUrl) {
-        payload.gbp_url = gbpImageUrl;
+        payload['gbp_url'] = gbpImageUrl;
       }
 
       if (type === "Carousel") {
@@ -551,7 +551,7 @@ function CreateContent() {
           message,
         };
         if (isPhoto && mediaPreview) {
-          payload.imageUrl = mediaPreview;
+          payload['imageUrl'] = mediaPreview;
         }
         response = await fetch(endpoint, {
           method: "POST",

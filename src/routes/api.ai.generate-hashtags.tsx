@@ -52,7 +52,7 @@ function extractJson(text: string): Record<string, unknown> | null {
   }
 }
 
-export const Route = createFileRoute("/api/ai/generate-hashtags")({
+export const Route = createFileRoute("/api/ai/generate-hashtags" as any)({
   server: {
     handlers: {
       POST: async ({ request }) => {

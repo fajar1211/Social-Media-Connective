@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/select";
 import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from "@/components/badges";
 import { ContentList } from "@/components/content-list";
-import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem, type SocialConnection } from "@/lib/content-store";
+import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem, type SocialConnection, type ContentType, type Platform } from "@/lib/content-store";
 import * as db from "@/lib/db";
 import type { KnowledgeFile } from "@/lib/database.types";
 import { useAuth } from "@/lib/auth";
@@ -686,8 +686,8 @@ function SettingsTab({ clientId }: { clientId: string }) {
           setPendingBusinesses(businesses);
           setPendingUser(user);
           setPendingToken({
-            access_token: eventData.access_token as string,
-            expires_in: eventData.expires_in as number,
+            access_token: eventData["access_token"] as string,
+            expires_in: eventData["expires_in"] as number,
           });
           setSelectedBusinessId(businesses[0]?.id || "");
           setSelectedPageId(pages[0]?.id || "");
@@ -1127,7 +1127,6 @@ function SettingsTab({ clientId }: { clientId: string }) {
         selectedBusinessName: selectedAccount.businessName || "",
         selectedPageId: selectedAccount.pageId || "",
         selectedPageName: selectedAccount.pageName || "",
-        profilePicture: selectedAccount.profilePicture || "",
       },
     };
     setSocialIntegrations(newIntegrations);
@@ -1416,10 +1415,12 @@ function SettingsTab({ clientId }: { clientId: string }) {
               facebookUserName={socialIntegrations[platform]?.facebookUserName}
               onConnect={() => handleConnect(platform)}
               onDisconnect={() => handleDisconnect(platform)}
-              onManualConnect={(platform === "Facebook" || platform === "Instagram") ? () => {
-                setManualTokenPlatform(platform as "Facebook" | "Instagram");
-                setManualTokenOpen(true);
-              } : undefined}
+              {...((platform === "Facebook" || platform === "Instagram") ? {
+                onManualConnect: () => {
+                  setManualTokenPlatform(platform as "Facebook" | "Instagram");
+                  setManualTokenOpen(true);
+                }
+              } : {})}
             />
           ))}
         </div>
@@ -2260,7 +2261,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     if (!start || !end || count <= 0) {
       return Array.from({ length: count }, (_, i) => ({
         date: start || new Date().toISOString().slice(0, 10),
-        time: defaultTimes[i % defaultTimes.length],
+        time: defaultTimes[i % defaultTimes.length] || "10:00",
       }));
     }
     const startMs = new Date(start).getTime();
@@ -2271,7 +2272,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       const d = new Date(ms);
       return {
         date: d.toISOString().slice(0, 10),
-        time: defaultTimes[i % defaultTimes.length],
+        time: defaultTimes[i % defaultTimes.length] || "10:00",
       };
     });
   };
@@ -2353,7 +2354,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
                 title: topicTitle,
                 client: client.name,
                 clientId: client.id,
-                platform: platform as SocialPlatform,
+                platform: (PLATFORMS.includes(platform as Platform) ? platform : "Facebook") as Platform,
                 type: (data.content_type || "Image") as ContentType,
                 status: "Suggested",
                 date: new Date().toISOString().slice(0, 10),

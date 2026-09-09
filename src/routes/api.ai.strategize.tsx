@@ -51,7 +51,7 @@ function extractJson(text: string): Record<string, unknown> | null {
   }
 }
 
-export const Route = createFileRoute("/api/ai/strategize")({
+export const Route = createFileRoute("/api/ai/strategize" as any)({
   server: {
     handlers: {
       POST: async ({ request }) => {

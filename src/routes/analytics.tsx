@@ -179,8 +179,8 @@ function AnalyticsPage() {
       .slice(0, 10);
   }, [content]);
 
-  const maxPlatformCount = platformStats.length > 0 ? platformStats[0].count : 0;
-  const maxClientCount = clientStats.length > 0 ? clientStats[0].count : 0;
+  const maxPlatformCount = platformStats.length > 0 ? platformStats[0]!.count : 0;
+  const maxClientCount = clientStats.length > 0 ? clientStats[0]!.count : 0;
   const maxStatusCount = statusStats.length > 0 ? Math.max(...statusStats.map((s) => s.count)) : 0;
 
   const approvalRate = stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0;

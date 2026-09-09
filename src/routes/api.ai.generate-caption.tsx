@@ -3,7 +3,7 @@ import { analyzeTrendsAndStrategy, generateContent } from "@/lib/ai-agents";
 
 const GOALS = ["Education", "Promotion", "Engagement", "Awareness", "Announcement"];
 
-export const Route = createFileRoute("/api/ai/generate-caption")({
+export const Route = createFileRoute("/api/ai/generate-caption" as any)({
   server: {
     handlers: {
       POST: async ({ request }) => {

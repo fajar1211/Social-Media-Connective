@@ -111,8 +111,8 @@ function ReplaceMediaSection({
           style: "photorealistic",
           model: "flux",
         };
-        if (referenceImage) payload.reference_image = referenceImage;
-        if (gbpImageUrl) payload.gbp_url = gbpImageUrl;
+        if (referenceImage) payload["reference_image"] = referenceImage;
+        if (gbpImageUrl) payload["gbp_url"] = gbpImageUrl;
 
         const resp = await fetch("/api/ai/generate-image", {
           method: "POST",
@@ -434,7 +434,7 @@ export function ContentDetailOverlay({
       type: draft.type,
       hashtags: draft.hashtags,
       cta: draft.cta,
-      media: draft.media,
+      ...(draft.media ? { media: draft.media } : {}),
       ...(draft.notes !== undefined ? { notes: draft.notes } : {}),
     });
     setEditing(false);

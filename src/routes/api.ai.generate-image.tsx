@@ -82,7 +82,7 @@ async function describeWithGemini(
   return realPart?.text?.trim() || "";
 }
 
-export const Route = createFileRoute("/api/ai/generate-image")({
+export const Route = createFileRoute("/api/ai/generate-image" as any)({
   server: {
     handlers: {
       POST: async ({ request }) => {
@@ -109,7 +109,7 @@ export const Route = createFileRoute("/api/ai/generate-image")({
           }
 
           let referenceDesc = "";
-          const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+          const geminiKey = import.meta.env['VITE_GEMINI_API_KEY'] || "";
 
           if (gbp_url && geminiKey) {
             referenceDesc = await describeWithGemini(gbp_url, geminiKey);

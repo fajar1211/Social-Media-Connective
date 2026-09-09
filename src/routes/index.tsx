@@ -42,7 +42,7 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
+        if (entry!.isIntersecting && !started.current) {
           started.current = true;
           let start = 0;
           const duration = 2000;
@@ -87,7 +87,7 @@ function FadeIn({
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry!.isIntersecting) {
           setVisible(true);
           obs.disconnect();
         }
@@ -432,14 +432,14 @@ function LandingPage() {
                 { platform: platforms[8], pos: "hero-float-6", delay: "2.5s" },
               ].map(({ platform, pos, delay }) => (
                 <div
-                  key={platform.name}
+                  key={platform!.name}
                   className={`hero-float-badge ${pos} absolute hidden items-center gap-2 rounded-xl border border-white/80 bg-white/90 px-3 py-2 shadow-lg backdrop-blur-md sm:flex`}
                   style={{ animationDelay: delay }}
                 >
-                  <div className={`flex size-7 items-center justify-center rounded-lg ${platform.color}`}>
-                    {platform.icon}
+                  <div className={`flex size-7 items-center justify-center rounded-lg ${platform!.color}`}>
+                    {platform!.icon}
                   </div>
-                  <span className="text-xs font-semibold">{platform.name}</span>
+                  <span className="text-xs font-semibold">{platform!.name}</span>
                 </div>
               ))}
             </div>

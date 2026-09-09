@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/api/ai/describe-image")({
+export const Route = createFileRoute("/api/ai/describe-image" as any)({
   server: {
     handlers: {
       POST: async ({ request }) => {
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/ai/describe-image")({
             );
           }
 
-          const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+          const apiKey = import.meta.env['VITE_GEMINI_API_KEY'] || "";
           if (!apiKey) {
             return new Response(
               JSON.stringify({ error: "Gemini API key not configured" }),

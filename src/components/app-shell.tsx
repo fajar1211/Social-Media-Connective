@@ -153,8 +153,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {user && (
           <div className="mb-2 px-2">
             <p className="text-xs font-medium text-sidebar-foreground truncate">{user.email}</p>
-            {profile?.full_name && (
-              <p className="text-xs text-muted-foreground truncate">{profile.full_name}</p>
+            {profile?.fullName && (
+              <p className="text-xs text-muted-foreground truncate">{profile.fullName}</p>
             )}
           </div>
         )}
