@@ -321,7 +321,7 @@ async function processNext() {
       status: "Suggested",
       date: new Date().toISOString().slice(0, 10),
       caption: data.caption,
-      body: data.caption,
+      body: data.hashtags?.length > 0 ? `${data.caption}\n\n${data.hashtags.map((h: string) => `#${h}`).join(" ")}` : data.caption,
       hashtags: data.hashtags || [],
       cta: data.cta || "",
       notes: [
