@@ -16,6 +16,7 @@ import { AppShell } from "@/components/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { loadStoreData } from "@/lib/content-store";
+import { getClientByMagicToken } from "@/lib/db";
 
 
 function NotFoundComponent() {
@@ -171,8 +172,23 @@ function StoreLoader({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    const path = window.location.pathname;
+
     if (!user) {
-      setLoaded(true);
+      // Public client portal: load data for the specific client
+      const clientTokenMatch = path.match(/^\/client\/([^/]+)/);
+      if (clientTokenMatch?.[1]) {
+        const token = clientTokenMatch[1];
+        getClientByMagicToken(token).then((clientInfo) => {
+          if (clientInfo) {
+            loadStoreData(clientInfo.id).finally(() => setLoaded(true));
+          } else {
+            setLoaded(true);
+          }
+        });
+      } else {
+        setLoaded(true);
+      }
       return;
     }
 
