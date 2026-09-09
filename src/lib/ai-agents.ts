@@ -38,6 +38,10 @@ async function callGemini(apiKey: string, prompt: string, maxTokens: number): Pr
     }),
   });
   const data = await resp.json();
+  if (!resp.ok || data.error) {
+    console.error("[callGemini] API error:", resp.status, JSON.stringify(data.error || data).slice(0, 500));
+    return "";
+  }
   const parts = data?.candidates?.[0]?.content?.parts || [];
   const realPart = parts.find((p: { thought?: boolean }) => !p.thought);
   return realPart?.text?.trim() || "";
@@ -94,7 +98,10 @@ export async function analyzeTrendsAndStrategy(params: {
   goal: string;
 }): Promise<TrendAnalysis | null> {
   const apiKey = getApiKey();
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.error("[analyzeTrendsAndStrategy] No API key configured");
+    return null;
+  }
 
   const knowledgeText = params.knowledge.length > 0
     ? params.knowledge.slice(0, 5).join("\n\n").slice(0, 1000)
@@ -127,7 +134,10 @@ Output JSON only:
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const content = await callGemini(apiKey, prompt, 2048);
-      if (!content) continue;
+      if (!content) {
+        console.error(`[analyzeTrends] Attempt ${attempt + 1}: empty response from Gemini`);
+        continue;
+      }
 
       const parsed = extractJson(content);
       if (parsed) {
@@ -140,6 +150,8 @@ Output JSON only:
           content_angle_suggestion: (p["content_angle_suggestion"] as string) || "",
           brand_positioning: (p["brand_positioning"] as string) || "",
         };
+      } else {
+        console.error(`[analyzeTrends] Attempt ${attempt + 1}: failed to parse JSON from response`);
       }
     } catch (err) {
       console.error(`[analyzeTrends] Attempt ${attempt + 1} failed:`, err);
@@ -161,7 +173,10 @@ export async function generateContent(params: {
   strategy: TrendAnalysis;
 }): Promise<GeneratePostResult | null> {
   const apiKey = getApiKey();
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.error("[generateContent] No API key configured");
+    return null;
+  }
 
   const knowledgeText = params.knowledge.length > 0
     ? params.knowledge.slice(0, 5).join("\n\n").slice(0, 1000)

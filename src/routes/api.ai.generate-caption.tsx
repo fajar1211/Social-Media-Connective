@@ -38,6 +38,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
           }
 
           // ── Agent 1: Trend Research + Strategy (~25s) ──
+          console.log("[generate-caption] Starting trend analysis...");
           const strategy = await analyzeTrendsAndStrategy({
             topic: topic.trim(),
             platform,
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/api/ai/generate-caption")({
             client_name,
             goal: selectedGoal,
           });
+          console.log("[generate-caption] Trend analysis result:", strategy ? "OK" : "NULL");
 
           if (!strategy) {
             return new Response(
