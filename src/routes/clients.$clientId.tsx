@@ -3172,6 +3172,15 @@ function ContentTabSection({
     setSelectedIds(new Set());
   };
 
+  const permanentDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    for (const id of selectedIds) {
+      await actions.purge(id);
+    }
+    toast.success(`${selectedIds.size} posts permanently deleted`);
+    setSelectedIds(new Set());
+  };
+
   return (
     <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -3219,33 +3228,25 @@ function ContentTabSection({
         </div>
 
         {months.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-1.5">
-            <button
-              onClick={() => setMonthFilter("all")}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                monthFilter === "all"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              All Months
-            </button>
-            {months.map((m) => {
-              const label = new Date(m + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" });
-              return (
-                <button
-                  key={m}
-                  onClick={() => setMonthFilter(m)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    monthFilter === m
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+          <div className="mb-4 flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Filter by month:</Label>
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Months" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Months ({clientContent.length})</SelectItem>
+                {months.map((m) => {
+                  const label = new Date(m + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                  const count = clientContent.filter((c) => (c.scheduledDate || c.date || "").startsWith(m)).length;
+                  return (
+                    <SelectItem key={m} value={m}>
+                      {label} ({count})
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
@@ -3269,12 +3270,32 @@ function ContentTabSection({
           </div>
         )}
 
+        {selectedStatusFilter === "Deleted" && isAdmin && displayedContent.length > 0 && (
+          <div className="mb-3 flex items-center gap-2 rounded-lg border bg-destructive/10 px-4 py-2">
+            <input
+              type="checkbox"
+              checked={selectedIds.size === displayedContent.length && displayedContent.length > 0}
+              onChange={toggleSelectAll}
+              className="size-4 rounded border-gray-300"
+            />
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+            </span>
+            {selectedIds.size > 0 && (
+              <Button variant="destructive" size="sm" className="ml-auto" onClick={permanentDeleteSelected}>
+                <Trash2 className="mr-1.5 size-3.5" />
+                Permanent Delete ({selectedIds.size})
+              </Button>
+            )}
+          </div>
+        )}
+
         {displayedContent.length > 0 ? (
           <div className="hidden overflow-hidden rounded-xl border bg-card shadow-soft md:block">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  {selectedStatusFilter === "Suggested" && (
+                  {(selectedStatusFilter === "Suggested" || (selectedStatusFilter === "Deleted" && isAdmin)) && (
                     <TableHead className="w-10">
                       <input
                         type="checkbox"
@@ -3298,7 +3319,7 @@ function ContentTabSection({
                   const img = item.media?.[0] as string | undefined;
                   return (
                     <TableRow key={item.id}>
-                      {selectedStatusFilter === "Suggested" && (
+                      {(selectedStatusFilter === "Suggested" || (selectedStatusFilter === "Deleted" && isAdmin)) && (
                         <TableCell>
                           <input
                             type="checkbox"
@@ -3359,7 +3380,7 @@ function ClientDetailPage() {
   const { clients, content } = useStore();
   const client = clients.find((c) => c.id === clientId);
   const [tab, setTab] = useState<Tab>("content");
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>("Suggested");
 
   const clientContent = content.filter((c) => c.clientId === clientId || c.client === client?.name);
 
