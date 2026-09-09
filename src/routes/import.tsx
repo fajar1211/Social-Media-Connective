@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { ContentTypeBadge, PlatformBadge, StatusBadge } from "@/components/badges";
 import { actions, parseImportFile, useStore, type ContentItem } from "@/lib/content-store";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/import")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -41,8 +42,11 @@ export const Route = createFileRoute("/import")({
 function ImportPage() {
   const { clientId } = Route.useSearch();
   const { clients } = useStore();
-  const isClientMode = !!clientId;
-  const [selectedClientId, setSelectedClientId] = useState(clientId || "");
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
+  const profileClientId = profile?.clientId || "";
+  const isClientMode = !isAdmin || !!clientId;
+  const [selectedClientId, setSelectedClientId] = useState(clientId || profileClientId || "");
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -137,7 +141,7 @@ function ImportPage() {
         subtitle={selectedClient ? `Import existing marketing content for ${selectedClient.name}.` : "Select a client to import content."}
       />
 
-      {/* Client Selector - only show when no clientId is provided */}
+      {/* Client Selector - only show for admin users without clientId in URL */}
       {!isClientMode && (
         <div className="rounded-xl border bg-card p-6 shadow-soft">
           <label className="text-sm font-medium">Select Client</label>
