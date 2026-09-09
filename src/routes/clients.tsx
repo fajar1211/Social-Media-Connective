@@ -293,6 +293,7 @@ function ClientsPage() {
                     setAdding(false);
                     setNextClientId("");
                     setName("");
+                    navigate({ to: "/clients/$clientId", params: { clientId: nextClientId } });
                   }
                 }}
               />
@@ -321,6 +322,7 @@ function ClientsPage() {
                   setAdding(false);
                   setNextClientId("");
                   setName("");
+                  navigate({ to: "/clients/$clientId", params: { clientId: nextClientId } });
                 }}
               >
                 Create Profile
