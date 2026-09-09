@@ -257,17 +257,22 @@ export async function getOrCreateMagicLinkToken(clientId: string): Promise<strin
 
 export async function getClientByMagicToken(token: string): Promise<{ id: string; name: string; active: boolean } | null> {
   if (!supabaseConfigured) return null;
-  
-  const { data, error } = await supabase
-    .from("clients")
-    .select("id, name, active, magic_link_active")
-    .eq("magic_link_token", token)
-    .eq("magic_link_active", true)
-    .eq("active", true)
-    .single();
-  
-  if (error || !data) return null;
-  return data;
+
+  try {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("id, name, active, magic_link_active")
+      .eq("magic_link_token", token)
+      .eq("magic_link_active", true)
+      .eq("active", true)
+      .single();
+
+    if (error || !data) return null;
+    return data;
+  } catch (err) {
+    console.error("Error fetching client by magic token:", err);
+    return null;
+  }
 }
 
 export async function toggleMagicLinkActive(clientId: string, active: boolean): Promise<boolean> {

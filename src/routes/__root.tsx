@@ -179,13 +179,17 @@ function StoreLoader({ children }: { children: ReactNode }) {
       const clientTokenMatch = path.match(/^\/client\/([^/]+)/);
       if (clientTokenMatch?.[1]) {
         const token = clientTokenMatch[1];
-        getClientByMagicToken(token).then((clientInfo) => {
-          if (clientInfo) {
-            loadStoreData(clientInfo.id).finally(() => setLoaded(true));
-          } else {
-            setLoaded(true);
-          }
-        });
+        getClientByMagicToken(token)
+          .then((clientInfo) => {
+            if (clientInfo) {
+              return loadStoreData(clientInfo.id);
+            }
+            return undefined;
+          })
+          .catch((err) => {
+            console.error("[StoreLoader] Failed to load client portal data:", err);
+          })
+          .finally(() => setLoaded(true));
       } else {
         setLoaded(true);
       }
