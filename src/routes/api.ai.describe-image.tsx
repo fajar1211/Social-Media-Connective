@@ -64,8 +64,8 @@ export const Route = createFileRoute("/api/ai/describe-image")({
           });
 
           const data = await resp.json();
-          const parts = data?.candidates?.[0]?.content?.parts || [];
-          const realPart = parts.find((p: { thought?: boolean }) => !p.thought);
+          const responseParts = data?.candidates?.[0]?.content?.parts || [];
+          const realPart = responseParts.find((p: { thought?: boolean }) => !p.thought);
           const description =
             realPart?.text?.trim() || "";
 

@@ -57,7 +57,7 @@ async function describeWithGemini(
   } else {
     let cleanB64 = imageData;
     if (imageData.includes(",")) {
-      cleanB64 = imageData.split(",")[1];
+      cleanB64 = imageData.split(",")[1] || imageData;
     }
     parts = [
       {
@@ -77,8 +77,8 @@ async function describeWithGemini(
   });
 
   const data = await resp.json();
-  const parts = data?.candidates?.[0]?.content?.parts || [];
-  const realPart = parts.find((p: { thought?: boolean }) => !p.thought);
+  const responseParts = data?.candidates?.[0]?.content?.parts || [];
+  const realPart = responseParts.find((p: { thought?: boolean }) => !p.thought);
   return realPart?.text?.trim() || "";
 }
 
