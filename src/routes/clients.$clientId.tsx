@@ -57,6 +57,7 @@ import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from 
 import { ContentList } from "@/components/content-list";
 import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem, type SocialConnection, type ContentType, type Platform } from "@/lib/content-store";
 import * as db from "@/lib/db";
+import { useGenerationStore, startGeneration, cancelGeneration } from "@/lib/ai-generation-store";
 import type { KnowledgeFile } from "@/lib/database.types";
 import { useAuth } from "@/lib/auth";
 
@@ -2143,6 +2144,7 @@ function MediaTab({ client }: { client: { id: string; name: string } }) {
 function AIContentTab({ client }: { client: { id: string; name: string; socialIntegrations?: Record<string, { connected?: boolean }> } }) {
   const { content, clients } = useStore();
   const navigate = useNavigate();
+  const gen = useGenerationStore();
   const campaignImageRef = useRef<HTMLInputElement>(null);
   const referenceDocRef = useRef<HTMLInputElement>(null);
   const [postsAbout, setPostsAbout] = useState("");
@@ -2156,14 +2158,39 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const [postsPerPlatform, setPostsPerPlatform] = useState<Record<string, number>>({});
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [generatingContent, setGeneratingContent] = useState(false);
-  const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, platform: "", step: "" });
   const [goal, setGoal] = useState("");
   const [tone, setTone] = useState("professional");
+
+  const isGenerating = gen.status === "running";
+  const isCompleted = gen.status === "completed";
+  const isCancelled = gen.status === "cancelled";
+  const hasActiveJob = isGenerating || isCompleted || isCancelled;
+  const completedCount = gen.posts.filter((p) => p.status === "completed").length;
+  const failedCount = gen.posts.filter((p) => p.status === "failed").length;
+  const overallPercent = gen.total > 0 ? Math.round((completedCount / gen.total) * 100) : 0;
 
   useEffect(() => {
     loadKnowledgeFiles();
   }, [client.id]);
+
+  useEffect(() => {
+    if (gen.status === "running" && gen.clientId === client.id) return;
+    if ((isCompleted || isCancelled) && gen.clientId === client.id) {
+      if (completedCount > 0) {
+        toast.success(
+          isCancelled
+            ? `Generation cancelled. ${completedCount} posts were saved.`
+            : `${completedCount} posts generated successfully!`
+        );
+      }
+    }
+  }, [gen.status]);
+
+  useEffect(() => {
+    if (gen.status === "running" && gen.clientId === client.id) {
+      loadKnowledgeFiles();
+    }
+  }, [gen.status]);
 
   const loadKnowledgeFiles = async () => {
     setKnowledgeLoading(true);
@@ -2252,32 +2279,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     toast.success("Reference document added");
   };
 
-  const distributeSchedule = (
-    start: string,
-    end: string,
-    count: number
-  ): { date: string; time: string }[] => {
-    const defaultTimes = ["10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "09:00", "11:00", "13:00", "15:00"];
-    if (!start || !end || count <= 0) {
-      return Array.from({ length: count }, (_, i) => ({
-        date: start || new Date().toISOString().slice(0, 10),
-        time: defaultTimes[i % defaultTimes.length] || "10:00",
-      }));
-    }
-    const startMs = new Date(start).getTime();
-    const endMs = new Date(end).getTime();
-    const range = endMs - startMs;
-    return Array.from({ length: count }, (_, i) => {
-      const ms = count === 1 ? startMs : startMs + (range * i) / (count - 1);
-      const d = new Date(ms);
-      return {
-        date: d.toISOString().slice(0, 10),
-        time: defaultTimes[i % defaultTimes.length] || "10:00",
-      };
-    });
-  };
-
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     if (!postsAbout.trim()) {
       toast.error("Enter a topic first.");
       return;
@@ -2286,10 +2288,6 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       toast.error("No connected platforms. Please connect a platform first.");
       return;
     }
-
-    const totalPosts = connectedPlatforms.reduce(
-      (sum, p) => sum + (postsPerPlatform[p] || 5), 0
-    );
 
     const varietyAspects = [
       "Create an engaging introduction/hook post",
@@ -2302,108 +2300,33 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
       "Create an emotional connection with the audience",
     ];
 
-    setGeneratingContent(true);
-    setGeneratingProgress({ current: 0, total: totalPosts, platform: "", step: "Researching trends..." });
-
     const selected = knowledgeFiles.filter((f) => selectedKnowledge.has(f.id));
-    let currentPost = 0;
-    const errors: string[] = [];
 
-    try {
-      for (const platform of connectedPlatforms) {
-        const postCount = postsPerPlatform[platform] || 5;
-        const schedule = distributeSchedule(startDate, endDate, postCount);
+    startGeneration({
+      topic: postsAbout.trim(),
+      body: knowledgeNotes.trim(),
+      clientName: client.name,
+      clientId: client.id,
+      tone,
+      goal: goal || "",
+      knowledgeFiles: selected.map((f) => ({ name: f.name, content: f.content })),
+      campaignImage: campaignImage || "",
+      referenceUrl: referenceUrl.trim(),
+      startDate,
+      endDate,
+      postsPerPlatform: Object.fromEntries(
+        connectedPlatforms.map((p) => [p, postsPerPlatform[p] || 5])
+      ),
+      connectedPlatforms,
+      varietyAspects,
+    });
 
-        for (let i = 0; i < postCount; i++) {
-          currentPost++;
-          setGeneratingProgress({
-            current: currentPost,
-            total: totalPosts,
-            platform,
-            step: `Generating ${platform} post ${i + 1}/${postCount}...`,
-          });
+    toast.success("Generation started!", { description: "Processing posts in the background." });
+  };
 
-          try {
-            const resp = await fetch("/api/ai/generate-caption", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                topic: postsAbout.trim(),
-                body: knowledgeNotes.trim(),
-                platform,
-                tone,
-                client_name: client.name,
-                knowledge_files: selected.map((f) => ({ name: f.name, content: f.content })),
-                variety: varietyAspects[i % varietyAspects.length],
-                reference_url: referenceUrl.trim(),
-                goal: goal || "",
-              }),
-            });
-
-            if (!resp.ok) {
-              const errData = await resp.json().catch(() => ({}));
-              errors.push(`${platform} post ${i + 1}: ${errData.error || `API error ${resp.status}`}`);
-              continue;
-            }
-            const data = await resp.json();
-
-            if (data.caption) {
-              const topicTitle = data.topic || postsAbout.trim().slice(0, 80);
-
-              await actions.addContent({
-                title: topicTitle,
-                client: client.name,
-                clientId: client.id,
-                platform: (PLATFORMS.includes(platform as Platform) ? platform : "Facebook") as Platform,
-                type: (data.content_type || "Image") as ContentType,
-                status: "Suggested",
-                date: new Date().toISOString().slice(0, 10),
-                caption: data.caption,
-                body: data.caption,
-                hashtags: data.hashtags || [],
-                cta: data.cta || "",
-                notes: [
-                  goal ? `Goal: ${goal}` : "",
-                  data.image_prompt ? `Image Prompt: ${data.image_prompt}` : "",
-                ].filter(Boolean).join("\n"),
-                media: campaignImage ? [campaignImage] : [],
-                timezone: "Asia/Jakarta",
-                scheduledDate: schedule[i]?.date || "",
-                scheduledTime: schedule[i]?.time || "",
-              });
-            } else {
-              errors.push(`${platform} post ${i + 1}: No caption in response`);
-            }
-          } catch (postErr) {
-            errors.push(`${platform} post ${i + 1}: ${postErr instanceof Error ? postErr.message : "Network error"}`);
-          }
-        }
-      }
-
-      const savedCount = totalPosts - errors.length;
-      if (errors.length === 0) {
-        toast.success(`${savedCount} posts generated and saved!`, {
-          description: "Check Suggested Posts below or go to All Content.",
-        });
-      } else {
-        toast.warning(`${savedCount}/${totalPosts} posts saved. ${errors.length} failed.`, {
-          description: errors.slice(0, 3).join("\n"),
-          duration: 10000,
-        });
-      }
-
-      setPostsAbout("");
-      setCampaignImage(null);
-      setKnowledgeNotes("");
-      setReferenceUrl("");
-      setGoal("");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Failed: ${msg}`);
-    } finally {
-      setGeneratingContent(false);
-      setGeneratingProgress({ current: 0, total: 0, platform: "", step: "" });
-    }
+  const handleCancel = () => {
+    cancelGeneration();
+    toast.info("Generation cancelled.");
   };
 
   const suggestedContent = content.filter(
@@ -2423,313 +2346,426 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
         </div>
 
         <div className="mt-6 space-y-6">
-          <div className="rounded-lg border p-4">
-            <h3 className="text-sm font-semibold">What should the posts be about?</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Describe the topic or theme for your content.
-            </p>
-            <textarea
-              value={postsAbout}
-              onChange={(e) => setPostsAbout(e.target.value)}
-              placeholder="Enter the main topic or theme for your posts..."
-              className="mt-3 w-full rounded-lg border px-3 py-2 text-sm min-h-[100px]"
-            />
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <h3 className="text-sm font-semibold">Campaign Image (Optional)</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Upload an image or use GBP images for your campaign.
-            </p>
-            <div className="mt-3 flex items-center gap-3">
-              <input
-                ref={campaignImageRef}
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={(e) => handleCampaignImage(e.target.files)}
-              />
-              <Button variant="outline" size="sm" onClick={() => campaignImageRef.current?.click()}>
-                <PlusCircle className="mr-1.5 size-3.5" />
-                Add Image
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => toast.info("GBP Images feature coming soon")}>
-                <Image className="mr-1.5 size-3.5" />
-                Source GBP Images
-              </Button>
-            </div>
-            {campaignImage && (
-              <div className="mt-3 relative inline-block">
-                <img src={campaignImage} alt="Campaign" className="h-24 rounded-lg border object-cover" />
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute -right-2 -top-2 size-6"
-                  onClick={() => setCampaignImage(null)}
-                >
-                  <Trash2 className="size-3" />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border p-4">
-              <h3 className="text-sm font-semibold">Reference Document (Optional)</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Upload a reference document for content generation.
-              </p>
-              <div className="mt-3">
-                <input
-                  ref={referenceDocRef}
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={(e) => handleReferenceDoc(e.target.files)}
-                />
-                <Button variant="outline" size="sm" onClick={() => referenceDocRef.current?.click()}>
-                  <FileSpreadsheet className="mr-1.5 size-3.5" />
-                  Choose File
-                </Button>
-                {referenceDocument && (
-                  <p className="mt-2 text-xs text-muted-foreground">{referenceDocument.name}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-lg border p-4">
-              <h3 className="text-sm font-semibold">Reference URL (Optional)</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Add a reference URL for content generation.
-              </p>
-              <input
-                type="url"
-                value={referenceUrl}
-                onChange={(e) => setReferenceUrl(e.target.value)}
-                placeholder="https://example.com"
-                className="mt-3 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <h3 className="text-sm font-semibold">Include Knowledge Notes</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Add knowledge notes to include in content generation.
-            </p>
-            <textarea
-              value={knowledgeNotes}
-              onChange={(e) => setKnowledgeNotes(e.target.value)}
-              placeholder="Enter knowledge notes here..."
-              className="mt-3 w-full rounded-lg border px-3 py-2 text-sm min-h-[100px]"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border p-4">
-              <h3 className="text-sm font-semibold">Goal</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Select the goal for your content.
-              </p>
-              <Select value={goal} onValueChange={setGoal}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select goal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {["Education", "Promotion", "Engagement", "Awareness", "Announcement"].map((g) => (
-                    <SelectItem key={g} value={g}>{g}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="rounded-lg border p-4">
-              <h3 className="text-sm font-semibold">Tone</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Select the tone for your content.
-              </p>
-              <Select value={tone} onValueChange={setTone}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select tone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {["Professional", "Friendly", "Educational", "Promotional", "Casual"].map((t) => (
-                    <SelectItem key={t} value={t.toLowerCase()}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold">Include Knowledge Files</h3>
+          {!hasActiveJob && (
+            <>
+              <div className="rounded-lg border p-4">
+                <h3 className="text-sm font-semibold">What should the posts be about?</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Select knowledge files to include in content generation.
+                  Describe the topic or theme for your content.
                 </p>
+                <textarea
+                  value={postsAbout}
+                  onChange={(e) => setPostsAbout(e.target.value)}
+                  placeholder="Enter the main topic or theme for your posts..."
+                  className="mt-3 w-full rounded-lg border px-3 py-2 text-sm min-h-[100px]"
+                />
               </div>
-              <div className="flex items-center gap-2">
-                {knowledgeFiles.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={toggleSelectAllKnowledge}
-                    className="text-xs"
-                  >
-                    {selectedKnowledge.size === knowledgeFiles.length ? "Deselect All" : "Select All"}
+
+              <div className="rounded-lg border p-4">
+                <h3 className="text-sm font-semibold">Campaign Image (Optional)</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Upload an image or use GBP images for your campaign.
+                </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <input
+                    ref={campaignImageRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => handleCampaignImage(e.target.files)}
+                  />
+                  <Button variant="outline" size="sm" onClick={() => campaignImageRef.current?.click()}>
+                    <PlusCircle className="mr-1.5 size-3.5" />
+                    Add Image
                   </Button>
+                  <Button variant="outline" size="sm" onClick={() => toast.info("GBP Images feature coming soon")}>
+                    <Image className="mr-1.5 size-3.5" />
+                    Source GBP Images
+                  </Button>
+                </div>
+                {campaignImage && (
+                  <div className="mt-3 relative inline-block">
+                    <img src={campaignImage} alt="Campaign" className="h-24 rounded-lg border object-cover" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -right-2 -top-2 size-6"
+                      onClick={() => setCampaignImage(null)}
+                    >
+                      <Trash2 className="size-3" />
+                    </Button>
+                  </div>
                 )}
-                <Button variant="outline" size="sm" onClick={addKnowledgeFile}>
-                  <PlusCircle className="mr-1.5 size-3.5" />
-                  Add New
-                </Button>
               </div>
-            </div>
-            {knowledgeLoading ? (
-              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Loading knowledge files...
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-lg border p-4">
+                  <h3 className="text-sm font-semibold">Reference Document (Optional)</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Upload a reference document for content generation.
+                  </p>
+                  <div className="mt-3">
+                    <input
+                      ref={referenceDocRef}
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={(e) => handleReferenceDoc(e.target.files)}
+                    />
+                    <Button variant="outline" size="sm" onClick={() => referenceDocRef.current?.click()}>
+                      <FileSpreadsheet className="mr-1.5 size-3.5" />
+                      Choose File
+                    </Button>
+                    {referenceDocument && (
+                      <p className="mt-2 text-xs text-muted-foreground">{referenceDocument.name}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-4">
+                  <h3 className="text-sm font-semibold">Reference URL (Optional)</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Add a reference URL for content generation.
+                  </p>
+                  <input
+                    type="url"
+                    value={referenceUrl}
+                    onChange={(e) => setReferenceUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    className="mt-3 w-full rounded-lg border px-3 py-2 text-sm"
+                  />
+                </div>
               </div>
-            ) : knowledgeFiles.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">
-                No knowledge files yet. Click "Add New" to create one.
-              </p>
-            ) : (
-              <div className="mt-3 space-y-2">
-                {knowledgeFiles.map((file) => (
-                  <div
-                    key={file.id}
-                    className={`rounded-lg border p-3 transition-colors ${
-                      selectedKnowledge.has(file.id) ? "bg-primary/5 border-primary/30" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedKnowledge.has(file.id)}
-                        onChange={() => toggleKnowledgeSelection(file.id)}
-                        className="size-4 rounded border-gray-300"
-                      />
-                      <input
-                        type="text"
-                        value={file.name}
-                        onChange={(e) => updateKnowledgeFileLocal(file.id, "name", e.target.value)}
-                        className="flex-1 rounded border px-2 py-1 text-sm font-medium bg-transparent"
-                        placeholder="Knowledge file name..."
-                      />
+
+              <div className="rounded-lg border p-4">
+                <h3 className="text-sm font-semibold">Include Knowledge Notes</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Add knowledge notes to include in content generation.
+                </p>
+                <textarea
+                  value={knowledgeNotes}
+                  onChange={(e) => setKnowledgeNotes(e.target.value)}
+                  placeholder="Enter knowledge notes here..."
+                  className="mt-3 w-full rounded-lg border px-3 py-2 text-sm min-h-[100px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-lg border p-4">
+                  <h3 className="text-sm font-semibold">Goal</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Select the goal for your content.
+                  </p>
+                  <Select value={goal} onValueChange={setGoal}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Select goal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["Education", "Promotion", "Engagement", "Awareness", "Announcement"].map((g) => (
+                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <h3 className="text-sm font-semibold">Tone</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Select the tone for your content.
+                  </p>
+                  <Select value={tone} onValueChange={setTone}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Select tone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["Professional", "Friendly", "Educational", "Promotional", "Casual"].map((t) => (
+                        <SelectItem key={t} value={t.toLowerCase()}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold">Include Knowledge Files</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Select knowledge files to include in content generation.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {knowledgeFiles.length > 0 && (
                       <Button
                         variant="ghost"
-                        size="icon"
-                        className="size-8 text-destructive hover:text-destructive"
-                        onClick={() => deleteKnowledgeFile(file.id)}
+                        size="sm"
+                        onClick={toggleSelectAllKnowledge}
+                        className="text-xs"
                       >
-                        <Trash2 className="size-4" />
+                        {selectedKnowledge.size === knowledgeFiles.length ? "Deselect All" : "Select All"}
                       </Button>
-                    </div>
-                    <textarea
-                      value={file.content}
-                      onChange={(e) => updateKnowledgeFileLocal(file.id, "content", e.target.value)}
-                      placeholder="Enter knowledge content here..."
-                      className="mt-2 w-full rounded border px-2 py-1 text-sm min-h-[60px] bg-transparent"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => saveKnowledgeFile(file)}
-                      className="mt-2"
-                    >
-                      Save
+                    )}
+                    <Button variant="outline" size="sm" onClick={addKnowledgeFile}>
+                      <PlusCircle className="mr-1.5 size-3.5" />
+                      Add New
                     </Button>
+                  </div>
+                </div>
+                {knowledgeLoading ? (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Loading knowledge files...
+                  </div>
+                ) : knowledgeFiles.length === 0 ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    No knowledge files yet. Click "Add New" to create one.
+                  </p>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {knowledgeFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        className={`rounded-lg border p-3 transition-colors ${
+                          selectedKnowledge.has(file.id) ? "bg-primary/5 border-primary/30" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedKnowledge.has(file.id)}
+                            onChange={() => toggleKnowledgeSelection(file.id)}
+                            className="size-4 rounded border-gray-300"
+                          />
+                          <input
+                            type="text"
+                            value={file.name}
+                            onChange={(e) => updateKnowledgeFileLocal(file.id, "name", e.target.value)}
+                            className="flex-1 rounded border px-2 py-1 text-sm font-medium bg-transparent"
+                            placeholder="Knowledge file name..."
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-destructive hover:text-destructive"
+                            onClick={() => deleteKnowledgeFile(file.id)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                        <textarea
+                          value={file.content}
+                          onChange={(e) => updateKnowledgeFileLocal(file.id, "content", e.target.value)}
+                          placeholder="Enter knowledge content here..."
+                          className="mt-2 w-full rounded border px-2 py-1 text-sm min-h-[60px] bg-transparent"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => saveKnowledgeFile(file)}
+                          className="mt-2"
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedKnowledge.size > 0 && (
+                  <p className="mt-2 text-xs text-primary">
+                    {selectedKnowledge.size} of {knowledgeFiles.length} knowledge files selected for content generation
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <h3 className="text-sm font-semibold">How Many Posts Per Platform?</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Set the number of posts for each connected platform.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {connectedPlatforms.length > 0 ? (
+                    connectedPlatforms.map((platform) => (
+                      <div key={platform} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`flex size-8 items-center justify-center rounded-lg ${PLATFORM_CONFIG[platform]?.color || "bg-muted"}`}>
+                            {PLATFORM_CONFIG[platform]?.icon}
+                          </div>
+                          <span className="text-sm font-medium">{platform}</span>
+                        </div>
+                        <input
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={postsPerPlatform[platform] || 5}
+                          onChange={(e) => setPostsPerPlatform({ ...postsPerPlatform, [platform]: parseInt(e.target.value) || 5 })}
+                          className="w-20 rounded-lg border px-2 py-1 text-center text-sm"
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No connected platforms. Please connect at least one platform in Settings.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <h3 className="text-sm font-semibold">Schedule</h3>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Start Date</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">End Date</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {hasActiveJob && (
+            <div className="rounded-xl border bg-card shadow-soft overflow-hidden">
+              <div className="border-b bg-muted/30 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {isGenerating && (
+                      <div className="size-2 rounded-full bg-primary animate-pulse" />
+                    )}
+                    {isCompleted && (
+                      <div className="flex size-6 items-center justify-center rounded-full bg-emerald-100">
+                        <CheckCircle2 className="size-4 text-emerald-600" />
+                      </div>
+                    )}
+                    {isCancelled && (
+                      <div className="flex size-6 items-center justify-center rounded-full bg-amber-100">
+                        <Trash2 className="size-4 text-amber-600" />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="text-sm font-semibold">
+                        {isGenerating && "Generating AI Content"}
+                        {isCompleted && "Generation Complete"}
+                        {isCancelled && "Generation Cancelled"}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {gen.topic} — {gen.clientName}
+                      </p>
+                    </div>
+                  </div>
+                  {isGenerating && (
+                    <Button variant="destructive" size="sm" onClick={handleCancel}>
+                      Cancel Generation
+                    </Button>
+                  )}
+                  {!isGenerating && (
+                    <Button variant="outline" size="sm" onClick={() => { window.location.reload(); }}>
+                      Dismiss
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 py-4">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="font-medium">
+                    {completedCount} of {gen.total} posts completed
+                  </span>
+                  <span className="font-semibold text-primary">{overallPercent}%</span>
+                </div>
+                <Progress value={overallPercent} className="h-2.5" />
+                {failedCount > 0 && (
+                  <p className="mt-1.5 text-xs text-destructive">
+                    {failedCount} post{failedCount > 1 ? "s" : ""} failed
+                  </p>
+                )}
+              </div>
+
+              <div className="border-t divide-y">
+                {gen.posts.map((post, idx) => (
+                  <div key={post.id} className="flex items-center gap-3 px-6 py-3">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                      {post.status === "completed" && (
+                        <div className="flex size-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                          <CheckCircle2 className="size-4" />
+                        </div>
+                      )}
+                      {post.status === "generating" && (
+                        <div className="flex size-7 items-center justify-center rounded-full bg-primary/10">
+                          <svg className="size-4 animate-spin text-primary" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                        </div>
+                      )}
+                      {post.status === "failed" && (
+                        <div className="flex size-7 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                          <span className="text-xs font-bold">!</span>
+                        </div>
+                      )}
+                      {post.status === "cancelled" && (
+                        <div className="flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                          <span className="text-xs">—</span>
+                        </div>
+                      )}
+                      {post.status === "pending" && (
+                        <div className="flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground text-xs font-bold">
+                          {idx + 1}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">{post.platform}</span>
+                        {post.status === "completed" && (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Done</span>
+                        )}
+                        {post.status === "generating" && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Generating...</span>
+                        )}
+                        {post.status === "failed" && (
+                          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">Failed</span>
+                        )}
+                        {post.status === "cancelled" && (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Cancelled</span>
+                        )}
+                        {post.status === "pending" && (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Waiting</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {post.variety}
+                      </p>
+                      {post.error && (
+                        <p className="text-[10px] text-destructive mt-0.5">{post.error}</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-            {selectedKnowledge.size > 0 && (
-              <p className="mt-2 text-xs text-primary">
-                {selectedKnowledge.size} of {knowledgeFiles.length} knowledge files selected for content generation
-              </p>
-            )}
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <h3 className="text-sm font-semibold">How Many Posts Per Platform?</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Set the number of posts for each connected platform.
-            </p>
-            <div className="mt-3 space-y-2">
-              {connectedPlatforms.length > 0 ? (
-                connectedPlatforms.map((platform) => (
-                  <div key={platform} className="flex items-center justify-between rounded-lg border px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`flex size-8 items-center justify-center rounded-lg ${PLATFORM_CONFIG[platform]?.color || "bg-muted"}`}>
-                        {PLATFORM_CONFIG[platform]?.icon}
-                      </div>
-                      <span className="text-sm font-medium">{platform}</span>
-                    </div>
-                    <input
-                      type="number"
-                      min="1"
-                      max="30"
-                      value={postsPerPlatform[platform] || 5}
-                      onChange={(e) => setPostsPerPlatform({ ...postsPerPlatform, [platform]: parseInt(e.target.value) || 5 })}
-                      className="w-20 rounded-lg border px-2 py-1 text-center text-sm"
-                    />
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No connected platforms. Please connect at least one platform in Settings.
-                </p>
-              )}
             </div>
-          </div>
+          )}
 
-          <div className="rounded-lg border p-4">
-            <h3 className="text-sm font-semibold">Schedule</h3>
-            <div className="mt-3 grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-muted-foreground">Start Date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">End Date</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-          </div>
-
-          <Button onClick={handleGenerate} className="w-full" disabled={generatingContent}>
-            {generatingContent ? (
-              <div className="w-full space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>{generatingProgress.step || "Generating content..."}</span>
-                  <span>{generatingProgress.current} / {generatingProgress.total}</span>
-                </div>
-                <Progress
-                  value={(generatingProgress.current / generatingProgress.total) * 100}
-                  className="h-2"
-                />
-              </div>
-            ) : (
-              <>
-                <Sparkles className="mr-2 size-4" />
-                Generate AI Content
-              </>
-            )}
-          </Button>
+          {!hasActiveJob && (
+            <Button onClick={handleGenerate} className="w-full" size="lg">
+              <Sparkles className="mr-2 size-4" />
+              Generate AI Content
+            </Button>
+          )}
         </div>
       </div>
 
