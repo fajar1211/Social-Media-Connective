@@ -2170,33 +2170,45 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const failedCount = gen.posts.filter((p) => p.status === "failed").length;
   const overallPercent = gen.total > 0 ? Math.round((completedCount / gen.total) * 100) : 0;
   const [animatedPercent, setAnimatedPercent] = useState(0);
-  const animTargetRef = useRef(0);
+  const startTimeRef = useRef<number>(0);
+  const lastRealPercentRef = useRef(0);
   const animFrameRef = useRef<number>(0);
 
   useEffect(() => {
     if (!isGenerating) {
       setAnimatedPercent(overallPercent);
-      animTargetRef.current = overallPercent;
+      lastRealPercentRef.current = overallPercent;
       return;
     }
-    animTargetRef.current = overallPercent;
+    if (startTimeRef.current === 0) {
+      startTimeRef.current = performance.now();
+      lastRealPercentRef.current = 0;
+      setAnimatedPercent(0);
+    }
+    if (overallPercent > lastRealPercentRef.current) {
+      lastRealPercentRef.current = overallPercent;
+    }
     let lastTime = performance.now();
     const tick = (now: number) => {
       const dt = now - lastTime;
       lastTime = now;
+      const elapsed = (now - startTimeRef.current) / 1000;
+      const realTarget = lastRealPercentRef.current;
+      const estimatedProgress = Math.min(95, (elapsed / (gen.total * 15)) * 100);
+      const target = Math.max(realTarget, estimatedProgress);
       setAnimatedPercent((prev) => {
-        const target = animTargetRef.current;
         if (prev >= target) return prev;
-        const speed = 0.018;
-        const step = Math.max(0.2, (target - prev) * speed * (dt / 16));
-        const next = Math.min(prev + step, target);
-        return next;
+        const maxStep = Math.max(0.3, (target - prev) * 0.02);
+        const step = Math.min(maxStep, target - prev);
+        return Math.min(prev + step, target);
       });
       animFrameRef.current = requestAnimationFrame(tick);
     };
     animFrameRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, [isGenerating, overallPercent]);
+    return () => {
+      cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [isGenerating, overallPercent, gen.total]);
 
   useEffect(() => {
     loadKnowledgeFiles();
@@ -2330,6 +2342,10 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     ];
 
     const selected = knowledgeFiles.filter((f) => selectedKnowledge.has(f.id));
+
+    startTimeRef.current = 0;
+    lastRealPercentRef.current = 0;
+    setAnimatedPercent(0);
 
     startGeneration({
       topic: postsAbout.trim(),
