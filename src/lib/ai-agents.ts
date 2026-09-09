@@ -47,8 +47,22 @@ function cleanResponseText(text: string): string {
   let cleaned = text;
   cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, "");
   cleaned = cleaned.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+  // Strip replacement chars, control chars, and surrogate pairs
   cleaned = cleaned.replace(/[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+  // Strip stray backticks
   cleaned = cleaned.replace(/`/g, "");
+  return cleaned.trim();
+}
+
+function cleanCaption(text: string): string {
+  // Remove sequences of ? and d that indicate thinking leak
+  let cleaned = text.replace(/[dD]\?{2,}/g, "");
+  cleaned = cleaned.replace(/\?{3,}/g, "");
+  // Remove other common thinking artifacts
+  cleaned = cleaned.replace(/\*{3,}/g, "");
+  cleaned = cleaned.replace(/_{3,}/g, "");
+  // Clean up extra spaces
+  cleaned = cleaned.replace(/\s{2,}/g, " ");
   return cleaned.trim();
 }
 
@@ -204,7 +218,7 @@ Output JSON only:
 
       if (parsed && typeof (parsed as Record<string, unknown>)["caption"] === "string") {
         const p = parsed as Record<string, unknown>;
-        const caption = (p["caption"] as string).trim();
+        const caption = cleanCaption((p["caption"] as string).trim());
 
         if (caption.length >= 20) {
           const rawHashtags = Array.isArray(p["hashtags"])
@@ -219,7 +233,7 @@ Output JSON only:
             topic: ((p["topic"] as string) || params.topic).slice(0, 80),
             caption,
             hashtags,
-            cta: (p["cta"] as string) || "",
+            cta: cleanCaption((p["cta"] as string) || ""),
             image_prompt: (p["image_prompt"] as string) || "",
             content_type: (p["content_type"] as string) || "Image",
           };
