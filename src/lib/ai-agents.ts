@@ -1,24 +1,13 @@
 const GEMINI_MODEL = "gemma-4-26b-a4b-it";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-export interface TrendData {
-  date_events: string[];
-  trending_topics: string[];
-  viral_patterns: string[];
-  emotional_triggers: string[];
-  trending_hashtags: string[];
-  content_angle_suggestion: string;
-}
-
-export interface StrategyData {
-  brand_name: string;
-  key_points: string[];
-  target_audience: string;
-  brand_voice: string;
-  emotional_hook: string;
-  content_angle: string;
-  trend_integration: string;
-  viral_elements: string[];
+export interface GeneratePostResult {
+  topic: string;
+  caption: string;
+  hashtags: string[];
+  cta: string;
+  image_prompt: string;
+  content_type: string;
 }
 
 function getApiKey(): string {
@@ -41,17 +30,27 @@ async function callGemini(apiKey: string, prompt: string, maxTokens: number): Pr
   });
   const data = await resp.json();
   const parts = data?.candidates?.[0]?.content?.parts || [];
-  // Skip thinking parts (thought: true), return the actual response
   const realPart = parts.find((p: { thought?: boolean }) => !p.thought);
   return realPart?.text?.trim() || "";
 }
 
-function extractJson(text: string): Record<string, unknown> | null {
-  // Remove thinking blocks
-  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "");
+function cleanResponseText(text: string): string {
+  let cleaned = text;
+  // Strip <think>...</think> blocks
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  // Strip markdown code fences
   cleaned = cleaned.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+  // Strip non-printable chars and replacement chars
+  cleaned = cleaned.replace(/[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+  // Strip stray backticks
+  cleaned = cleaned.replace(/`/g, "");
+  return cleaned.trim();
+}
 
-  // Strategy 1: Find JSON object
+function extractJson(text: string): Record<string, unknown> | null {
+  const cleaned = cleanResponseText(text);
+
+  // Strategy 1: Find balanced JSON object
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -60,7 +59,7 @@ function extractJson(text: string): Record<string, unknown> | null {
     } catch { /* continue */ }
   }
 
-  // Strategy 2: Try to find balanced braces
+  // Strategy 2: Regex match
   const match = cleaned.match(/\{[\s\S]*\}/);
   if (match) {
     try {
@@ -68,233 +67,101 @@ function extractJson(text: string): Record<string, unknown> | null {
     } catch { /* continue */ }
   }
 
-  // Strategy 3: Line-by-line scan for key fields
-  const lines = cleaned.split("\n");
-  const brandLine = lines.find((l) => l.includes("brand_name"));
-  if (brandLine) {
-    const brandMatch = brandLine.match(/["']brand_name["']\s*:\s*["']([^"']+)["']/);
-    if (brandMatch) {
-      return { brand_name: brandMatch[1] };
-    }
-  }
-
   return null;
 }
 
-// ── AGENT 0: Trend Researcher (simplified) ──
-
-export async function runTrendsAgent(params: {
-  date: string;
-  country: string;
-  platform: string;
-  brand_niche: string;
-}): Promise<TrendData> {
-  const apiKey = getApiKey();
-  const prompt = `Date: ${params.date}. Location: ${params.country}. Platform: ${params.platform}. Brand: ${params.brand_niche}.
-
-List 3-5 trending topics, 2-3 viral patterns, 2-3 emotional triggers, 2-3 hashtags relevant to this brand and date.
-
-Output JSON only: {"trending_topics":["..."],"viral_patterns":["..."],"emotional_triggers":["..."],"trending_hashtags":["..."],"content_angle_suggestion":"..."}`;
-
-  try {
-    const content = await callGemini(apiKey, prompt, 2048);
-    const parsed = extractJson(content);
-
-    if (parsed) {
-      const p = parsed as Record<string, unknown>;
-      return {
-        date_events: [],
-        trending_topics: (p["trending_topics"] as string[]) || [],
-        viral_patterns: (p["viral_patterns"] as string[]) || [],
-        emotional_triggers: (p["emotional_triggers"] as string[]) || [],
-        trending_hashtags: (p["trending_hashtags"] as string[]) || [],
-        content_angle_suggestion: (p["content_angle_suggestion"] as string) || "",
-      };
-    }
-  } catch { /* fallback */ }
-
-  return { date_events: [], trending_topics: [], viral_patterns: [], emotional_triggers: [], trending_hashtags: [], content_angle_suggestion: "" };
-}
-
-// ── AGENT 1: Content Strategist (simplified) ──
-
-export async function runStrategyAgent(params: {
-  knowledge: string[];
-  trends: TrendData;
+/**
+ * Single-call architecture: generate everything in ONE Gemini call.
+ * Input: topic, platform, tone, knowledge, goal
+ * Output: { topic, caption, hashtags, cta, image_prompt }
+ */
+export async function generatePost(params: {
   topic: string;
-  goal: string;
-  reference: string;
-}): Promise<StrategyData | null> {
-  const apiKey = getApiKey();
-
-  const knowledgeText = params.knowledge.length > 0
-    ? params.knowledge.slice(0, 3).join("\n").slice(0, 800)
-    : "No knowledge provided.";
-
-  const topic = params.topic || "general content";
-
-  const prompt = `Create a content strategy for a social media post.
-
-TOPIC: ${topic}
-GOAL: ${params.goal}
-BRAND INFO: ${knowledgeText}
-
-Output JSON only:
-{"brand_name":"brand name","key_points":["point1","point2","point3"],"target_audience":"audience","brand_voice":"voice","emotional_hook":"hook","content_angle":"angle","trend_integration":"trend","viral_elements":["el1","el2"]}`;
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-    const content = await callGemini(apiKey, prompt, 2048);
-      const parsed = extractJson(content);
-
-      if (parsed && (parsed as Record<string, unknown>)["brand_name"]) {
-        const p = parsed as Record<string, unknown>;
-        return {
-          brand_name: p["brand_name"] as string,
-          key_points: (p["key_points"] as string[]) || [],
-          target_audience: (p["target_audience"] as string) || "",
-          brand_voice: (p["brand_voice"] as string) || "",
-          emotional_hook: (p["emotional_hook"] as string) || "",
-          content_angle: (p["content_angle"] as string) || "",
-          trend_integration: (p["trend_integration"] as string) || "",
-          viral_elements: (p["viral_elements"] as string[]) || [],
-        };
-      }
-    } catch { /* retry */ }
-  }
-
-  // Final fallback: extract brand name from knowledge
-  if (params.knowledge.length > 0) {
-    const firstLine = params.knowledge[0] || "";
-    const brandMatch = firstLine.match(/\[([^\]]+)\]/);
-    if (brandMatch && brandMatch[1]) {
-      return {
-        brand_name: brandMatch[1],
-        key_points: [],
-        target_audience: "",
-        brand_voice: "",
-        emotional_hook: "",
-        content_angle: params.topic,
-        trend_integration: "",
-        viral_elements: [],
-      };
-    }
-  }
-
-  return null;
-}
-
-// ── AGENT 2: Caption Writer (simplified) ──
-
-export async function runCaptionAgent(params: {
-  strategy: StrategyData;
-  knowledge: string[];
   platform: string;
   tone: string;
+  knowledge: string[];
+  client_name: string;
   variety: string;
-}): Promise<string | null> {
+  goal: string;
+}): Promise<GeneratePostResult | null> {
   const apiKey = getApiKey();
-  const s = params.strategy;
+  if (!apiKey) {
+    console.error("[generatePost] No API key configured");
+    return null;
+  }
 
   const knowledgeText = params.knowledge.length > 0
-    ? params.knowledge.slice(0, 3).join("\n").slice(0, 600)
+    ? params.knowledge.slice(0, 5).join("\n\n").slice(0, 1200)
     : "";
 
-  const prompt = `Write a ${params.platform} social media post.
+  const platformRules: Record<string, string> = {
+    Instagram: "100-2200 chars. Storytelling. Personal. Engaging. Natural emojis.",
+    Facebook: "100-500 chars. Conversational. Community-focused. Warm.",
+    Twitter: "Under 280 chars. Punchy. Direct.",
+  };
 
-BRAND: ${s.brand_name}
-VOICE: ${s.brand_voice || params.tone}
-AUDIENCE: ${s.target_audience}
-HOOK: ${s.emotional_hook}
-ANGLE: ${s.content_angle}
-KEY POINTS: ${s.key_points.join(", ")}
+  const prompt = `You are a social media content creator. Create ONE ${params.platform} post.
 
-${knowledgeText ? `DETAILS: ${knowledgeText}` : ""}
-${params.variety ? `STYLE: ${params.variety}` : ""}
+IMPORTANT RULES:
+- Reference the SPECIFIC brand details from KNOWLEDGE below
+- Do NOT use placeholder text like [brand name] or [location]
+- Use the actual brand name, products, location from the knowledge
+- Write naturally, do NOT include the word "brand" literally in the output
+- Output ONLY valid JSON, no other text
 
-Output JSON only: {"caption":"your caption here"}`;
+KNOWLEDGE:
+${knowledgeText || "No additional brand info available. Use the client name: " + params.client_name}
 
+TOPIC: ${params.topic}
+GOAL: ${params.goal || "Engagement"}
+CLIENT: ${params.client_name}
+PLATFORM: ${params.platform}
+TONE: ${params.tone}
+${params.variety ? "STYLE: " + params.variety : ""}
+
+PLATFORM RULES: ${platformRules[params.platform] || platformRules["Facebook"]}
+
+Output JSON only:
+{"topic":"short topic title","caption":"the full post caption","hashtags":["tag1","tag2","tag3"],"cta":"call to action sentence","image_prompt":"detailed visual description for AI image generation","content_type":"Image"}`;
+
+  // Try up to 3 times
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const content = await callGemini(apiKey, prompt, 2048);
+      const content = await callGemini(apiKey, prompt, 4000);
+      if (!content) {
+        console.error(`[generatePost] Empty response on attempt ${attempt + 1}`);
+        continue;
+      }
+
       const parsed = extractJson(content);
 
       if (parsed && typeof (parsed as Record<string, unknown>)["caption"] === "string") {
-        const caption = (parsed as Record<string, unknown>)["caption"] as string;
+        const p = parsed as Record<string, unknown>;
+        const caption = (p["caption"] as string).trim();
+
         if (caption.length >= 20) {
-          return caption;
+          const hashtags = Array.isArray(p["hashtags"])
+            ? (p["hashtags"] as string[]).map((t: string) => t.replace(/^#/, "").trim()).filter(Boolean)
+            : [];
+
+          return {
+            topic: ((p["topic"] as string) || params.topic).slice(0, 80),
+            caption,
+            hashtags: hashtags.slice(0, 10),
+            cta: (p["cta"] as string) || "",
+            image_prompt: (p["image_prompt"] as string) || "",
+            content_type: (p["content_type"] as string) || "Image",
+          };
         }
+        console.error(`[generatePost] Caption too short (${caption.length} chars) on attempt ${attempt + 1}`);
+      } else {
+        console.error(`[generatePost] No valid caption in response on attempt ${attempt + 1}. Raw:`, content.substring(0, 200));
       }
-    } catch { /* retry */ }
+    } catch (err) {
+      console.error(`[generatePost] Error on attempt ${attempt + 1}:`, err);
+    }
   }
 
+  console.error("[generatePost] All 3 attempts failed");
   return null;
-}
-
-// ── AGENT 3: Hashtag + CTA (simplified) ──
-
-export async function runHashtagAgent(params: {
-  caption: string;
-  brand_name: string;
-  platform: string;
-  trending_tags: string[];
-  emotional_hook: string;
-}): Promise<{ hashtags: string[]; cta: string }> {
-  const apiKey = getApiKey();
-
-  const prompt = `Generate hashtags and CTA for this ${params.platform} post about ${params.brand_name}.
-
-CAPTION: ${params.caption.slice(0, 200)}
-${params.trending_tags.length > 0 ? `TRENDING: ${params.trending_tags.join(", ")}` : ""}
-
-Output JSON only: {"hashtags":["tag1","tag2","tag3"],"cta":"call to action"}`;
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const content = await callGemini(apiKey, prompt, 512);
-      const parsed = extractJson(content);
-
-      if (parsed && Array.isArray((parsed as Record<string, unknown>)["hashtags"])) {
-        const tags = (parsed as Record<string, unknown>)["hashtags"] as string[];
-        return {
-          hashtags: tags.map((t: string) => t.replace(/^#/, "")),
-          cta: ((parsed as Record<string, unknown>)["cta"] as string) || "",
-        };
-      }
-    } catch { /* retry */ }
-  }
-
-  return { hashtags: [], cta: "" };
-}
-
-// ── AGENT 4: Image Prompt (simplified) ──
-
-export async function runImagePromptAgent(params: {
-  caption: string;
-  brand_name: string;
-  key_points: string[];
-  viral_patterns: string[];
-}): Promise<string> {
-  const apiKey = getApiKey();
-
-  const prompt = `Create an image prompt for AI image generation.
-
-BRAND: ${params.brand_name}
-CAPTION: ${params.caption.slice(0, 200)}
-STYLE: ${params.viral_patterns.join(", ")}
-
-Output JSON only: {"image_prompt":"detailed visual description"}`;
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const content = await callGemini(apiKey, prompt, 512);
-      const parsed = extractJson(content);
-
-      if (parsed && typeof (parsed as Record<string, unknown>)["image_prompt"] === "string") {
-        return (parsed as Record<string, unknown>)["image_prompt"] as string;
-      }
-    } catch { /* retry */ }
-  }
-
-  return "";
 }
