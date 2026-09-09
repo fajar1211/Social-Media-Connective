@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select";
 import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from "@/components/badges";
 import { ContentList } from "@/components/content-list";
+import { ContentDetailOverlay } from "@/components/content-detail-overlay";
 import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem, type SocialConnection, type ContentType, type Platform, type Client } from "@/lib/content-store";
 import * as db from "@/lib/db";
 import { useGenerationStore, startGeneration, cancelGeneration } from "@/lib/ai-generation-store";
@@ -3093,6 +3094,7 @@ function ContentTabSection({
   const isAdmin = profile?.role === "admin";
   const [monthFilter, setMonthFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
 
   const months = Array.from(new Set(
     clientContent
@@ -3261,21 +3263,15 @@ function ContentTabSection({
                   <TableHead>Platform</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Scheduled Post</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {displayedContent.map((item) => {
                   const img = item.media?.[0] as string | undefined;
                   return (
-                    <TableRow
-                      key={item.id}
-                      className="cursor-pointer"
-                      onClick={() => {
-                        const overlay = document.querySelector("[data-content-overlay]") as HTMLElement | null;
-                        if (overlay) overlay.click();
-                      }}
-                    >
+                    <TableRow key={item.id}>
                       {selectedStatusFilter === "Deleted" && isAdmin && (
                         <TableCell>
                           <input
@@ -3300,7 +3296,18 @@ function ContentTabSection({
                       <TableCell><PlatformBadge platform={item.platform} /></TableCell>
                       <TableCell><ContentTypeBadge type={item.type} /></TableCell>
                       <TableCell><StatusBadge status={item.status} /></TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(item.date)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {item.scheduledDate ? `${item.scheduledDate}${item.scheduledTime ? ` ${item.scheduledTime}` : ""}` : formatDate(item.date)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedItem(item)}
+                        >
+                          View
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -3315,6 +3322,8 @@ function ContentTabSection({
           </div>
         )}
       </section>
+
+      <ContentDetailOverlay item={selectedItem} onClose={() => setSelectedItem(null)} />
     </>
   );
 }
