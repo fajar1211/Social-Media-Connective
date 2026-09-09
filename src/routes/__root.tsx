@@ -8,7 +8,7 @@ import {
   Scripts,
   useLocation,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -132,12 +132,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   const [ready, setReady] = useState(false);
-  const [isPublicPage, setIsPublicPage] = useState(false);
+
+  const isPublicPage =
+    location.pathname === "/" ||
+    location.pathname === "/auth" ||
+    location.pathname === "/privacy" ||
+    location.pathname.startsWith("/client/");
 
   useEffect(() => {
-    const path = window.location.pathname;
-    setIsPublicPage(path === "/" || path === "/auth" || path === "/privacy" || path.startsWith("/client/"));
     setReady(true);
   }, []);
 
@@ -147,10 +151,10 @@ function AuthGuard({ children }: { children: ReactNode }) {
     if (!user && !isPublicPage) {
       window.location.href = "/";
     }
-    if (user && window.location.pathname === "/auth") {
+    if (user && location.pathname === "/auth") {
       window.location.href = "/dashboard";
     }
-  }, [ready, user, loading, isPublicPage]);
+  }, [ready, user, loading, isPublicPage, location.pathname]);
 
   if (loading || !ready) {
     return (
@@ -170,6 +174,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
 function StoreLoader({ children }: { children: ReactNode }) {
   const { user, profile } = useAuth();
   const [loaded, setLoaded] = useState(false);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -189,17 +194,32 @@ function StoreLoader({ children }: { children: ReactNode }) {
           .catch((err) => {
             console.error("[StoreLoader] Failed to load client portal data:", err);
           })
-          .finally(() => setLoaded(true));
+          .finally(() => {
+            if (!loadedRef.current) {
+              loadedRef.current = true;
+              setLoaded(true);
+            }
+          });
       } else {
-        setLoaded(true);
+        if (!loadedRef.current) {
+          loadedRef.current = true;
+          setLoaded(true);
+        }
       }
       return;
     }
 
     // Admin sees all data, client sees only their client's data
     const clientId = profile?.role === "client" ? profile.clientId || undefined : undefined;
-    loadStoreData(clientId).finally(() => setLoaded(true));
-  }, [user, profile]);
+    loadStoreData(clientId).finally(() => {
+      if (!loadedRef.current) {
+        loadedRef.current = true;
+        setLoaded(true);
+      }
+    });
+  // Run once on mount — detect path and auth state at execution time
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!loaded) {
     return (
