@@ -77,7 +77,9 @@ async function describeWithGemini(
   });
 
   const data = await resp.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const realPart = parts.find((p: { thought?: boolean }) => !p.thought);
+  return realPart?.text?.trim() || "";
 }
 
 export const Route = createFileRoute("/api/ai/generate-image")({

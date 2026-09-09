@@ -35,7 +35,9 @@ async function callGemini(apiKey: string, prompt: string, maxTokens: number): Pr
     }),
   });
   const data = await resp.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const realPart = parts.find((p: { thought?: boolean }) => !p.thought);
+  return realPart?.text?.trim() || "";
 }
 
 function extractJson(text: string): Record<string, unknown> | null {

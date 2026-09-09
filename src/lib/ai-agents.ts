@@ -40,7 +40,10 @@ async function callGemini(apiKey: string, prompt: string, maxTokens: number): Pr
     }),
   });
   const data = await resp.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  // Skip thinking parts (thought: true), return the actual response
+  const realPart = parts.find((p: { thought?: boolean }) => !p.thought);
+  return realPart?.text?.trim() || "";
 }
 
 function extractJson(text: string): Record<string, unknown> | null {
@@ -94,7 +97,7 @@ List 3-5 trending topics, 2-3 viral patterns, 2-3 emotional triggers, 2-3 hashta
 Output JSON only: {"trending_topics":["..."],"viral_patterns":["..."],"emotional_triggers":["..."],"trending_hashtags":["..."],"content_angle_suggestion":"..."}`;
 
   try {
-    const content = await callGemini(apiKey, prompt, 1024);
+    const content = await callGemini(apiKey, prompt, 2048);
     const parsed = extractJson(content);
 
     if (parsed) {
@@ -141,7 +144,7 @@ Output JSON only:
 
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const content = await callGemini(apiKey, prompt, 1024);
+    const content = await callGemini(apiKey, prompt, 2048);
       const parsed = extractJson(content);
 
       if (parsed && (parsed as Record<string, unknown>)["brand_name"]) {
