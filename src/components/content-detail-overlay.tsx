@@ -501,7 +501,7 @@ export function ContentDetailOverlay({
                     return undefined;
                   })()}
                   timestamp={formatDate(item.date)}
-                  content={editing ? draft.caption : item.caption}
+                  content={editing ? draft.caption : `${item.caption || ""}${item.hashtags?.length > 0 ? `\n\n${item.hashtags.map((h) => `#${h}`).join(" ")}` : ""}`}
                   images={(draft.media || []).map((m) => typeof m === "string" ? { src: m, alt: "Uploaded media" } : m)}
                   platform={platformKey === "gbp" ? "gbp" : platformKey === "instagram" ? "instagram" : "facebook"}
                   gbpTitle={item.client}

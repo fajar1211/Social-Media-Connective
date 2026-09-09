@@ -2169,32 +2169,51 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
   const completedCount = gen.posts.filter((p) => p.status === "completed").length;
   const generatingCount = gen.posts.filter((p) => p.status === "generating").length;
   const failedCount = gen.posts.filter((p) => p.status === "failed").length;
-  const overallPercent = gen.total > 0
+  const realPercent = gen.total > 0
     ? Math.round(((completedCount + generatingCount * 0.5) / gen.total) * 100)
     : 0;
   const [animatedPercent, setAnimatedPercent] = useState(0);
+  const [estimatedPercent, setEstimatedPercent] = useState(0);
+  const startTimeRef = useRef<number>(0);
   const animFrameRef = useRef<number>(0);
 
   useEffect(() => {
+    if (isGenerating && startTimeRef.current === 0) {
+      startTimeRef.current = Date.now();
+    }
     if (!isGenerating) {
-      setAnimatedPercent(overallPercent);
+      setAnimatedPercent(realPercent);
+      setEstimatedPercent(realPercent);
+      if (!hasActiveJob) startTimeRef.current = 0;
       return;
     }
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      const timeEstimate = Math.min(90, (elapsed / (gen.total * 20)) * 100);
+      const target = Math.max(realPercent, timeEstimate);
+      setEstimatedPercent(target);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isGenerating, realPercent, gen.total, hasActiveJob]);
+
+  useEffect(() => {
+    if (!isGenerating) return;
     let lastTime = performance.now();
     const tick = (now: number) => {
       const dt = now - lastTime;
       lastTime = now;
       setAnimatedPercent((prev) => {
-        if (prev >= overallPercent) return prev;
-        const maxStep = Math.max(0.5, (overallPercent - prev) * 0.05);
-        const step = Math.min(maxStep, overallPercent - prev);
-        return Math.min(prev + step, overallPercent);
+        const target = Math.max(realPercent, estimatedPercent);
+        if (prev >= target) return prev;
+        const maxStep = Math.max(0.5, (target - prev) * 0.05);
+        const step = Math.min(maxStep, target - prev);
+        return Math.min(prev + step, target);
       });
       animFrameRef.current = requestAnimationFrame(tick);
     };
     animFrameRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [isGenerating, overallPercent]);
+  }, [isGenerating, realPercent, estimatedPercent]);
 
   useEffect(() => {
     loadKnowledgeFiles();
@@ -2279,6 +2298,11 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     (p) => clientData?.socialIntegrations?.[p]?.connected === true
   );
 
+  const hasPostsPerPlatform = connectedPlatforms.some((p) => (postsPerPlatform[p] || 0) > 0);
+  const hasSchedule = startDate !== "" && endDate !== "";
+  const hasTopic = postsAbout.trim().length > 0;
+  const isGenerateDisabled = !hasTopic || !hasPostsPerPlatform || !hasSchedule || !tone;
+
   const handleCampaignImage = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
@@ -2330,6 +2354,8 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
     const selected = knowledgeFiles.filter((f) => selectedKnowledge.has(f.id));
 
     setAnimatedPercent(0);
+    setEstimatedPercent(0);
+    startTimeRef.current = Date.now();
 
     startGeneration({
       topic: postsAbout.trim(),
@@ -2800,7 +2826,7 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
           )}
 
           {!hasActiveJob && (
-            <Button onClick={handleGenerate} className="w-full" size="lg">
+            <Button onClick={handleGenerate} className="w-full" size="lg" disabled={isGenerateDisabled}>
               <Sparkles className="mr-2 size-4" />
               Generate AI Content
             </Button>
@@ -3140,9 +3166,9 @@ function ContentTabSection({
   const purgeSelected = async () => {
     if (selectedIds.size === 0) return;
     for (const id of selectedIds) {
-      await actions.purge(id);
+      await actions.setStatus(id, "Deleted");
     }
-    toast.success(`${selectedIds.size} posts permanently deleted`);
+    toast.success(`${selectedIds.size} posts moved to Deleted`);
     setSelectedIds(new Set());
   };
 
@@ -3223,7 +3249,7 @@ function ContentTabSection({
           </div>
         )}
 
-        {selectedStatusFilter === "Deleted" && isAdmin && displayedContent.length > 0 && (
+        {selectedStatusFilter === "Suggested" && displayedContent.length > 0 && (
           <div className="mb-3 flex items-center gap-2 rounded-lg border bg-accent/50 px-4 py-2">
             <input
               type="checkbox"
@@ -3237,7 +3263,7 @@ function ContentTabSection({
             {selectedIds.size > 0 && (
               <Button variant="destructive" size="sm" className="ml-auto" onClick={purgeSelected}>
                 <Trash2 className="mr-1.5 size-3.5" />
-                Permanent Delete ({selectedIds.size})
+                Delete ({selectedIds.size})
               </Button>
             )}
           </div>
@@ -3248,7 +3274,7 @@ function ContentTabSection({
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  {selectedStatusFilter === "Deleted" && isAdmin && (
+                  {selectedStatusFilter === "Suggested" && (
                     <TableHead className="w-10">
                       <input
                         type="checkbox"
@@ -3272,7 +3298,7 @@ function ContentTabSection({
                   const img = item.media?.[0] as string | undefined;
                   return (
                     <TableRow key={item.id}>
-                      {selectedStatusFilter === "Deleted" && isAdmin && (
+                      {selectedStatusFilter === "Suggested" && (
                         <TableCell>
                           <input
                             type="checkbox"
