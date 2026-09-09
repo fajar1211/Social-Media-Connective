@@ -41,6 +41,7 @@ export const Route = createFileRoute("/import")({
 function ImportPage() {
   const { clientId } = Route.useSearch();
   const { clients } = useStore();
+  const isClientMode = !!clientId;
   const [selectedClientId, setSelectedClientId] = useState(clientId || "");
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -136,22 +137,24 @@ function ImportPage() {
         subtitle={selectedClient ? `Import existing marketing content for ${selectedClient.name}.` : "Select a client to import content."}
       />
 
-      {/* Client Selector */}
-      <div className="rounded-xl border bg-card p-6 shadow-soft">
-        <label className="text-sm font-medium">Select Client</label>
-        <select
-          value={selectedClientId}
-          onChange={(e) => handleClientChange(e.target.value)}
-          className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
-        >
-          <option value="">— Choose a client —</option>
-          {clients.map((c: any) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
+      {/* Client Selector - only show when no clientId is provided */}
+      {!isClientMode && (
+        <div className="rounded-xl border bg-card p-6 shadow-soft">
+          <label className="text-sm font-medium">Select Client</label>
+          <select
+            value={selectedClientId}
+            onChange={(e) => handleClientChange(e.target.value)}
+            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+          >
+            <option value="">— Choose a client —</option>
+            {clients.map((c: any) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
-      {/* Import Section — only show after client selected */}
+      {/* Import Section - show when client is selected (either via URL or dropdown) */}
       {selectedClientId && selectedClient && (
         <div className="mt-6 rounded-xl border bg-card p-6 shadow-soft">
           <div className="flex items-center justify-between">

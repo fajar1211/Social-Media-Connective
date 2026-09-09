@@ -18,7 +18,6 @@ import {
   Shield,
   Calendar,
   BarChart3,
-  LayoutTemplate,
   Download,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -40,7 +39,6 @@ const adminNav = [
     items: [
       { to: "/content", label: "All Content", icon: Files },
       { to: "/content/create", label: "Create Content", icon: PenLine },
-      { to: "/templates", label: "Templates", icon: LayoutTemplate },
       { to: "/import", label: "Import", icon: Upload },
       { to: "/export", label: "Export", icon: Download },
     ],
@@ -83,7 +81,6 @@ const clientNav = [
     items: [
       { to: "/content", label: "All Content", icon: Files },
       { to: "/content/create", label: "Create Content", icon: PenLine },
-      { to: "/templates", label: "Templates", icon: LayoutTemplate },
       { to: "/import", label: "Import", icon: Upload },
       { to: "/export", label: "Export", icon: Download },
     ],
