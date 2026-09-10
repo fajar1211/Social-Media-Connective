@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, Image, Film, Upload } from "lucide-react";
+import { Trash2, Image, Film, Upload, Send, CalendarClock, CheckCircle2 } from "lucide-react";
 import { actions, formatDate, useStore, type ContentItem, type FacebookPage } from "@/lib/content-store";
 import { ContentTypeBadge, PlatformBadge, StatusBadge } from "@/components/badges";
 import { SocialMediaPreviewCard } from "@/components/social-media-preview-card";
@@ -307,6 +307,7 @@ export function ContentDetailOverlay({
   const [draft, setDraft] = useState<ContentItem | null>(item);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [scheduling, setScheduling] = useState(false);
+  const [publishingNow, setPublishingNow] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -503,6 +504,143 @@ export function ContentDetailOverlay({
       actions.update(item.id, { status: "Approved" });
       toast.success("Content approved");
       onClose();
+    }
+  };
+
+  const handlePublishNow = async () => {
+    const client = clients.find((c) => c.name === item.client);
+
+    // ── Upload pending file to Supabase if needed ──
+    let mediaUrls = draft?.media || [];
+    if (pendingFile) {
+      try {
+        const { uploadContentMedia } = await import("@/lib/db");
+        const url = await uploadContentMedia(pendingFile, draft?.clientId || "unknown");
+        if (url) {
+          mediaUrls = [url];
+          setDraft(draft ? { ...draft, media: [url] } : draft);
+          setPendingFile(null);
+        } else {
+          toast.error("Failed to upload media. Please try again.");
+          return;
+        }
+      } catch {
+        toast.error("Failed to upload media. Please try again.");
+        return;
+      }
+    }
+
+    const isFacebook = item.platform === "Facebook";
+    const isInstagram = item.platform === "Instagram";
+    const fbConnection = client?.socialIntegrations?.Facebook;
+    const fbPages: FacebookPage[] = fbConnection?.pages || [];
+    const canPublishFb = isFacebook && fbConnection?.connected && fbConnection?.accessToken && fbPages.length > 0;
+    const igConnection = client?.socialIntegrations?.Instagram;
+    const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
+
+    const message = (item.body || item.caption || "").trim();
+    const hasImage = item.media && item.media.length > 0 && item.media[0];
+
+    setPublishingNow(true);
+    try {
+      if (canPublishFb) {
+        const page = fbPages[0]!;
+        const tokenCheck = await fetch("/api/facebook/validate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageAccessToken: page.access_token }),
+        });
+        const tokenData = await tokenCheck.json();
+        if (!tokenData.valid) {
+          toast.error(
+            tokenData.is_expired
+              ? `Facebook token expired. Please reconnect Facebook for "${item.client}".`
+              : `Facebook token invalid: ${tokenData.error || "Unknown error"}.`
+          );
+          return;
+        }
+
+        let response;
+        if (hasImage) {
+          response = await fetch("/api/facebook/photo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageId: page.id,
+              pageAccessToken: page.access_token,
+              message,
+              imageUrl: item.media![0],
+            }),
+          });
+        } else {
+          response = await fetch("/api/facebook/post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageId: page.id,
+              pageAccessToken: page.access_token,
+              message,
+            }),
+          });
+        }
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Submitted",
+            notes: `Published to ${page.name} (Post ID: ${data.postId})`,
+          });
+          toast.success(`Published to ${page.name}!`);
+          onClose();
+        } else {
+          toast.error(`Failed to publish: ${data.error}`);
+        }
+      } else if (canPublishIg) {
+        const igUserId = igConnection.accountId || "";
+        const tokenCheck = await fetch("/api/facebook/validate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageAccessToken: igConnection.accessToken }),
+        });
+        const tokenData = await tokenCheck.json();
+        if (!tokenData.valid) {
+          toast.error(
+            tokenData.is_expired
+              ? `Instagram token expired. Please reconnect Instagram for "${item.client}".`
+              : `Instagram token invalid: ${tokenData.error || "Unknown error"}.`
+          );
+          return;
+        }
+
+        const response = await fetch("/api/instagram/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            igUserId,
+            accessToken: igConnection.accessToken,
+            imageUrl: hasImage ? item.media![0] : "",
+            caption: message,
+          }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Submitted",
+            notes: `Published to Instagram (Post ID: ${data.postId})`,
+          });
+          toast.success("Published to Instagram!");
+          onClose();
+        } else {
+          toast.error(`Failed to publish to Instagram: ${data.error}`);
+        }
+      } else {
+        actions.update(item.id, { status: "Submitted" });
+        toast.success("Content submitted");
+        onClose();
+      }
+    } catch {
+      toast.error("Failed to publish. Please try again.");
+    } finally {
+      setPublishingNow(false);
     }
   };
 
@@ -739,24 +877,30 @@ export function ContentDetailOverlay({
                   </>
                 ) : (
                   <>
-                    {(item.status === "Suggested" || item.status === "Additional") && (
+                    {item.status !== "Approved" && (
                       <Button
-                        variant="outline"
-                        onClick={() => {
-                          actions.setStatus(item.id, "Submitted");
-                          toast.success("Content submitted for review");
-                          onClose();
-                        }}
+                        onClick={handlePublishNow}
+                        disabled={publishingNow || scheduling}
                       >
-                        Submit
+                        {publishingNow ? "Publishing..." : "Publish Now"}
                       </Button>
                     )}
                     {item.status !== "Approved" && (
                       <Button
+                        variant="outline"
                         onClick={handleApprove}
-                        disabled={scheduling}
+                        disabled={scheduling || publishingNow}
                       >
-                        {scheduling ? "Processing..." : item.scheduledDate ? "Schedule & Approve" : "Approve"}
+                        {scheduling ? "Processing..." : "Approve"}
+                      </Button>
+                    )}
+                    {item.status !== "Approved" && item.scheduledDate && (
+                      <Button
+                        variant="outline"
+                        onClick={handleApprove}
+                        disabled={scheduling || publishingNow}
+                      >
+                        {scheduling ? "Processing..." : "Reschedule & Approve"}
                       </Button>
                     )}
                     <Button variant="destructive" onClick={() => setConfirmDelete(true)}>

@@ -56,7 +56,7 @@ import {
 import { ClientStatusBadge, PlatformBadge, ContentTypeBadge, StatusBadge } from "@/components/badges";
 import { ContentList } from "@/components/content-list";
 import { ContentDetailOverlay } from "@/components/content-detail-overlay";
-import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem, type SocialConnection, type ContentType, type Platform, type Client } from "@/lib/content-store";
+import { counts, useStore, actions, getStoreState, SOCIAL_PLATFORMS, PLATFORMS, formatDate, parseImportFile, type SocialPlatform, type ContentItem, type SocialConnection, type ContentType, type Platform, type Client, type FacebookPage } from "@/lib/content-store";
 import * as db from "@/lib/db";
 import { useGenerationStore, startGeneration, cancelGeneration } from "@/lib/ai-generation-store";
 import type { KnowledgeFile } from "@/lib/database.types";
@@ -2867,10 +2867,12 @@ function AIContentTab({ client }: { client: { id: string; name: string; socialIn
 
 function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]; clientName: string }) {
   const navigate = useNavigate();
+  const { clients } = useStore();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewItem, setViewItem] = useState<ContentItem | null>(null);
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
   const PER_PAGE = 10;
 
   const months = Array.from(new Set(
@@ -2912,6 +2914,120 @@ function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]
     }
     toast.success(`${selectedIds.size} posts deleted`);
     setSelectedIds(new Set());
+  };
+
+  const handlePublishNow = async (item: ContentItem) => {
+    const client = clients.find((c) => c.name === item.client);
+    const isFacebook = item.platform === "Facebook";
+    const isInstagram = item.platform === "Instagram";
+
+    const fbConnection = client?.socialIntegrations?.Facebook;
+    const fbPages: FacebookPage[] = fbConnection?.pages || [];
+    const canPublishFb = isFacebook && fbConnection?.connected && fbConnection?.accessToken && fbPages.length > 0;
+
+    const igConnection = client?.socialIntegrations?.Instagram;
+    const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
+
+    const message = (item.body || item.caption || "").trim();
+    const hasImage = item.media && item.media.length > 0 && item.media[0];
+
+    setPublishingId(item.id);
+    try {
+      if (canPublishFb) {
+        const page = fbPages[0]!;
+        const tokenCheck = await fetch("/api/facebook/validate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageAccessToken: page.access_token }),
+        });
+        const tokenData = await tokenCheck.json();
+        if (!tokenData.valid) {
+          toast.error(
+            tokenData.is_expired
+              ? `Facebook token expired. Please reconnect Facebook for "${item.client}".`
+              : `Facebook token invalid: ${tokenData.error || "Unknown error"}.`
+          );
+          return;
+        }
+
+        let response;
+        if (hasImage) {
+          response = await fetch("/api/facebook/photo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageId: page.id,
+              pageAccessToken: page.access_token,
+              message,
+              imageUrl: item.media![0],
+            }),
+          });
+        } else {
+          response = await fetch("/api/facebook/post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageId: page.id,
+              pageAccessToken: page.access_token,
+              message,
+            }),
+          });
+        }
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Submitted",
+            notes: `Published to ${page.name} (Post ID: ${data.postId})`,
+          });
+          toast.success(`Published to ${page.name}!`);
+        } else {
+          toast.error(`Failed to publish: ${data.error}`);
+        }
+      } else if (canPublishIg) {
+        const igUserId = igConnection.accountId || "";
+        const tokenCheck = await fetch("/api/facebook/validate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageAccessToken: igConnection.accessToken }),
+        });
+        const tokenData = await tokenCheck.json();
+        if (!tokenData.valid) {
+          toast.error(
+            tokenData.is_expired
+              ? `Instagram token expired. Please reconnect Instagram for "${item.client}".`
+              : `Instagram token invalid: ${tokenData.error || "Unknown error"}.`
+          );
+          return;
+        }
+
+        const response = await fetch("/api/instagram/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            igUserId,
+            accessToken: igConnection.accessToken,
+            imageUrl: hasImage ? item.media![0] : "",
+            caption: message,
+          }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Submitted",
+            notes: `Published to Instagram (Post ID: ${data.postId})`,
+          });
+          toast.success("Published to Instagram!");
+        } else {
+          toast.error(`Failed to publish to Instagram: ${data.error}`);
+        }
+      } else {
+        toast.error(`No platform connection for ${item.client}. Please connect ${item.platform} first.`);
+      }
+    } catch {
+      toast.error("Failed to publish. Please try again.");
+    } finally {
+      setPublishingId(null);
+    }
   };
 
   return (
@@ -3026,14 +3142,26 @@ function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]
                   <img src={item.media[0]} alt="" referrerPolicy="no-referrer" className="mt-2 h-16 w-16 rounded-lg object-cover" />
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="shrink-0"
-                onClick={() => setViewItem(item)}
-              >
-                View
-              </Button>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewItem(item)}
+                >
+                  View
+                </Button>
+                {(item.platform === "Facebook" || item.platform === "Instagram") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePublishNow(item)}
+                    disabled={publishingId === item.id}
+                  >
+                    <Send className="mr-1 size-3" />
+                    {publishingId === item.id ? "Publishing..." : "Publish Now"}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         ))}
