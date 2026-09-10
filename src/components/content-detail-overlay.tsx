@@ -256,7 +256,7 @@ function ReplaceMediaSection({
           >
             {referenceImage ? (
               <>
-                <img src={referenceImage} alt="Reference" className="h-8 w-8 rounded object-cover shrink-0" />
+                <img src={referenceImage} alt="Reference" referrerPolicy="no-referrer" className="h-8 w-8 rounded object-cover shrink-0" />
                 <span className="text-[10px] text-muted-foreground truncate flex-1">Reference uploaded</span>
               </>
             ) : (

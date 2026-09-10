@@ -1287,7 +1287,7 @@ function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]
                   )}
                 </div>
                 {item.media?.[0] && (
-                  <img src={item.media[0]} alt="" className="mt-2 h-16 w-16 rounded-lg object-cover" />
+                  <img src={item.media[0]} alt="" referrerPolicy="no-referrer" className="mt-2 h-16 w-16 rounded-lg object-cover" />
                 )}
               </div>
               <Button
@@ -1344,7 +1344,7 @@ function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]
             </DialogHeader>
             <div className="space-y-4 mt-4">
               {viewItem.media?.[0] && (
-                <img src={viewItem.media[0]} alt="" className="w-full max-h-64 rounded-lg object-cover" />
+                <img src={viewItem.media[0]} alt="" referrerPolicy="no-referrer" className="w-full max-h-64 rounded-lg object-cover" />
               )}
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground mb-1">Caption</h4>
@@ -1795,6 +1795,7 @@ function ClientPortal() {
                                 <img
                                   src={img}
                                   alt=""
+                                  referrerPolicy="no-referrer"
                                   className="h-10 w-10 rounded object-cover"
                                 />
                               ) : (

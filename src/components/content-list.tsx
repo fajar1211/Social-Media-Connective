@@ -412,7 +412,7 @@ export function ContentTable({
                   )}
                   <TableCell>
                     {img ? (
-                      <img src={img} alt="" className="h-10 w-10 rounded object-cover" />
+                      <img src={img} alt="" referrerPolicy="no-referrer" className="h-10 w-10 rounded object-cover" />
                     ) : (
                       <div className="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs text-muted-foreground">
                         {item.type === "Image" ? "IMG" : item.type === "Short Video" ? "VID" : item.type === "Carousel" ? "CAR" : "TXT"}

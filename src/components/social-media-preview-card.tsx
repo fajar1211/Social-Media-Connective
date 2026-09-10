@@ -169,6 +169,7 @@ function LazyImage({
         src={inView ? src : undefined}
         alt={alt || ""}
         loading="eager"
+        referrerPolicy="no-referrer"
         onLoad={() => setLoaded(true)}
         onError={() => setLoadError(true)}
         className={cn(
@@ -213,7 +214,7 @@ function Gallery({
         {lazyLoad ? (
           <LazyImage src={img.src} alt={img.alt || `Photo ${i + 1}`} className="h-full w-full" />
         ) : (
-          <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
+          <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
         )}
         <div className="absolute inset-0 bg-black/0 transition-colors duration-200 hover:bg-black/10" />
       </div>
@@ -262,7 +263,7 @@ function Gallery({
             {lazyLoad ? (
               <LazyImage src={img.src} alt={img.alt || `Photo ${i + 1}`} className="h-full w-full object-cover" />
             ) : (
-              <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
+              <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
             )}
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
               <span className="text-2xl font-bold text-white drop-shadow">+{remaining}</span>
@@ -341,6 +342,7 @@ function ImagePreviewModal({
         key={currentIndex}
         src={currentImage.src}
         alt={currentImage.alt || `Photo ${currentIndex + 1}`}
+        referrerPolicy="no-referrer"
         className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
@@ -499,7 +501,7 @@ function GBPGallery({
           onImageClick(i);
         }}
       >
-        <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
+        <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
       </div>
     );
   };
@@ -755,7 +757,7 @@ function InstagramGallery({
           onImageClick(i);
         }}
       >
-        <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" className="h-full w-full object-cover" />
+        <img src={img.src} alt={img.alt || `Photo ${i + 1}`} loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
       </div>
     );
   };
