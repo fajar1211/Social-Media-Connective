@@ -197,7 +197,6 @@ function CreateContent() {
   const [gbpUrl, setGbpUrl] = useState("");
   const [aiCaptionLoading, setAiCaptionLoading] = useState(false);
   const [aiImageLoading, setAiImageLoading] = useState(false);
-  const [agentUrl, setAgentUrl] = useState("http://localhost:8000");
   const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
   const [generatedHashtags, setGeneratedHashtags] = useState<string[]>([]);
   const [tone, setTone] = useState("professional");

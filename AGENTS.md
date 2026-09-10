@@ -5,12 +5,11 @@
 - Admin/client roles with different Facebook OAuth configurations
 - Supabase backend, Cloudflare Workers deployment
 - Production: https://socmed.marketingconnective.com/
-- AI Agent: Local Python/FastAPI service at localhost:8000
 
 ## Current State (September 2026)
-- **Facebook App ID**: `1109449551768527` (new app)
+- **Facebook App ID**: `1109449551768527`
 - **Gemini AI**: `gemma-4-26b-a4b-it` (free, API key in .env)
-- **Status**: AI agent working, Facebook publishing needs testing
+- **Status**: All features running on Cloudflare Workers
 
 ## Key Architecture Decisions
 1. **1 client = 1 manager model** (NOT multi-client per user)
@@ -19,20 +18,12 @@
 4. **Content filtering**: Dual fallback (`clientId` or `client.name`)
 5. **Magic link**: Public client portal at `/client/$token`
 6. **AI Provider**: Gemini API (free, no Ollama needed)
-7. **Agent runs locally**: Not on Cloudflare (needs cron scheduler)
+7. **Server-side routes**: All API routes run on Cloudflare Workers
 
 ## Facebook Login for Business
 - Config ID: `2308260646667688` (Facebook Business Login)
 - App ID: `1109449551768527` (Socmed Connective)
 - Used for both Facebook and Instagram OAuth
-
-## AI Agent Architecture
-- **Engine**: FastAPI + APScheduler
-- **AI**: Gemini API (`gemma-4-26b-a4b-it`) — free
-- **Publisher**: Facebook Graph API v21.0, Instagram Graph API v21.0
-- **Database**: Supabase (same as frontend)
-- **Scheduler**: Checks every 60 seconds for approved content
-- **Flow**: Create → Approve → Agent detects → AI generates caption → Publishes
 
 ## Important Commands
 
@@ -49,91 +40,29 @@ npx tsc --noEmit --pretty
 git add -A; git commit -m "message"; git push origin main
 ```
 
-### AI Agent
-```powershell
-# Start agent
-cd "C:\Users\paula\Social Media Connective\social-media-agent"
-.\venv\Scripts\python.exe main.py
-
-# Health check
-Invoke-RestMethod -Uri "http://localhost:8000/health"
-
-# AI generate
-Invoke-RestMethod -Uri "http://localhost:8000/ai/generate" -Method POST -ContentType "application/json" -Body '{"topic":"...","platform":"Instagram"}'
-
-# Validate a Facebook token
-Invoke-RestMethod -Uri "http://localhost:8000/check-token" -Method POST -ContentType "application/json" -Body '{"page_access_token":"..."}'
-
-# Exchange short-lived token for long-lived
-Invoke-RestMethod -Uri "http://localhost:8000/exchange-token" -Method POST -ContentType "application/json" -Body '{"short_token":"..."}'
-
-# Get page access token from user token
-Invoke-RestMethod -Uri "http://localhost:8000/get-page-token" -Method POST -ContentType "application/json" -Body '{"user_token":"...","page_id":"..."}'
-
-# Check client's Facebook token status
-Invoke-RestMethod -Uri "http://localhost:8000/client-token-status/S0100"
-```
-
 ## Common Issues
 1. **"Fitur Tidak Tersedia"**: Facebook App Review not submitted
 2. **Client sees admin's pages**: Wrong config_id used
 3. **Token not saving**: Check postMessage + localStorage flow
 4. **Content not showing**: Check clientId filter
 5. **AI generation fails**: Check Gemini API key in .env
-6. **Agent not publishing**: Check Facebook token is valid + page connected
-7. **Publish fails with "Invalid token"**: Token may have expired - reconnect Facebook
-8. **Photo posts failing**: Ensure image URL is publicly accessible
+6. **Publish fails with "Invalid token"**: Token may have expired - reconnect Facebook
+7. **Photo posts failing**: Ensure image URL is publicly accessible
 
 ## File Locations
 
 ### Frontend App
 - OAuth files: `src/routes/api.auth.*.tsx`
 - Webhook: `src/routes/api.webhook.instagram.tsx`
-- Publishing: `src/routes/api.facebook.*.tsx`
+- Publishing: `src/routes/api.facebook.*.tsx`, `src/routes/api.instagram.*.tsx`
 - Client detail: `src/routes/clients.$clientId.tsx`
 - Content creation: `src/routes/content.create.tsx`
 - Content store: `src/lib/content-store.ts`
 - Supabase queries: `src/lib/db.ts`
 
-### AI Agent Service
-- Entry point: `social-media-agent/main.py`
-- AI engine: `social-media-agent/ai_engine.py`
-- Publisher: `social-media-agent/publisher.py`
-- Scheduler: `social-media-agent/scheduler.py`
-- Config: `social-media-agent/.env`
-
 ### Database
 - Migrations: `supabase/migrations/`
-- Key tables: `content`, `clients`, `social_connections`, `publish_history`
-
-## What's Been Done (Session 5 September 2026)
-1. Built complete AI agent service (`social-media-agent/`)
-2. Integrated Gemini AI for caption generation
-3. Added "AI Generate Caption" button to content creation UI
-4. Database migration for agent_status + publish_history
-5. Tested: health check OK, AI generate OK
-6. Pushed to GitHub (commit `eb1f369`)
-
-## What's Been Done (Session 5 September 2026 - Facebook Publishing Fix)
-1. Fixed Facebook OAuth callback to exchange user token → page access token
-2. Added token validation in publisher.py before every publish
-3. Added `/exchange-token` and `/get-page-token` endpoints to agent
-4. Added `/client-token-status/{client_id}` endpoint for token health check
-5. Fixed `handleApprove` in content-detail-overlay to use photo endpoint for image posts
-6. Fixed page token storage in frontend (uses page.access_token, not user token)
-7. Fixed auto-connect flow to use page access token
-8. TypeScript errors fixed in modified files
-
-## What's Been Done (Session 6 September 2026)
-1. **Manual Token Input for Facebook** — Client can paste Page Access Token from Graph API Explorer, fetch pages (including Business Manager pages), and connect
-2. **Manual Token Input for Instagram** — Same flow for Instagram, fetches pages with `instagram_business_account` via Business endpoint
-3. **Fixed `/me/accounts` empty** — Added Business Manager fallback: `/me/businesses` → `/business_id/owned_pages`
-4. **Correct Facebook permissions** — Guide now shows: `pages_show_list`, `pages_manage_posts`, `business_management`, `pages_read_engagement`
-5. **English UI** — Manual Token dialog fully translated to English
-6. **Permanent Admin Role** — Admin role is protected, cannot be edited/deleted from UI, only via database. New users auto-assigned as "client" if admin already exists
-7. **Fixed client platforms display** — `client.platforms` now derived from `socialIntegrations` (was hardcoded to `[]`), both in `/clients` table and `/clients/[clientId]` header
-8. **Restored Facebook Connect button** — OAuth button alongside Manual Token option
-9. **All changes pushed** — Commits `1bbb032`, `3485d35`, `d78fc0f`, `b5a22b4`, `d07a75f`, `bc62e54`
+- Key tables: `content`, `clients`, `social_connections`
 
 ## Instagram Webhook Configuration
 - **Webhook Endpoint**: `https://socmed.marketingconnective.com/api/webhook/instagram`
@@ -149,14 +78,11 @@ Invoke-RestMethod -Uri "http://localhost:8000/client-token-status/S0100"
 5. Klik **"Verify and Save"**
 
 ## What Needs To Be Done Next
-1. Deploy webhook endpoint to Cloudflare Workers
-2. Register redirect URI for Instagram OAuth: `https://socmed.marketingconnective.com/api/auth/instagram-direct/callback`
-3. Test end-to-end: Create content → approve → agent publishes to Facebook/Instagram
-4. Generate new token with `business_management` permission and test Manual Token flow
-5. Token refresh mechanism (short-lived → long-lived exchange)
-6. Fix Facebook App Settings (ToS URL, Data Deletion URL)
-7. Add LinkedIn/X/Twitter support
-8. Error notification system
+1. Register redirect URI for Instagram OAuth: `https://socmed.marketingconnective.com/api/auth/instagram-direct/callback`
+2. Generate new token with `business_management` permission and test Manual Token flow
+3. Fix Facebook App Settings (ToS URL, Data Deletion URL)
+4. Add LinkedIn/X/Twitter support
+5. Error notification system
 
 ## Credentials Reference
 - Facebook App ID: `1109449551768527`
