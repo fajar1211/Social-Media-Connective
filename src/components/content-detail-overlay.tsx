@@ -327,99 +327,167 @@ export function ContentDetailOverlay({
 
   const handleApprove = async () => {
     const client = clients.find((c) => c.name === item.client);
+
+    // ── Facebook Publish/Schedule ──
     const fbConnection = client?.socialIntegrations?.Facebook;
-    const pages: FacebookPage[] = fbConnection?.pages || [];
+    const fbPages: FacebookPage[] = fbConnection?.pages || [];
     const isFacebook = item.platform === "Facebook";
-    const canPublish = isFacebook && fbConnection?.connected && fbConnection?.accessToken && pages.length > 0;
+    const canPublishFb = isFacebook && fbConnection?.connected && fbConnection?.accessToken && fbPages.length > 0;
 
-    if (canPublish && item.scheduledDate && item.scheduledTime) {
-      const scheduledDateTime = new Date(`${item.scheduledDate}T${item.scheduledTime}:00`);
-      if (scheduledDateTime <= new Date()) {
-        toast.error("Schedule time must be in the future.");
-        return;
-      }
+    // ── Instagram Publish ──
+    const igConnection = client?.socialIntegrations?.Instagram;
+    const isInstagram = item.platform === "Instagram";
+    const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
 
-      const page = pages[0]!;
-      const unixTimestamp = Math.floor(scheduledDateTime.getTime() / 1000);
-      const message = (item.body || item.caption || "").trim();
+    const message = (item.body || item.caption || "").trim();
+    const hasImage = item.media && item.media.length > 0 && item.media[0];
 
+    // ── Validate token before publish ──
+    if (canPublishFb) {
+      const page = fbPages[0]!;
       setScheduling(true);
       try {
-        const response = await fetch("/api/facebook/schedule", {
+        const tokenCheck = await fetch("/api/facebook/validate-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pageId: page.id,
-            pageAccessToken: page.access_token,
-            message,
-            scheduledPublishTime: unixTimestamp,
-          }),
+          body: JSON.stringify({ pageAccessToken: page.access_token }),
         });
-        const data = await response.json();
-        if (data.success) {
-          actions.update(item.id, {
-            status: "Approved",
-            notes: `Scheduled for ${scheduledDateTime.toLocaleString()} on ${page.name} (Post ID: ${data.postId})`,
-          });
-          toast.success(`Scheduled on ${page.name}!`);
-          onClose();
-        } else {
-          toast.error(`Failed to schedule: ${data.error}`);
-        }
-      } catch {
-        toast.error("Failed to schedule. Please try again.");
-      } finally {
-        setScheduling(false);
-      }
-    } else if (canPublish) {
-      const page = pages[0]!;
-      const message = (item.body || item.caption || "").trim();
-      const hasImage = item.media && item.media.length > 0 && item.media[0];
+        const tokenData = await tokenCheck.json();
 
-      setScheduling(true);
-      try {
-        let response;
-        if (hasImage) {
-          // Use photo endpoint for image posts
-          response = await fetch("/api/facebook/photo", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              pageId: page.id,
-              pageAccessToken: page.access_token,
-              message,
-              imageUrl: item.media![0],
-            }),
-          });
-        } else {
-          // Use text post endpoint
-          response = await fetch("/api/facebook/post", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              pageId: page.id,
-              pageAccessToken: page.access_token,
-              message,
-            }),
-          });
+        if (!tokenData.valid) {
+          toast.error(
+            tokenData.is_expired
+              ? `Facebook token expired. Please reconnect Facebook for "${item.client}" in Client settings.`
+              : `Facebook token invalid: ${tokenData.error || "Unknown error"}. Please reconnect Facebook.`
+          );
+          setScheduling(false);
+          return;
         }
-        const data = await response.json();
-        if (data.success) {
-          actions.update(item.id, {
-            status: "Approved",
-            notes: `Published to ${page.name} (Post ID: ${data.postId})`,
+
+        // Token is valid - proceed with publish/schedule
+        if (item.scheduledDate && item.scheduledTime) {
+          // Schedule post
+          const scheduledDateTime = new Date(`${item.scheduledDate}T${item.scheduledTime}:00`);
+          if (scheduledDateTime <= new Date()) {
+            toast.error("Schedule time must be in the future.");
+            setScheduling(false);
+            return;
+          }
+
+          const unixTimestamp = Math.floor(scheduledDateTime.getTime() / 1000);
+          const response = await fetch("/api/facebook/schedule", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageId: page.id,
+              pageAccessToken: page.access_token,
+              message,
+              scheduledPublishTime: unixTimestamp,
+            }),
           });
-          toast.success(`Published to ${page.name}!`);
-          onClose();
+          const data = await response.json();
+          if (data.success) {
+            actions.update(item.id, {
+              status: "Approved",
+              notes: `Scheduled for ${scheduledDateTime.toLocaleString()} on ${page.name} (Post ID: ${data.postId})`,
+            });
+            toast.success(`Scheduled on ${page.name}!`);
+            onClose();
+          } else {
+            toast.error(`Failed to schedule: ${data.error}`);
+          }
         } else {
-          toast.error(`Failed to publish: ${data.error}`);
+          // Publish now
+          let response;
+          if (hasImage) {
+            response = await fetch("/api/facebook/photo", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                pageId: page.id,
+                pageAccessToken: page.access_token,
+                message,
+                imageUrl: item.media![0],
+              }),
+            });
+          } else {
+            response = await fetch("/api/facebook/post", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                pageId: page.id,
+                pageAccessToken: page.access_token,
+                message,
+              }),
+            });
+          }
+          const data = await response.json();
+          if (data.success) {
+            actions.update(item.id, {
+              status: "Approved",
+              notes: `Published to ${page.name} (Post ID: ${data.postId})`,
+            });
+            toast.success(`Published to ${page.name}!`);
+            onClose();
+          } else {
+            toast.error(`Failed to publish: ${data.error}`);
+          }
         }
       } catch {
         toast.error("Failed to publish. Please try again.");
       } finally {
         setScheduling(false);
       }
+    } else if (canPublishIg) {
+      // ── Instagram Publish ──
+      setScheduling(true);
+      try {
+        const tokenCheck = await fetch("/api/facebook/validate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageAccessToken: igConnection.accessToken }),
+        });
+        const tokenData = await tokenCheck.json();
+
+        if (!tokenData.valid) {
+          toast.error(
+            tokenData.is_expired
+              ? `Instagram token expired. Please reconnect Instagram for "${item.client}" in Client settings.`
+              : `Instagram token invalid: ${tokenData.error || "Unknown error"}. Please reconnect Instagram.`
+          );
+          setScheduling(false);
+          return;
+        }
+
+        const igUserId = igConnection.accountId || "";
+        const response = await fetch("/api/instagram/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            igUserId,
+            accessToken: igConnection.accessToken,
+            imageUrl: hasImage ? item.media![0] : "",
+            caption: message,
+          }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Approved",
+            notes: `Published to Instagram (Post ID: ${data.postId})`,
+          });
+          toast.success("Published to Instagram!");
+          onClose();
+        } else {
+          toast.error(`Failed to publish to Instagram: ${data.error}`);
+        }
+      } catch {
+        toast.error("Failed to publish to Instagram. Please try again.");
+      } finally {
+        setScheduling(false);
+      }
     } else {
+      // No platform connection - just approve
       actions.update(item.id, { status: "Approved" });
       toast.success("Content approved");
       onClose();

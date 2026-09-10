@@ -26,7 +26,6 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubmittedRouteImport } from './routes/submitted'
 import { Route as SuggestedRouteImport } from './routes/suggested'
-import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as ClientTokenRouteImport } from './routes/client.$token'
 import { Route as ClientsClientIdRouteImport } from './routes/clients.$clientId'
@@ -48,7 +47,9 @@ import { Route as ApiFacebookDeleteRouteImport } from './routes/api.facebook.del
 import { Route as ApiFacebookEditRouteImport } from './routes/api.facebook.edit'
 import { Route as ApiFacebookPhotoRouteImport } from './routes/api.facebook.photo'
 import { Route as ApiFacebookPostRouteImport } from './routes/api.facebook.post'
+import { Route as ApiFacebookRefreshTokenRouteImport } from './routes/api.facebook.refresh-token'
 import { Route as ApiFacebookScheduleRouteImport } from './routes/api.facebook.schedule'
+import { Route as ApiFacebookValidateTokenRouteImport } from './routes/api.facebook.validate-token'
 import { Route as ApiInstagramPostRouteImport } from './routes/api.instagram.post'
 import { Route as ApiInstagramScheduleRouteImport } from './routes/api.instagram.schedule'
 import { Route as ApiWebhookInstagramRouteImport } from './routes/api.webhook.instagram'
@@ -141,11 +142,6 @@ const SubmittedRoute = SubmittedRouteImport.update({
 const SuggestedRoute = SuggestedRouteImport.update({
   id: '/suggested',
   path: '/suggested',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TemplatesRoute = TemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UsersRoute = UsersRouteImport.update({
@@ -254,11 +250,22 @@ const ApiFacebookPostRoute = ApiFacebookPostRouteImport.update({
   path: '/api/facebook/post',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFacebookRefreshTokenRoute = ApiFacebookRefreshTokenRouteImport.update({
+  id: '/api/facebook/refresh-token',
+  path: '/api/facebook/refresh-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFacebookScheduleRoute = ApiFacebookScheduleRouteImport.update({
   id: '/api/facebook/schedule',
   path: '/api/facebook/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFacebookValidateTokenRoute =
+  ApiFacebookValidateTokenRouteImport.update({
+    id: '/api/facebook/validate-token',
+    path: '/api/facebook/validate-token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiInstagramPostRoute = ApiInstagramPostRouteImport.update({
   id: '/api/instagram/post',
   path: '/api/instagram/post',
@@ -322,7 +329,6 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
-  '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
   '/client/$token': typeof ClientTokenRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
@@ -344,7 +350,9 @@ export interface FileRoutesByFullPath {
   '/api/facebook/edit': typeof ApiFacebookEditRoute
   '/api/facebook/photo': typeof ApiFacebookPhotoRoute
   '/api/facebook/post': typeof ApiFacebookPostRoute
+  '/api/facebook/refresh-token': typeof ApiFacebookRefreshTokenRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
+  '/api/facebook/validate-token': typeof ApiFacebookValidateTokenRoute
   '/api/instagram/post': typeof ApiInstagramPostRoute
   '/api/instagram/schedule': typeof ApiInstagramScheduleRoute
   '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
@@ -372,7 +380,6 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
-  '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
   '/client/$token': typeof ClientTokenRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
@@ -394,7 +401,9 @@ export interface FileRoutesByTo {
   '/api/facebook/edit': typeof ApiFacebookEditRoute
   '/api/facebook/photo': typeof ApiFacebookPhotoRoute
   '/api/facebook/post': typeof ApiFacebookPostRoute
+  '/api/facebook/refresh-token': typeof ApiFacebookRefreshTokenRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
+  '/api/facebook/validate-token': typeof ApiFacebookValidateTokenRoute
   '/api/instagram/post': typeof ApiInstagramPostRoute
   '/api/instagram/schedule': typeof ApiInstagramScheduleRoute
   '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
@@ -423,7 +432,6 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/submitted': typeof SubmittedRoute
   '/suggested': typeof SuggestedRoute
-  '/templates': typeof TemplatesRoute
   '/users': typeof UsersRoute
   '/client/$token': typeof ClientTokenRoute
   '/clients/$clientId': typeof ClientsClientIdRoute
@@ -445,7 +453,9 @@ export interface FileRoutesById {
   '/api/facebook/edit': typeof ApiFacebookEditRoute
   '/api/facebook/photo': typeof ApiFacebookPhotoRoute
   '/api/facebook/post': typeof ApiFacebookPostRoute
+  '/api/facebook/refresh-token': typeof ApiFacebookRefreshTokenRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
+  '/api/facebook/validate-token': typeof ApiFacebookValidateTokenRoute
   '/api/instagram/post': typeof ApiInstagramPostRoute
   '/api/instagram/schedule': typeof ApiInstagramScheduleRoute
   '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
@@ -475,7 +485,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submitted'
     | '/suggested'
-    | '/templates'
     | '/users'
     | '/client/$token'
     | '/clients/$clientId'
@@ -497,7 +506,9 @@ export interface FileRouteTypes {
     | '/api/facebook/edit'
     | '/api/facebook/photo'
     | '/api/facebook/post'
+    | '/api/facebook/refresh-token'
     | '/api/facebook/schedule'
+    | '/api/facebook/validate-token'
     | '/api/instagram/post'
     | '/api/instagram/schedule'
     | '/api/webhook/instagram'
@@ -525,7 +536,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submitted'
     | '/suggested'
-    | '/templates'
     | '/users'
     | '/client/$token'
     | '/clients/$clientId'
@@ -547,7 +557,9 @@ export interface FileRouteTypes {
     | '/api/facebook/edit'
     | '/api/facebook/photo'
     | '/api/facebook/post'
+    | '/api/facebook/refresh-token'
     | '/api/facebook/schedule'
+    | '/api/facebook/validate-token'
     | '/api/instagram/post'
     | '/api/instagram/schedule'
     | '/api/webhook/instagram'
@@ -575,7 +587,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submitted'
     | '/suggested'
-    | '/templates'
     | '/users'
     | '/client/$token'
     | '/clients/$clientId'
@@ -597,7 +608,9 @@ export interface FileRouteTypes {
     | '/api/facebook/edit'
     | '/api/facebook/photo'
     | '/api/facebook/post'
+    | '/api/facebook/refresh-token'
     | '/api/facebook/schedule'
+    | '/api/facebook/validate-token'
     | '/api/instagram/post'
     | '/api/instagram/schedule'
     | '/api/webhook/instagram'
@@ -626,7 +639,6 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SubmittedRoute: typeof SubmittedRoute
   SuggestedRoute: typeof SuggestedRoute
-  TemplatesRoute: typeof TemplatesRoute
   UsersRoute: typeof UsersRoute
   ClientTokenRoute: typeof ClientTokenRoute
   ContentCreateRoute: typeof ContentCreateRoute
@@ -647,7 +659,9 @@ export interface RootRouteChildren {
   ApiFacebookEditRoute: typeof ApiFacebookEditRoute
   ApiFacebookPhotoRoute: typeof ApiFacebookPhotoRoute
   ApiFacebookPostRoute: typeof ApiFacebookPostRoute
+  ApiFacebookRefreshTokenRoute: typeof ApiFacebookRefreshTokenRoute
   ApiFacebookScheduleRoute: typeof ApiFacebookScheduleRoute
+  ApiFacebookValidateTokenRoute: typeof ApiFacebookValidateTokenRoute
   ApiInstagramPostRoute: typeof ApiInstagramPostRoute
   ApiInstagramScheduleRoute: typeof ApiInstagramScheduleRoute
   ApiWebhookInstagramRoute: typeof ApiWebhookInstagramRoute
@@ -772,13 +786,6 @@ declare module '@tanstack/react-router' {
       path: '/suggested'
       fullPath: '/suggested'
       preLoaderRoute: typeof SuggestedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/templates': {
-      id: '/templates'
-      path: '/templates'
-      fullPath: '/templates'
-      preLoaderRoute: typeof TemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/users': {
@@ -928,11 +935,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFacebookPostRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/facebook/refresh-token': {
+      id: '/api/facebook/refresh-token'
+      path: '/api/facebook/refresh-token'
+      fullPath: '/api/facebook/refresh-token'
+      preLoaderRoute: typeof ApiFacebookRefreshTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/facebook/schedule': {
       id: '/api/facebook/schedule'
       path: '/api/facebook/schedule'
       fullPath: '/api/facebook/schedule'
       preLoaderRoute: typeof ApiFacebookScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/facebook/validate-token': {
+      id: '/api/facebook/validate-token'
+      path: '/api/facebook/validate-token'
+      fullPath: '/api/facebook/validate-token'
+      preLoaderRoute: typeof ApiFacebookValidateTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/instagram/post': {
@@ -1077,7 +1098,6 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SubmittedRoute: SubmittedRoute,
   SuggestedRoute: SuggestedRoute,
-  TemplatesRoute: TemplatesRoute,
   UsersRoute: UsersRoute,
   ClientTokenRoute: ClientTokenRoute,
   ContentCreateRoute: ContentCreateRoute,
@@ -1098,7 +1118,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFacebookEditRoute: ApiFacebookEditRoute,
   ApiFacebookPhotoRoute: ApiFacebookPhotoRoute,
   ApiFacebookPostRoute: ApiFacebookPostRoute,
+  ApiFacebookRefreshTokenRoute: ApiFacebookRefreshTokenRoute,
   ApiFacebookScheduleRoute: ApiFacebookScheduleRoute,
+  ApiFacebookValidateTokenRoute: ApiFacebookValidateTokenRoute,
   ApiInstagramPostRoute: ApiInstagramPostRoute,
   ApiInstagramScheduleRoute: ApiInstagramScheduleRoute,
   ApiWebhookInstagramRoute: ApiWebhookInstagramRoute,
@@ -1106,13 +1128,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
