@@ -335,6 +335,37 @@ export function ContentDetailOverlay({
       }
     }
 
+    // ── Ensure media URLs are public (upload data/blob URLs to Supabase) ──
+    if (mediaUrls.length > 0 && mediaUrls[0]) {
+      const firstMedia = mediaUrls[0];
+      if (firstMedia.startsWith("data:") || firstMedia.startsWith("blob:")) {
+        try {
+          const { uploadContentMedia } = await import("@/lib/db");
+          let file: File;
+          if (firstMedia.startsWith("data:")) {
+            const resp = await fetch(firstMedia);
+            const blob = await resp.blob();
+            file = new File([blob], "ai-generated.png", { type: blob.type || "image/png" });
+          } else {
+            const resp = await fetch(firstMedia);
+            const blob = await resp.blob();
+            file = new File([blob], "upload.png", { type: blob.type || "image/png" });
+          }
+          const uploadedUrl = await uploadContentMedia(file, draft?.clientId || "unknown");
+          if (uploadedUrl) {
+            mediaUrls = [uploadedUrl];
+            setDraft(draft ? { ...draft, media: [uploadedUrl] } : draft);
+          } else {
+            toast.error("Failed to upload media for publishing.");
+            return;
+          }
+        } catch {
+          toast.error("Failed to prepare media for publishing.");
+          return;
+        }
+      }
+    }
+
     // ── Facebook Publish/Schedule ──
     const fbConnection = client?.socialIntegrations?.Facebook;
     const fbPages: FacebookPage[] = fbConnection?.pages || [];
@@ -347,8 +378,7 @@ export function ContentDetailOverlay({
     const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
 
     const message = (item.body || item.caption || "").trim();
-    const currentMedia = mediaUrls.length > 0 ? mediaUrls : (draft?.media || []);
-    const hasImage = currentMedia.length > 0 && currentMedia[0] && !currentMedia[0].startsWith("blob:");
+    const hasImage = mediaUrls.length > 0 && mediaUrls[0] && !mediaUrls[0].startsWith("blob:") && !mediaUrls[0].startsWith("data:");
 
     // ── Validate token before publish ──
     if (canPublishFb) {
@@ -448,7 +478,7 @@ export function ContentDetailOverlay({
                 pageId: page.id,
                 pageAccessToken: page.access_token,
                 message,
-                imageUrl: currentMedia[0],
+                imageUrl: mediaUrls[0],
               }),
             });
           } else {
@@ -507,7 +537,7 @@ export function ContentDetailOverlay({
           body: JSON.stringify({
             igUserId,
             accessToken: igConnection.accessToken,
-            imageUrl: hasImage ? currentMedia[0] : "",
+            imageUrl: hasImage ? mediaUrls[0] : "",
             caption: message,
           }),
         });
@@ -558,6 +588,37 @@ export function ContentDetailOverlay({
       }
     }
 
+    // ── Ensure media URLs are public (upload data/blob URLs to Supabase) ──
+    if (mediaUrls.length > 0 && mediaUrls[0]) {
+      const firstMedia = mediaUrls[0];
+      if (firstMedia.startsWith("data:") || firstMedia.startsWith("blob:")) {
+        try {
+          const { uploadContentMedia } = await import("@/lib/db");
+          let file: File;
+          if (firstMedia.startsWith("data:")) {
+            const resp = await fetch(firstMedia);
+            const blob = await resp.blob();
+            file = new File([blob], "ai-generated.png", { type: blob.type || "image/png" });
+          } else {
+            const resp = await fetch(firstMedia);
+            const blob = await resp.blob();
+            file = new File([blob], "upload.png", { type: blob.type || "image/png" });
+          }
+          const uploadedUrl = await uploadContentMedia(file, draft?.clientId || "unknown");
+          if (uploadedUrl) {
+            mediaUrls = [uploadedUrl];
+            setDraft(draft ? { ...draft, media: [uploadedUrl] } : draft);
+          } else {
+            toast.error("Failed to upload media for publishing.");
+            return;
+          }
+        } catch {
+          toast.error("Failed to prepare media for publishing.");
+          return;
+        }
+      }
+    }
+
     const isFacebook = item.platform === "Facebook";
     const isInstagram = item.platform === "Instagram";
     const fbConnection = client?.socialIntegrations?.Facebook;
@@ -567,8 +628,7 @@ export function ContentDetailOverlay({
     const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
 
     const message = (item.body || item.caption || "").trim();
-    const currentMedia = mediaUrls.length > 0 ? mediaUrls : (draft?.media || []);
-    const hasImage = currentMedia.length > 0 && currentMedia[0] && !currentMedia[0].startsWith("blob:");
+    const hasImage = mediaUrls.length > 0 && mediaUrls[0] && !mediaUrls[0].startsWith("blob:") && !mediaUrls[0].startsWith("data:");
 
     setPublishingNow(true);
     try {
@@ -630,7 +690,7 @@ export function ContentDetailOverlay({
               pageId: page.id,
               pageAccessToken: page.access_token,
               message,
-              imageUrl: currentMedia[0],
+              imageUrl: mediaUrls[0],
             }),
           });
         } else {
@@ -678,7 +738,7 @@ export function ContentDetailOverlay({
           body: JSON.stringify({
             igUserId,
             accessToken: igConnection.accessToken,
-            imageUrl: hasImage ? currentMedia[0] : "",
+            imageUrl: hasImage ? mediaUrls[0] : "",
             caption: message,
           }),
         });
