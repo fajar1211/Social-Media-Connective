@@ -361,10 +361,7 @@ function CreateContent() {
     try {
       const payload: Record<string, unknown> = {
         prompt: imagePrompt,
-        width: 1024,
-        height: 1024,
         style: "photorealistic",
-        model: "flux",
       };
       if (referenceImage) {
         payload['reference_image'] = referenceImage;
@@ -379,10 +376,7 @@ function CreateContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompts: [imagePrompt, imagePrompt, imagePrompt],
-            width: 1024,
-            height: 1024,
             style: "photorealistic",
-            model: "flux",
           }),
         });
         if (!resp.ok) throw new Error("Generation failed");

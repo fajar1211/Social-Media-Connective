@@ -79,10 +79,7 @@ function ReplaceMediaSection({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompts: [prompt, prompt, prompt],
-            width: 1024,
-            height: 1024,
             style: "photorealistic",
-            model: "flux",
           }),
         });
         if (!resp.ok) throw new Error("Generation failed");
@@ -96,10 +93,7 @@ function ReplaceMediaSection({
       } else {
         const payload: Record<string, unknown> = {
           prompt,
-          width: 1024,
-          height: 1024,
           style: "photorealistic",
-          model: "flux",
         };
         if (referenceImage) payload["reference_image"] = referenceImage;
         if (gbpImageUrl) payload["gbp_url"] = gbpImageUrl;
