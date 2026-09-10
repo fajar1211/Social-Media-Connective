@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image";
-const GEMINI_IMAGE_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent`;
+const POLLINATIONS_API_URL = "https://gen.pollinations.ai/v1/images/generations";
 
 const STYLE_SUFFIXES: Record<string, string> = {
   photorealistic: ", photorealistic, high quality, professional photography, 4K",
@@ -72,46 +71,38 @@ async function describeWithGemini(
   return realPart?.text?.trim() || "";
 }
 
-async function generateImageWithGemini(
+async function generateImageWithPollinations(
   prompt: string,
   apiKey: string,
-  aspectRatio: string = "1:1"
-): Promise<{ imageData: string; mimeType: string } | null> {
-  const url = `${GEMINI_IMAGE_ENDPOINT}?key=${apiKey}`;
-
-  const resp = await fetch(url, {
+  size: string = "1024x1024"
+): Promise<string | null> {
+  const resp = await fetch(POLLINATIONS_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseModalities: ["TEXT", "IMAGE"],
-        responseFormat: {
-          image: {
-            aspectRatio,
-            imageSize: "1K",
-          },
-        },
-      },
+      model: "flux",
+      prompt,
+      size,
     }),
   });
 
   if (!resp.ok) {
-    const errData = await resp.json().catch(() => ({}));
-    console.error("[generateImageWithGemini] API error:", resp.status, JSON.stringify(errData.error || errData).slice(0, 500));
+    const errText = await resp.text().catch(() => "");
+    console.error("[generateImageWithPollinations] API error:", resp.status, errText.slice(0, 500));
     return null;
   }
 
   const data = await resp.json();
-  const parts = data?.candidates?.[0]?.content?.parts || [];
 
-  for (const part of parts) {
-    if (part.inlineData && part.inlineData.data) {
-      return {
-        imageData: part.inlineData.data,
-        mimeType: part.inlineData.mimeType || "image/png",
-      };
-    }
+  if (data.data?.[0]?.b64_json) {
+    return `data:image/png;base64,${data.data[0].b64_json}`;
+  }
+
+  if (data.data?.[0]?.url) {
+    return data.data[0].url;
   }
 
   return null;
@@ -140,39 +131,39 @@ export const Route = createFileRoute("/api/ai/generate-image")({
             );
           }
 
+          const pollinationsKey = import.meta.env['VITE_POLLINATIONS_API_KEY'] || "";
           const geminiKey = import.meta.env['VITE_GEMINI_API_KEY'] || "";
-          if (!geminiKey) {
+
+          if (!pollinationsKey) {
             return new Response(
-              JSON.stringify({ error: "Gemini API key not configured" }),
+              JSON.stringify({ error: "Pollinations API key not configured" }),
               { status: 500, headers: { "Content-Type": "application/json" } }
             );
           }
 
           let referenceDesc = "";
 
-          if (gbp_url) {
+          if (gbp_url && geminiKey) {
             referenceDesc = await describeWithGemini(gbp_url, geminiKey);
-          } else if (reference_image) {
+          } else if (reference_image && geminiKey) {
             referenceDesc = await describeWithGemini(reference_image, geminiKey);
           }
 
           const enhancedPrompt = buildEnhancedPrompt(prompt, referenceDesc, style);
 
-          const result = await generateImageWithGemini(enhancedPrompt, geminiKey, "1:1");
+          const imageUrl = await generateImageWithPollinations(enhancedPrompt, pollinationsKey, "1024x1024");
 
-          if (!result) {
+          if (!imageUrl) {
             return new Response(
               JSON.stringify({ error: "Failed to generate image. Please try again." }),
               { status: 502, headers: { "Content-Type": "application/json" } }
             );
           }
 
-          const imageDataUrl = `data:${result.mimeType};base64,${result.imageData}`;
-
           return new Response(
             JSON.stringify({
               success: true,
-              image_url: imageDataUrl,
+              image_url: imageUrl,
               enhanced_prompt: enhancedPrompt,
               reference_description: referenceDesc,
             }),
