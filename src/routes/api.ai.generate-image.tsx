@@ -131,15 +131,8 @@ export const Route = createFileRoute("/api/ai/generate-image")({
             );
           }
 
-          const pollinationsKey = import.meta.env['VITE_POLLINATIONS_API_KEY'] || "";
+          const pollinationsKey = import.meta.env['VITE_POLLINATIONS_API_KEY'] || "sk_g9JZpQqFqFM99Uq3VesDuVe3wx1YQkZL";
           const geminiKey = import.meta.env['VITE_GEMINI_API_KEY'] || "";
-
-          if (!pollinationsKey) {
-            return new Response(
-              JSON.stringify({ error: "Pollinations API key not configured" }),
-              { status: 500, headers: { "Content-Type": "application/json" } }
-            );
-          }
 
           let referenceDesc = "";
 

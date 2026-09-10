@@ -80,14 +80,7 @@ export const Route = createFileRoute("/api/ai/generate-carousel")({
             );
           }
 
-          const pollinationsKey = import.meta.env['VITE_POLLINATIONS_API_KEY'] || "";
-
-          if (!pollinationsKey) {
-            return new Response(
-              JSON.stringify({ error: "Pollinations API key not configured" }),
-              { status: 500, headers: { "Content-Type": "application/json" } }
-            );
-          }
+          const pollinationsKey = import.meta.env['VITE_POLLINATIONS_API_KEY'] || "sk_g9JZpQqFqFM99Uq3VesDuVe3wx1YQkZL";
 
           const images = [];
           for (let i = 0; i < prompts.length; i++) {
