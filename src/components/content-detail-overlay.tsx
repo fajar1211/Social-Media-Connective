@@ -335,34 +335,20 @@ export function ContentDetailOverlay({
       }
     }
 
-    // ── Ensure media URLs are public (upload data/blob URLs to Supabase) ──
-    if (mediaUrls.length > 0 && mediaUrls[0]) {
-      const firstMedia = mediaUrls[0];
-      if (firstMedia.startsWith("data:") || firstMedia.startsWith("blob:")) {
-        try {
-          const { uploadContentMedia } = await import("@/lib/db");
-          let file: File;
-          if (firstMedia.startsWith("data:")) {
-            const resp = await fetch(firstMedia);
-            const blob = await resp.blob();
-            file = new File([blob], "ai-generated.png", { type: blob.type || "image/png" });
-          } else {
-            const resp = await fetch(firstMedia);
-            const blob = await resp.blob();
-            file = new File([blob], "upload.png", { type: blob.type || "image/png" });
-          }
-          const uploadedUrl = await uploadContentMedia(file, draft?.clientId || "unknown");
-          if (uploadedUrl) {
-            mediaUrls = [uploadedUrl];
-            setDraft(draft ? { ...draft, media: [uploadedUrl] } : draft);
-          } else {
-            toast.error("Failed to upload media for publishing.");
-            return;
-          }
-        } catch {
-          toast.error("Failed to prepare media for publishing.");
-          return;
+    // ── Upload blob URLs to Supabase (data URLs are handled natively by API routes) ──
+    if (mediaUrls.length > 0 && mediaUrls[0] && mediaUrls[0].startsWith("blob:")) {
+      try {
+        const { uploadContentMedia } = await import("@/lib/db");
+        const resp = await fetch(mediaUrls[0]);
+        const blob = await resp.blob();
+        const file = new File([blob], "upload.png", { type: blob.type || "image/png" });
+        const uploadedUrl = await uploadContentMedia(file, draft?.clientId || "unknown");
+        if (uploadedUrl) {
+          mediaUrls = [uploadedUrl];
+          setDraft(draft ? { ...draft, media: [uploadedUrl] } : draft);
         }
+      } catch {
+        // blob URL will be rejected by API route, continue anyway
       }
     }
 
@@ -378,7 +364,7 @@ export function ContentDetailOverlay({
     const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
 
     const message = (item.body || item.caption || "").trim();
-    const hasImage = mediaUrls.length > 0 && mediaUrls[0] && !mediaUrls[0].startsWith("blob:") && !mediaUrls[0].startsWith("data:");
+    const hasImage = mediaUrls.length > 0 && !!mediaUrls[0] && !mediaUrls[0].startsWith("blob:");
 
     // ── Validate token before publish ──
     if (canPublishFb) {
@@ -588,34 +574,20 @@ export function ContentDetailOverlay({
       }
     }
 
-    // ── Ensure media URLs are public (upload data/blob URLs to Supabase) ──
-    if (mediaUrls.length > 0 && mediaUrls[0]) {
-      const firstMedia = mediaUrls[0];
-      if (firstMedia.startsWith("data:") || firstMedia.startsWith("blob:")) {
-        try {
-          const { uploadContentMedia } = await import("@/lib/db");
-          let file: File;
-          if (firstMedia.startsWith("data:")) {
-            const resp = await fetch(firstMedia);
-            const blob = await resp.blob();
-            file = new File([blob], "ai-generated.png", { type: blob.type || "image/png" });
-          } else {
-            const resp = await fetch(firstMedia);
-            const blob = await resp.blob();
-            file = new File([blob], "upload.png", { type: blob.type || "image/png" });
-          }
-          const uploadedUrl = await uploadContentMedia(file, draft?.clientId || "unknown");
-          if (uploadedUrl) {
-            mediaUrls = [uploadedUrl];
-            setDraft(draft ? { ...draft, media: [uploadedUrl] } : draft);
-          } else {
-            toast.error("Failed to upload media for publishing.");
-            return;
-          }
-        } catch {
-          toast.error("Failed to prepare media for publishing.");
-          return;
+    // ── Upload blob URLs to Supabase (data URLs are handled natively by API routes) ──
+    if (mediaUrls.length > 0 && mediaUrls[0] && mediaUrls[0].startsWith("blob:")) {
+      try {
+        const { uploadContentMedia } = await import("@/lib/db");
+        const resp = await fetch(mediaUrls[0]);
+        const blob = await resp.blob();
+        const file = new File([blob], "upload.png", { type: blob.type || "image/png" });
+        const uploadedUrl = await uploadContentMedia(file, draft?.clientId || "unknown");
+        if (uploadedUrl) {
+          mediaUrls = [uploadedUrl];
+          setDraft(draft ? { ...draft, media: [uploadedUrl] } : draft);
         }
+      } catch {
+        // blob URL will be rejected by API route, continue anyway
       }
     }
 
@@ -628,7 +600,7 @@ export function ContentDetailOverlay({
     const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
 
     const message = (item.body || item.caption || "").trim();
-    const hasImage = mediaUrls.length > 0 && mediaUrls[0] && !mediaUrls[0].startsWith("blob:") && !mediaUrls[0].startsWith("data:");
+    const hasImage = mediaUrls.length > 0 && !!mediaUrls[0] && !mediaUrls[0].startsWith("blob:");
 
     setPublishingNow(true);
     try {
