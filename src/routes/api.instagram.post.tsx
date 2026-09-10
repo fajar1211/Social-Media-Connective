@@ -17,6 +17,13 @@ export const Route = createFileRoute("/api/instagram/post")({
             );
           }
 
+          if (imageUrl && imageUrl.startsWith("blob:")) {
+            return new Response(
+              JSON.stringify({ error: "Blob URLs cannot be used for publishing. Please upload the image first." }),
+              { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+          }
+
           let containerId: string;
 
           if (imageUrl && imageUrl.startsWith("data:")) {

@@ -347,7 +347,8 @@ export function ContentDetailOverlay({
     const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
 
     const message = (item.body || item.caption || "").trim();
-    const hasImage = item.media && item.media.length > 0 && item.media[0];
+    const currentMedia = mediaUrls.length > 0 ? mediaUrls : (draft?.media || []);
+    const hasImage = currentMedia.length > 0 && currentMedia[0] && !currentMedia[0].startsWith("blob:");
 
     // ── Validate token before publish ──
     if (canPublishFb) {
@@ -364,11 +365,44 @@ export function ContentDetailOverlay({
         if (!tokenData.valid) {
           toast.error(
             tokenData.is_expired
-              ? `Facebook token expired. Please reconnect Facebook for "${item.client}" in Client settings.`
+              ? `Facebook token expired. Please reconnect Facebook for "${item.client}" in Client Settings.`
               : `Facebook token invalid: ${tokenData.error || "Unknown error"}. Please reconnect Facebook.`
           );
           setScheduling(false);
           return;
+        }
+
+        // Auto-refresh token if expiring within 7 days
+        if (tokenData.valid && tokenData.expires_at && tokenData.expires_at > 0) {
+          const daysUntilExpiry = (tokenData.expires_at * 1000 - Date.now()) / (1000 * 60 * 60 * 24);
+          if (daysUntilExpiry < 7) {
+            try {
+              const refreshResp = await fetch("/api/facebook/refresh-token", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ accessToken: page.access_token }),
+              });
+              const refreshData = await refreshResp.json();
+              if (refreshData.success && refreshData.accessToken) {
+                page.access_token = refreshData.accessToken;
+                // Update token in store
+                const client = clients.find((c) => c.name === item.client);
+                if (client?.socialIntegrations?.Facebook) {
+                  actions.updateClient(client.id, {
+                    socialIntegrations: {
+                      ...client.socialIntegrations,
+                      Facebook: {
+                        ...client.socialIntegrations.Facebook,
+                        accessToken: refreshData.accessToken,
+                      },
+                    },
+                  });
+                }
+              }
+            } catch {
+              // Continue with old token if refresh fails
+            }
+          }
         }
 
         // Token is valid - proceed with publish/schedule
@@ -414,7 +448,7 @@ export function ContentDetailOverlay({
                 pageId: page.id,
                 pageAccessToken: page.access_token,
                 message,
-                imageUrl: item.media![0],
+                imageUrl: currentMedia[0],
               }),
             });
           } else {
@@ -459,7 +493,7 @@ export function ContentDetailOverlay({
         if (!tokenData.valid) {
           toast.error(
             tokenData.is_expired
-              ? `Instagram token expired. Please reconnect Instagram for "${item.client}" in Client settings.`
+              ? `Instagram token expired. Please reconnect Instagram for "${item.client}" in Client Settings.`
               : `Instagram token invalid: ${tokenData.error || "Unknown error"}. Please reconnect Instagram.`
           );
           setScheduling(false);
@@ -473,7 +507,7 @@ export function ContentDetailOverlay({
           body: JSON.stringify({
             igUserId,
             accessToken: igConnection.accessToken,
-            imageUrl: hasImage ? item.media![0] : "",
+            imageUrl: hasImage ? currentMedia[0] : "",
             caption: message,
           }),
         });
@@ -533,7 +567,8 @@ export function ContentDetailOverlay({
     const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
 
     const message = (item.body || item.caption || "").trim();
-    const hasImage = item.media && item.media.length > 0 && item.media[0];
+    const currentMedia = mediaUrls.length > 0 ? mediaUrls : (draft?.media || []);
+    const hasImage = currentMedia.length > 0 && currentMedia[0] && !currentMedia[0].startsWith("blob:");
 
     setPublishingNow(true);
     try {
@@ -548,10 +583,42 @@ export function ContentDetailOverlay({
         if (!tokenData.valid) {
           toast.error(
             tokenData.is_expired
-              ? `Facebook token expired. Please reconnect Facebook for "${item.client}".`
-              : `Facebook token invalid: ${tokenData.error || "Unknown error"}.`
+              ? `Facebook token expired. Please reconnect Facebook for "${item.client}" in Client Settings.`
+              : `Facebook token invalid: ${tokenData.error || "Unknown error"}. Please reconnect Facebook.`
           );
           return;
+        }
+
+        // Auto-refresh token if expiring within 7 days
+        if (tokenData.valid && tokenData.expires_at && tokenData.expires_at > 0) {
+          const daysUntilExpiry = (tokenData.expires_at * 1000 - Date.now()) / (1000 * 60 * 60 * 24);
+          if (daysUntilExpiry < 7) {
+            try {
+              const refreshResp = await fetch("/api/facebook/refresh-token", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ accessToken: page.access_token }),
+              });
+              const refreshData = await refreshResp.json();
+              if (refreshData.success && refreshData.accessToken) {
+                page.access_token = refreshData.accessToken;
+                const client = clients.find((c) => c.name === item.client);
+                if (client?.socialIntegrations?.Facebook) {
+                  actions.updateClient(client.id, {
+                    socialIntegrations: {
+                      ...client.socialIntegrations,
+                      Facebook: {
+                        ...client.socialIntegrations.Facebook,
+                        accessToken: refreshData.accessToken,
+                      },
+                    },
+                  });
+                }
+              }
+            } catch {
+              // Continue with old token if refresh fails
+            }
+          }
         }
 
         let response;
@@ -563,7 +630,7 @@ export function ContentDetailOverlay({
               pageId: page.id,
               pageAccessToken: page.access_token,
               message,
-              imageUrl: item.media![0],
+              imageUrl: currentMedia[0],
             }),
           });
         } else {
@@ -599,8 +666,8 @@ export function ContentDetailOverlay({
         if (!tokenData.valid) {
           toast.error(
             tokenData.is_expired
-              ? `Instagram token expired. Please reconnect Instagram for "${item.client}".`
-              : `Instagram token invalid: ${tokenData.error || "Unknown error"}.`
+              ? `Instagram token expired. Please reconnect Instagram for "${item.client}" in Client Settings.`
+              : `Instagram token invalid: ${tokenData.error || "Unknown error"}. Please reconnect Instagram.`
           );
           return;
         }
@@ -611,7 +678,7 @@ export function ContentDetailOverlay({
           body: JSON.stringify({
             igUserId,
             accessToken: igConnection.accessToken,
-            imageUrl: hasImage ? item.media![0] : "",
+            imageUrl: hasImage ? currentMedia[0] : "",
             caption: message,
           }),
         });
