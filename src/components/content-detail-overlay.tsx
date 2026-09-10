@@ -37,9 +37,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function ReplaceMediaSection({
   draft,
   setDraft,
+  setPendingFile,
 }: {
   draft: ContentItem;
   setDraft: (d: ContentItem) => void;
+  setPendingFile: (f: File | null) => void;
 }) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [showAiGen, setShowAiGen] = useState(false);
@@ -58,21 +60,9 @@ function ReplaceMediaSection({
       toast.error("File too large. Maximum 10MB.");
       return;
     }
-    const { uploadContentMedia } = await import("@/lib/db");
-    const clientId = draft.clientId || "unknown";
-    setAiLoading(true);
-    try {
-      const url = await uploadContentMedia(file, clientId);
-      if (url) {
-        setDraft({ ...draft, media: [url] });
-      } else {
-        toast.error("Failed to upload image.");
-      }
-    } catch {
-      toast.error("Failed to upload image.");
-    } finally {
-      setAiLoading(false);
-    }
+    const blobUrl = URL.createObjectURL(file);
+    setDraft({ ...draft, media: [blobUrl] });
+    setPendingFile(file);
   };
 
   const generateAiImage = async () => {
@@ -317,16 +307,38 @@ export function ContentDetailOverlay({
   const [draft, setDraft] = useState<ContentItem | null>(item);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [scheduling, setScheduling] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   useEffect(() => {
     setDraft(item);
     setEditing(false);
+    setPendingFile(null);
   }, [item]);
 
   if (!item || !draft) return null;
 
   const handleApprove = async () => {
     const client = clients.find((c) => c.name === item.client);
+
+    // ── Upload pending file to Supabase if needed ──
+    let mediaUrls = draft?.media || [];
+    if (pendingFile) {
+      try {
+        const { uploadContentMedia } = await import("@/lib/db");
+        const url = await uploadContentMedia(pendingFile, draft?.clientId || "unknown");
+        if (url) {
+          mediaUrls = [url];
+          setDraft(draft ? { ...draft, media: [url] } : draft);
+          setPendingFile(null);
+        } else {
+          toast.error("Failed to upload media. Please try again.");
+          return;
+        }
+      } catch {
+        toast.error("Failed to upload media. Please try again.");
+        return;
+      }
+    }
 
     // ── Facebook Publish/Schedule ──
     const fbConnection = client?.socialIntegrations?.Facebook;
@@ -634,7 +646,7 @@ export function ContentDetailOverlay({
 
             {/* Replace Media - only in edit mode */}
             {editing && (
-              <ReplaceMediaSection draft={draft} setDraft={setDraft} />
+              <ReplaceMediaSection draft={draft} setDraft={setDraft} setPendingFile={setPendingFile} />
             )}
 
             <div className="space-y-4">

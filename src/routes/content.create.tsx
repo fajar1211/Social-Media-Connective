@@ -172,6 +172,7 @@ function CreateContent() {
 
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null);
   const [aiMediaType, setAiMediaType] = useState<"image" | "video">("image");
   const [videoOrientation, setVideoOrientation] = useState<"vertical" | "horizontal">("vertical");
   const [aiImagePrompt, setAiImagePrompt] = useState("");
@@ -288,25 +289,11 @@ function CreateContent() {
       toast.error("File too large. Maximum 10MB.");
       return;
     }
-    if (!selectedClientId) {
-      toast.error("Select a client first.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const url = await uploadContentMedia(file, selectedClientId);
-      if (url) {
-        setMediaPreview(url);
-        setMediaType("image");
-        setType("Image");
-      } else {
-        toast.error("Failed to upload image.");
-      }
-    } catch {
-      toast.error("Failed to upload image.");
-    } finally {
-      setLoading(false);
-    }
+    const blobUrl = URL.createObjectURL(file);
+    setMediaPreview(blobUrl);
+    setMediaType("image");
+    setType("Image");
+    setPendingUploadFile(file);
   };
 
   const handleVideoUpload = async (files: FileList | null) => {
@@ -316,25 +303,11 @@ function CreateContent() {
       toast.error("File too large. Maximum 10MB.");
       return;
     }
-    if (!selectedClientId) {
-      toast.error("Select a client first.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const url = await uploadContentMedia(file, selectedClientId);
-      if (url) {
-        setMediaPreview(url);
-        setMediaType("video");
-        setType("Short Video");
-      } else {
-        toast.error("Failed to upload video.");
-      }
-    } catch {
-      toast.error("Failed to upload video.");
-    } finally {
-      setLoading(false);
-    }
+    const blobUrl = URL.createObjectURL(file);
+    setMediaPreview(blobUrl);
+    setMediaType("video");
+    setType("Short Video");
+    setPendingUploadFile(file);
   };
 
   const removeMedia = () => {
@@ -446,6 +419,20 @@ function CreateContent() {
     }
   };
 
+  const resolveMediaUrl = async (): Promise<string[]> => {
+    if (pendingUploadFile && selectedClientId) {
+      try {
+        const url = await uploadContentMedia(pendingUploadFile, selectedClientId);
+        if (url) {
+          setPendingUploadFile(null);
+          setMediaPreview(url);
+          return [url];
+        }
+      } catch { /* fall through */ }
+    }
+    return mediaPreview ? [mediaPreview] : [];
+  };
+
   const generate = async () => {
     if (!topic.trim()) {
       toast.error("Enter a topic first.");
@@ -468,7 +455,7 @@ function CreateContent() {
       hashtags: generatedHashtags,
       cta: "",
       notes: goal ? `Goal: ${goal}` : "",
-      media: mediaPreview ? [mediaPreview] : [],
+      media: await resolveMediaUrl(),
       timezone,
     });
     toast.success("Content saved as draft");
@@ -497,7 +484,7 @@ function CreateContent() {
       hashtags: generatedHashtags,
       cta: "",
       notes: goal ? `Goal: ${goal}` : "",
-      media: mediaPreview ? [mediaPreview] : [],
+      media: await resolveMediaUrl(),
       timezone,
     });
     toast.success(status === "Submitted" ? "Content submitted for review" : "Draft saved");
@@ -583,7 +570,7 @@ function CreateContent() {
           hashtags: generatedHashtags,
           cta: "",
           notes: goal ? `Goal: ${goal}\n${publishNote}` : publishNote,
-          media: mediaPreview ? [mediaPreview] : [],
+          media: await resolveMediaUrl(),
           timezone,
         });
         toast.success(`Published to ${isInstagram ? "Instagram" : pages.find((p) => p.id === selectedPage)?.name || "Facebook"}!`);
@@ -681,7 +668,7 @@ function CreateContent() {
           hashtags: generatedHashtags,
           cta: "",
           notes: goal ? `Goal: ${goal}\n${scheduleNote}` : scheduleNote,
-          media: mediaPreview ? [mediaPreview] : [],
+          media: await resolveMediaUrl(),
           timezone,
           scheduledDate: scheduleDate,
           scheduledTime: scheduleTime,
@@ -1199,7 +1186,7 @@ function CreateContent() {
                           notes: goal
                             ? `Goal: ${goal}\nScheduled for ${scheduleDate} ${scheduleTime} (${timezone})`
                             : `Scheduled for ${scheduleDate} ${scheduleTime} (${timezone})`,
-                          media: mediaPreview ? [mediaPreview] : [],
+                          media: await resolveMediaUrl(),
                           timezone,
                           scheduledDate: scheduleDate,
                           scheduledTime: scheduleTime,
