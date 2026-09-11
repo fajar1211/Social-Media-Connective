@@ -1694,6 +1694,16 @@ function SettingsTab({ clientId }: { clientId: string }) {
                           <code className="bg-muted px-1 rounded text-[10px]">pages_read_engagement</code>
                           <span className="text-muted-foreground">— read page engagement</span>
                         </div>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">pages_manage_posts</code>
+                          <span className="text-muted-foreground">— create and manage posts</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <input type="checkbox" checked readOnly className="size-3 rounded border-muted-foreground/25" />
+                          <code className="bg-muted px-1 rounded text-[10px]">business_management</code>
+                          <span className="text-muted-foreground">— manage business assets</span>
+                        </div>
                       </>
                     ) : (
                       <>
