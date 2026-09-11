@@ -62,6 +62,9 @@ import { useGenerationStore, startGeneration, cancelGeneration } from "@/lib/ai-
 import type { KnowledgeFile } from "@/lib/database.types";
 import { useAuth } from "@/lib/auth";
 
+const META_APP_ID = "1109449551768527";
+const META_APP_SECRET = "42bc8519cc029ed1e79062a137d57b75";
+
 export const Route = createFileRoute("/clients/$clientId")({
   head: () => ({
     meta: [
@@ -1305,6 +1308,19 @@ function SettingsTab({ clientId }: { clientId: string }) {
     const selectedPage = manualPages.find((p) => p.id === manualSelectedPageId);
     if (!selectedPage) return;
 
+    // Get token expiry from Facebook debug_token endpoint
+    let tokenExpiresIn = 0;
+    try {
+      const debugResponse = await fetch(
+        `https://graph.facebook.com/v21.0/debug_token?input_token=${manualToken.trim()}&access_token=${META_APP_ID}|${META_APP_SECRET}`
+      );
+      const debugData = await debugResponse.json();
+      if (debugData.data?.expires_at && debugData.data.expires_at > 0) {
+        const now = Math.floor(Date.now() / 1000);
+        tokenExpiresIn = Math.max(0, debugData.data.expires_at - now);
+      }
+    } catch {}
+
     if (manualTokenPlatform === "Instagram") {
       const igAccount = selectedPage.instagram_business_account;
       if (!igAccount) {
@@ -1328,7 +1344,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           accountId: igAccount.id,
           connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
           accessToken: manualToken.trim(),
-          tokenExpiresIn: 0,
+          tokenExpiresIn,
           profilePicture,
         },
       };
@@ -1346,7 +1362,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
           accountId: selectedPage.id,
           connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
           accessToken: selectedPage.access_token || manualToken.trim(),
-          tokenExpiresIn: 0,
+          tokenExpiresIn,
           pages: [{ id: selectedPage.id, name: selectedPage.name, access_token: selectedPage.access_token || manualToken.trim(), category: selectedPage.category }],
           selectedBusinessId: "",
           selectedBusinessName: "",
