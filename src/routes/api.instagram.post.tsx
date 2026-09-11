@@ -4,36 +4,38 @@ import { createClient } from "@supabase/supabase-js";
 const GRAPH_API_VERSION = "v21.0";
 
 const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || "";
-const supabaseServiceKey = import.meta.env["VITE_SUPABASE_SERVICE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "";
+const supabaseKey = import.meta.env["VITE_SUPABASE_ANON_KEY"] || "";
 
-function getSupabaseAdmin() {
-  if (!supabaseUrl || !supabaseServiceKey) return null;
-  return createClient(supabaseUrl, supabaseServiceKey);
+function getSupabaseClient() {
+  if (!supabaseUrl || !supabaseKey) return null;
+  return createClient(supabaseUrl, supabaseKey);
 }
 
 async function uploadBlobToSupabase(
   blob: Blob,
   ext: string
 ): Promise<string | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseClient();
   if (!supabase) {
-    console.error("[InstagramPost] Supabase not configured");
+    console.error("[InstagramPost] Supabase not configured - missing URL or key");
     return null;
   }
 
   const path = `content/instagram-publish/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await supabase.storage
+  console.log("[InstagramPost] Uploading to Supabase storage:", path, "blob size:", blob.size, "type:", blob.type);
+
+  const { data, error } = await supabase.storage
     .from("media")
     .upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
 
   if (error) {
-    console.error("[InstagramPost] Supabase upload error:", error);
+    console.error("[InstagramPost] Supabase upload error:", JSON.stringify(error));
     return null;
   }
 
   const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
   if (!urlData?.publicUrl) {
-    console.error("[InstagramPost] Failed to get public URL");
+    console.error("[InstagramPost] Failed to get public URL for path:", path);
     return null;
   }
   console.log("[InstagramPost] Uploaded to Supabase:", urlData.publicUrl);
@@ -54,10 +56,12 @@ function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } | null {
 }
 
 async function resolveImageUrl(imageUrl: string): Promise<string> {
+  // Already a public HTTP URL - use directly
   if (imageUrl.startsWith("http")) {
     return imageUrl;
   }
 
+  // Data URL - upload to Supabase to get a public URL
   if (imageUrl.startsWith("data:")) {
     const result = dataUrlToBlob(imageUrl);
     if (!result) throw new Error("Invalid data URL format");
@@ -65,12 +69,12 @@ async function resolveImageUrl(imageUrl: string): Promise<string> {
     console.log("[InstagramPost] Data URL detected, uploading to Supabase...");
     const publicUrl = await uploadBlobToSupabase(result.blob, result.ext);
     if (!publicUrl) {
-      throw new Error("Failed to host image. Please try uploading the image manually instead.");
+      throw new Error("Failed to upload image to storage. Please check that the 'media' bucket exists in Supabase Storage and is set to public. You can create it in: Supabase Dashboard > Storage > New Bucket > Name: 'media' > Public: ON");
     }
     return publicUrl;
   }
 
-  throw new Error("Unsupported image URL format");
+  throw new Error("Unsupported image URL format. Please use an HTTP URL or re-upload the image.");
 }
 
 export const Route = createFileRoute("/api/instagram/post")({
