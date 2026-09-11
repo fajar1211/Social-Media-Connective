@@ -168,16 +168,25 @@ export const Route = createFileRoute("/api/auth/instagram-direct/callback")({
             instagramAccounts.map(async (p) => {
               const igId = p.instagram_business_account!.id;
               let profilePicture = "";
+              let igName = p.instagram_business_account!.name || "";
               try {
-                const picResponse = await fetch(
-                  `https://graph.facebook.com/${GRAPH_API_VERSION}/${igId}?fields=profile_picture_url&access_token=${accessToken}`
+                const detailsResponse = await fetch(
+                  `https://graph.facebook.com/${GRAPH_API_VERSION}/${igId}?fields=name,profile_picture_url&access_token=${accessToken}`
                 );
-                const picData = await picResponse.json();
-                profilePicture = picData.profile_picture_url || "";
+                const detailsData = await detailsResponse.json();
+                if (detailsData.profile_picture_url) {
+                  profilePicture = detailsData.profile_picture_url;
+                }
+                if (!igName && detailsData.name) {
+                  igName = detailsData.name;
+                }
               } catch {}
+              if (!igName) {
+                igName = p.name || "Instagram Account";
+              }
               return {
                 id: igId,
-                name: p.instagram_business_account!.name,
+                name: igName,
                 profile_picture: profilePicture,
                 page_id: p.id,
                 page_name: p.name,

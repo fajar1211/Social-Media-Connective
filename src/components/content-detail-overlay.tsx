@@ -346,9 +346,13 @@ export function ContentDetailOverlay({
         if (uploadedUrl) {
           mediaUrls = [uploadedUrl];
           setDraft(draft ? { ...draft, media: [uploadedUrl] } : draft);
+        } else {
+          toast.error("Failed to upload image. Please try again.");
+          return;
         }
       } catch {
-        // blob URL will be rejected by API route, continue anyway
+        toast.error("Failed to upload image. Please try again.");
+        return;
       }
     }
 
@@ -365,6 +369,11 @@ export function ContentDetailOverlay({
 
     const message = (item.body || item.caption || "").trim();
     const hasImage = mediaUrls.length > 0 && !!mediaUrls[0] && !mediaUrls[0].startsWith("blob:");
+
+    if (isInstagram && !hasImage) {
+      toast.error("Instagram requires an image to publish. Please upload or generate an image first.");
+      return;
+    }
 
     // ── Validate token before publish ──
     if (canPublishFb) {
@@ -585,9 +594,13 @@ export function ContentDetailOverlay({
         if (uploadedUrl) {
           mediaUrls = [uploadedUrl];
           setDraft(draft ? { ...draft, media: [uploadedUrl] } : draft);
+        } else {
+          toast.error("Failed to upload image. Please try again.");
+          return;
         }
       } catch {
-        // blob URL will be rejected by API route, continue anyway
+        toast.error("Failed to upload image. Please try again.");
+        return;
       }
     }
 
@@ -601,6 +614,11 @@ export function ContentDetailOverlay({
 
     const message = (item.body || item.caption || "").trim();
     const hasImage = mediaUrls.length > 0 && !!mediaUrls[0] && !mediaUrls[0].startsWith("blob:");
+
+    if (isInstagram && !hasImage) {
+      toast.error("Instagram requires an image to publish. Please upload or generate an image first.");
+      return;
+    }
 
     setPublishingNow(true);
     try {

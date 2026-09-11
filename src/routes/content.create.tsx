@@ -500,6 +500,11 @@ function CreateContent() {
       return;
     }
 
+    if (isInstagram && !mediaPreview) {
+      toast.error("Instagram requires an image to publish. Please upload or generate an image first.");
+      return;
+    }
+
     setPublishing(true);
     try {
       const message = body.trim();

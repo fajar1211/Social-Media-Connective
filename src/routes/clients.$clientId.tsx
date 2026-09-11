@@ -841,7 +841,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
         actions.updateClient(clientId, { socialIntegrations: newIntegrations });
         forceUpdate();
 
-        toast.success(`Instagram connected to "${igAccount.name || page?.name}" via Instagram direct!`);
+        toast.success(`Instagram connected to "${igAccount.name || page?.name || account.name || "Instagram Account"}" via Instagram direct!`);
       } else if (instagramAccounts.length > 1) {
         const accountsWithDetails = instagramAccounts.map((acc) => ({
           id: acc.id,
@@ -996,7 +996,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
         actions.updateClient(clientId, { socialIntegrations: newIntegrations });
         forceUpdate();
 
-        toast.success(`Instagram connected to "${igAccount.name || page?.name}" via Facebook!`);
+        toast.success(`Instagram connected to "${igAccount.name || page?.name || account.name || "Instagram Account"}" via Facebook!`);
       } else if (instagramAccounts.length > 1) {
         // Build account list with page and business info for selector
         const accountsWithDetails = instagramAccounts.map((acc) => ({
@@ -1140,7 +1140,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     actions.updateClient(clientId, { socialIntegrations: newIntegrations });
     forceUpdate();
 
-    toast.success(`Instagram connected to "${selectedAccount.name}" successfully!`);
+    toast.success(`Instagram connected to "${selectedAccount.name || selectedAccount.pageName || "Instagram Account"}" successfully!`);
     setIgAccountSelectorOpen(false);
     setIgPendingAccounts([]);
     setIgSelectedAccountId("");
@@ -1298,7 +1298,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
       socialIntegrationsRef.current = newIntegrations;
       actions.updateClient(clientId, { socialIntegrations: newIntegrations });
       forceUpdate();
-      toast.success(`Instagram connected to "${igAccount.name || selectedPage.name}" successfully!`);
+      toast.success(`Instagram connected to "${igAccount.name || selectedPage.name || "Instagram Account"}" successfully!`);
     } else {
       const newIntegrations: Partial<Record<SocialPlatform, SocialConnection>> = {
         ...socialIntegrationsRef.current,
@@ -2930,6 +2930,11 @@ function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]
 
     const message = (item.body || item.caption || "").trim();
     const hasImage = item.media && item.media.length > 0 && item.media[0];
+
+    if (isInstagram && !hasImage) {
+      toast.error("Instagram requires an image to publish. Please upload an image first.");
+      return;
+    }
 
     setPublishingId(item.id);
     try {
