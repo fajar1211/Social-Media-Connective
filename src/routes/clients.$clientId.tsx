@@ -483,8 +483,21 @@ function SocialIntegrationCard({
   const config = PLATFORM_CONFIG[platform];
   const isComingSoon = config.comingSoon === true;
 
+  // Calculate token expiry status
+  const getExpiryInfo = () => {
+    if (!connected || !connectedAt || !tokenExpiresIn || tokenExpiresIn <= 0) return null;
+    const connectedDate = new Date(connectedAt);
+    if (isNaN(connectedDate.getTime())) return null;
+    const expiryDate = new Date(connectedDate.getTime() + tokenExpiresIn * 1000);
+    const now = new Date();
+    const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return { expiryDate, daysLeft };
+  };
+  const expiryInfo = getExpiryInfo();
+  const isExpired = expiryInfo !== null && expiryInfo.daysLeft <= 0;
+
   return (
-    <div className={`rounded-xl border p-5 transition-all ${connected ? "border-success/30 bg-success/5" : isComingSoon ? "border-dashed bg-card opacity-75" : "border-dashed bg-card hover:border-border/80"}`}>
+    <div className={`rounded-xl border p-5 transition-all ${connected ? (isExpired ? "border-warning/30 bg-warning/5" : "border-success/30 bg-success/5") : isComingSoon ? "border-dashed bg-card opacity-75" : "border-dashed bg-card hover:border-border/80"}`}>
       <div className="flex items-start gap-4">
         <div className={`flex size-12 items-center justify-center rounded-xl ${config.color}`}>
           {config.icon}
@@ -497,8 +510,8 @@ function SocialIntegrationCard({
                 Coming Soon
               </span>
             ) : connected ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
-                <Check className="size-3" /> Connected
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${isExpired ? "bg-warning/10 text-warning" : "bg-success/10 text-success"}`}>
+                <Check className="size-3" /> {isExpired ? "Token Expired" : "Connected"}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
@@ -525,19 +538,15 @@ function SocialIntegrationCard({
               {connectedAt && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   Connected: {connectedAt}
-                  {tokenExpiresIn && tokenExpiresIn > 0 && (() => {
-                    const connectedDate = new Date(connectedAt);
-                    const expiryDate = new Date(connectedDate.getTime() + tokenExpiresIn * 1000);
-                    const now = new Date();
-                    const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                    if (daysLeft <= 0) {
-                      return <span className="ml-1 text-destructive font-medium">(Expired)</span>;
-                    } else if (daysLeft <= 7) {
-                      return <span className="ml-1 text-warning font-medium">(Expires in {daysLeft}d)</span>;
-                    } else {
-                      return <span className="ml-1 text-success">| Expires: {expiryDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>;
-                    }
-                  })()}
+                  {expiryInfo && (
+                    isExpired ? (
+                      <span className="ml-1 text-destructive font-medium">(Expired)</span>
+                    ) : expiryInfo.daysLeft <= 7 ? (
+                      <span className="ml-1 text-warning font-medium">(Expires in {expiryInfo.daysLeft}d)</span>
+                    ) : (
+                      <span className="ml-1 text-success">| Expires: {expiryInfo.expiryDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                    )
+                  )}
                 </p>
               )}
             </div>
@@ -551,10 +560,17 @@ function SocialIntegrationCard({
             </Button>
           ) : connected ? (
             <div className="flex flex-col gap-2">
-              <Button variant="destructive" size="sm" onClick={onDisconnect}>
-                <Trash2 className="mr-1.5 size-3.5" />
-                Disconnect
-              </Button>
+              {isExpired ? (
+                <Button size="sm" onClick={onDisconnect} className="bg-warning hover:bg-warning/90 text-white">
+                  <Link2 className="mr-1.5 size-3.5" />
+                  Reconnect
+                </Button>
+              ) : (
+                <Button variant="destructive" size="sm" onClick={onDisconnect}>
+                  <Trash2 className="mr-1.5 size-3.5" />
+                  Disconnect
+                </Button>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
