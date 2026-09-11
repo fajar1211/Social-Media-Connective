@@ -1,22 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
 
 const GRAPH_API_VERSION = "v21.0";
 
-const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || "https://jzwmgcldazvuoxvbmkzu.supabase.co";
-const supabaseKey = import.meta.env["VITE_SUPABASE_ANON_KEY"] || "sb_publishable_g1Z1qWDQELk9jNUkQrE71A_cZES6Y-n";
-
-function getSupabaseClient() {
-  if (!supabaseUrl || !supabaseKey) return null;
-  return createClient(supabaseUrl, supabaseKey);
-}
+const SUPABASE_URL = import.meta.env["VITE_SUPABASE_URL"] || "https://jzwmgcldazvuoxvbmkzu.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env["VITE_SUPABASE_ANON_KEY"] || "sb_publishable_g1Z1qWDQELk9jNUkQrE71A_cZES6Y-n";
 
 async function uploadBlobToSupabase(
   blob: Blob,
   ext: string
 ): Promise<string | null> {
-  const supabase = getSupabaseClient();
-  if (!supabase) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.error("[InstagramPost] Supabase not configured - missing URL or key");
     return null;
   }
@@ -24,22 +17,27 @@ async function uploadBlobToSupabase(
   const path = `content/instagram-publish/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   console.log("[InstagramPost] Uploading to Supabase storage:", path, "blob size:", blob.size, "type:", blob.type);
 
-  const { data, error } = await supabase.storage
-    .from("media")
-    .upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+  const url = `${SUPABASE_URL}/storage/v1/object/media/${path}`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": blob.type || "image/jpeg",
+      "x-upsert": "false",
+    },
+    body: blob,
+  });
 
-  if (error) {
-    console.error("[InstagramPost] Supabase upload error:", JSON.stringify(error));
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    console.error("[InstagramPost] Supabase upload failed:", resp.status, errText.slice(0, 300));
     return null;
   }
 
-  const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
-  if (!urlData?.publicUrl) {
-    console.error("[InstagramPost] Failed to get public URL for path:", path);
-    return null;
-  }
-  console.log("[InstagramPost] Uploaded to Supabase:", urlData.publicUrl);
-  return urlData.publicUrl;
+  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
+  console.log("[InstagramPost] Uploaded to Supabase:", publicUrl);
+  return publicUrl;
 }
 
 function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } | null {

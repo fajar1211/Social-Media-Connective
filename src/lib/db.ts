@@ -549,6 +549,38 @@ export async function deleteKnowledgeFile(id: string): Promise<boolean> {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+const SUPABASE_URL = (import.meta.env['VITE_SUPABASE_URL'] as string | undefined) || "https://jzwmgcldazvuoxvbmkzu.supabase.co";
+const SUPABASE_ANON_KEY = (import.meta.env['VITE_SUPABASE_ANON_KEY'] as string | undefined) || "sb_publishable_g1Z1qWDQELk9jNUkQrE71A_cZES6Y-n";
+
+async function supabaseStorageUpload(
+  bucket: string,
+  path: string,
+  file: File | Blob,
+  contentType: string
+): Promise<string | null> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+
+  const url = `${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": contentType,
+      "x-upsert": "false",
+    },
+    body: file,
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    console.error("[supabaseStorageUpload] Upload failed:", resp.status, errText.slice(0, 300));
+    return null;
+  }
+
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+}
+
 export async function uploadContentMedia(
   file: File,
   clientId: string
@@ -562,15 +594,11 @@ export async function uploadContentMedia(
   const ext = file.name.split(".").pop() || "jpg";
   const path = `content/${clientId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-  const { error } = await supabase.storage
-    .from("media")
-    .upload(path, file, { contentType: file.type, upsert: false });
-
-  if (error) {
-    console.error("Error uploading media:", error);
+  const publicUrl = await supabaseStorageUpload("media", path, file, file.type || "image/jpeg");
+  if (!publicUrl) {
+    console.error("[uploadContentMedia] Upload failed for path:", path);
     return null;
   }
 
-  const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
-  return urlData?.publicUrl || null;
+  return publicUrl;
 }

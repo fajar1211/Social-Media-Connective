@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
 
 const POLLINATIONS_API_URL = "https://gen.pollinations.ai/v1/images/generations";
+
+const SUPABASE_URL = import.meta.env["VITE_SUPABASE_URL"] || "https://jzwmgcldazvuoxvbmkzu.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env["VITE_SUPABASE_ANON_KEY"] || "sb_publishable_g1Z1qWDQELk9jNUkQrE71A_cZES6Y-n";
 
 const STYLE_SUFFIXES: Record<string, string> = {
   photorealistic: ", photorealistic, high quality, professional photography, 4K",
@@ -123,26 +125,32 @@ function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } | null {
 }
 
 async function uploadToSupabase(dataUrl: string): Promise<string | null> {
-  const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || "https://jzwmgcldazvuoxvbmkzu.supabase.co";
-  const supabaseKey = import.meta.env["VITE_SUPABASE_ANON_KEY"] || "sb_publishable_g1Z1qWDQELk9jNUkQrE71A_cZES6Y-n";
-  if (!supabaseUrl || !supabaseKey) return null;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
   const result = dataUrlToBlob(dataUrl);
   if (!result) return null;
 
   const path = `content/ai-generated/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${result.ext}`;
-  const { error } = await supabase.storage
-    .from("media")
-    .upload(path, result.blob, { contentType: result.blob.type || "image/png", upsert: false });
+  const url = `${SUPABASE_URL}/storage/v1/object/media/${path}`;
 
-  if (error) {
-    console.error("[uploadToSupabase] Upload error:", error);
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": result.blob.type || "image/png",
+      "x-upsert": "false",
+    },
+    body: result.blob,
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    console.error("[uploadToSupabase] Upload failed:", resp.status, errText.slice(0, 300));
     return null;
   }
 
-  const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
-  return urlData?.publicUrl || null;
+  return `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
 }
 
 export const Route = createFileRoute("/api/ai/generate-image")({
