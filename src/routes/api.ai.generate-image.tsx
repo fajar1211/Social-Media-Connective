@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createClient } from "@supabase/supabase-js";
 
 const POLLINATIONS_API_URL = "https://gen.pollinations.ai/v1/images/generations";
 
@@ -108,6 +109,42 @@ async function generateImageWithPollinations(
   return null;
 }
 
+function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } | null {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match || !match[1] || !match[2]) return null;
+  const mimeType = match[1];
+  const base64Data = match[2];
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return { blob: new Blob([bytes], { type: mimeType }), ext: mimeType.split("/")[1] || "png" };
+}
+
+async function uploadToSupabase(dataUrl: string): Promise<string | null> {
+  const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || "";
+  const supabaseKey = import.meta.env["VITE_SUPABASE_ANON_KEY"] || "";
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const result = dataUrlToBlob(dataUrl);
+  if (!result) return null;
+
+  const path = `content/ai-generated/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${result.ext}`;
+  const { error } = await supabase.storage
+    .from("media")
+    .upload(path, result.blob, { contentType: result.blob.type || "image/png", upsert: false });
+
+  if (error) {
+    console.error("[uploadToSupabase] Upload error:", error);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+  return urlData?.publicUrl || null;
+}
+
 export const Route = createFileRoute("/api/ai/generate-image")({
   server: {
     handlers: {
@@ -144,13 +181,25 @@ export const Route = createFileRoute("/api/ai/generate-image")({
 
           const enhancedPrompt = buildEnhancedPrompt(prompt, referenceDesc, style);
 
-          const imageUrl = await generateImageWithPollinations(enhancedPrompt, pollinationsKey, "1024x1024");
+          let imageUrl = await generateImageWithPollinations(enhancedPrompt, pollinationsKey, "1024x1024");
 
           if (!imageUrl) {
             return new Response(
               JSON.stringify({ error: "Failed to generate image. Please try again." }),
               { status: 502, headers: { "Content-Type": "application/json" } }
             );
+          }
+
+          // If Pollinations returned a data URL, upload to Supabase for a public HTTP URL
+          if (imageUrl.startsWith("data:")) {
+            console.log("[generate-image] Pollinations returned data URL, uploading to Supabase...");
+            const publicUrl = await uploadToSupabase(imageUrl);
+            if (publicUrl) {
+              console.log("[generate-image] Uploaded to Supabase:", publicUrl);
+              imageUrl = publicUrl;
+            } else {
+              console.log("[generate-image] Supabase upload failed, returning data URL as fallback");
+            }
           }
 
           return new Response(

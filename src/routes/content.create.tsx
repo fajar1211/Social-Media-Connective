@@ -423,6 +423,30 @@ function CreateContent() {
         }
       } catch { /* fall through */ }
     }
+
+    // If mediaPreview is a data URL, upload it to Supabase
+    if (mediaPreview && mediaPreview.startsWith("data:") && selectedClientId) {
+      try {
+        const match = mediaPreview.match(/^data:([^;]+);base64,(.+)$/);
+        if (match && match[1] && match[2]) {
+          const mimeType = match[1];
+          const binaryString = atob(match[2]);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: mimeType });
+          const ext = mimeType.split("/")[1] || "png";
+          const file = new File([blob], `upload.${ext}`, { type: mimeType });
+          const url = await uploadContentMedia(file, selectedClientId);
+          if (url) {
+            setMediaPreview(url);
+            return [url];
+          }
+        }
+      } catch { /* fall through */ }
+    }
+
     return mediaPreview ? [mediaPreview] : [];
   };
 
