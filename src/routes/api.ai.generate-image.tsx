@@ -123,8 +123,8 @@ function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } | null {
 }
 
 async function uploadToSupabase(dataUrl: string): Promise<string | null> {
-  const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || "";
-  const supabaseKey = import.meta.env["VITE_SUPABASE_ANON_KEY"] || "";
+  const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || "https://jzwmgcldazvuoxvbmkzu.supabase.co";
+  const supabaseKey = import.meta.env["VITE_SUPABASE_ANON_KEY"] || "sb_publishable_g1Z1qWDQELk9jNUkQrE71A_cZES6Y-n";
   if (!supabaseUrl || !supabaseKey) return null;
 
   const supabase = createClient(supabaseUrl, supabaseKey);
