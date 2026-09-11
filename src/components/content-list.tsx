@@ -43,14 +43,19 @@ function ContentActions({ item }: { item: ContentItem }) {
 
   const client = clients.find((c) => c.name === item.client);
   const fbConnection = client?.socialIntegrations?.Facebook;
+  const igConnection = client?.socialIntegrations?.Instagram;
   const pages: FacebookPage[] = fbConnection?.pages || [];
-  const canPublish = item.platform === "Facebook" && fbConnection?.connected && fbConnection?.accessToken && pages.length > 0;
+  const isFacebook = item.platform === "Facebook";
+  const isInstagram = item.platform === "Instagram";
+  const canPublishFb = isFacebook && fbConnection?.connected && fbConnection?.accessToken && pages.length > 0;
+  const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken && igConnection?.accountId;
+  const canPublish = canPublishFb || canPublishIg;
 
   if (!canPublish || item.status === "Deleted" || item.status === "Approved") {
     return null;
   }
 
-  const handlePublish = async (pageId: string) => {
+  const handlePublishFacebook = async (pageId: string) => {
     const page = pages.find((p) => p.id === pageId);
     if (!page) return;
 
@@ -87,7 +92,96 @@ function ContentActions({ item }: { item: ContentItem }) {
     }
   };
 
-  const handleSchedule = async (pageId: string) => {
+  const handlePublishInstagram = async () => {
+    if (!igConnection?.accountId || !igConnection?.accessToken) return;
+
+    const imageUrl = item.media && item.media.length > 0 ? item.media[0] : null;
+    if (!imageUrl) {
+      toast.error("Instagram requires an image to publish.");
+      return;
+    }
+
+    // Resolve blob/data URLs by uploading to Supabase
+    let resolvedImageUrl = imageUrl;
+    if (imageUrl.startsWith("blob:") || imageUrl.startsWith("data:")) {
+      toast.info("Uploading image for publishing...");
+      try {
+        const { uploadContentMedia } = await import("@/lib/db");
+        if (imageUrl.startsWith("blob:")) {
+          const resp = await fetch(imageUrl);
+          const blob = await resp.blob();
+          const file = new File([blob], "upload.png", { type: blob.type || "image/png" });
+          const uploadedUrl = await uploadContentMedia(file, item.clientId || "unknown");
+          if (uploadedUrl) {
+            resolvedImageUrl = uploadedUrl;
+          } else {
+            toast.error("Failed to upload image. Please try again.");
+            return;
+          }
+        } else {
+          // data: URL - convert to blob then upload
+          const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (match && match[1] && match[2]) {
+            const mimeType = match[1];
+            const base64Data = match[2];
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: mimeType });
+            const ext = mimeType.split("/")[1] || "jpg";
+            const file = new File([blob], `upload.${ext}`, { type: mimeType });
+            const uploadedUrl = await uploadContentMedia(file, item.clientId || "unknown");
+            if (uploadedUrl) {
+              resolvedImageUrl = uploadedUrl;
+            } else {
+              toast.error("Failed to upload image. Please try again.");
+              return;
+            }
+          }
+        }
+      } catch {
+        toast.error("Failed to upload image. Please try again.");
+        return;
+      }
+    }
+
+    setPublishing(true);
+    try {
+      const message = `${item.caption}\n\n${item.body || ""}\n\n${item.hashtags.join(" ")}`;
+
+      const response = await fetch("/api/instagram/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          igUserId: igConnection.accountId,
+          accessToken: igConnection.accessToken,
+          imageUrl: resolvedImageUrl,
+          caption: message,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        actions.update(item.id, {
+          status: "Approved",
+          notes: `Published to Instagram (Post ID: ${data.postId})`,
+        });
+        toast.success("Published to Instagram!");
+        setShowPageSelect(false);
+      } else {
+        toast.error(`Failed: ${data.error}`);
+      }
+    } catch {
+      toast.error("Failed to publish to Instagram");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleScheduleFacebook = async (pageId: string) => {
     const page = pages.find((p) => p.id === pageId);
     if (!page || !scheduleTime) return;
 
@@ -177,29 +271,47 @@ function ContentActions({ item }: { item: ContentItem }) {
     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
       {!showPageSelect && !showSchedule && (
         <>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            title="Publish to Facebook"
-            onClick={() => setShowPageSelect(true)}
-            disabled={publishing}
-          >
-            <Send className="size-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            title="Schedule on Facebook"
-            onClick={() => {
-              setShowPageSelect(true);
-              setShowSchedule(true);
-            }}
-            disabled={publishing}
-          >
-            <CalendarClock className="size-3.5" />
-          </Button>
+          {canPublishFb && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                title="Publish to Facebook"
+                onClick={() => setShowPageSelect(true)}
+                disabled={publishing}
+              >
+                <Send className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                title="Schedule on Facebook"
+                onClick={() => {
+                  setShowPageSelect(true);
+                  setShowSchedule(true);
+                }}
+                disabled={publishing}
+              >
+                <CalendarClock className="size-3.5" />
+              </Button>
+            </>
+          )}
+          {canPublishIg && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                title="Publish to Instagram"
+                onClick={() => handlePublishInstagram()}
+                disabled={publishing}
+              >
+                <Send className="size-3.5" />
+              </Button>
+            </>
+          )}
         </>
       )}
 
@@ -208,9 +320,9 @@ function ContentActions({ item }: { item: ContentItem }) {
           <Select
             onValueChange={(pageId) => {
               if (showSchedule) {
-                handleSchedule(pageId);
+                handleScheduleFacebook(pageId);
               } else {
-                handlePublish(pageId);
+                handlePublishFacebook(pageId);
               }
             }}
           >

@@ -511,13 +511,26 @@ function CreateContent() {
       let response: Response;
 
       if (isInstagram && igConnection) {
+        // Resolve media URL before publishing (upload blob/data URLs to Supabase)
+        let publishImageUrl = mediaPreview || undefined;
+        if (publishImageUrl && (publishImageUrl.startsWith("blob:") || publishImageUrl.startsWith("data:"))) {
+          toast.info("Uploading image for publishing...");
+          const resolvedUrls = await resolveMediaUrl();
+          if (resolvedUrls.length > 0) {
+            publishImageUrl = resolvedUrls[0];
+          } else {
+            toast.error("Failed to upload image. Please try again.");
+            setPublishing(false);
+            return;
+          }
+        }
         response = await fetch("/api/instagram/post", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             igUserId: igConnection.accountId,
             accessToken: igConnection.accessToken,
-            imageUrl: mediaPreview || undefined,
+            imageUrl: publishImageUrl,
             caption: message || undefined,
           }),
         });
@@ -613,13 +626,26 @@ function CreateContent() {
       let response: Response;
 
       if (isInstagram && igConnection) {
+        // Resolve media URL before scheduling (upload blob/data URLs to Supabase)
+        let scheduleImageUrl = mediaPreview || undefined;
+        if (scheduleImageUrl && (scheduleImageUrl.startsWith("blob:") || scheduleImageUrl.startsWith("data:"))) {
+          toast.info("Uploading image for scheduling...");
+          const resolvedUrls = await resolveMediaUrl();
+          if (resolvedUrls.length > 0) {
+            scheduleImageUrl = resolvedUrls[0];
+          } else {
+            toast.error("Failed to upload image. Please try again.");
+            setPublishing(false);
+            return;
+          }
+        }
         response = await fetch("/api/instagram/schedule", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             igUserId: igConnection.accountId,
             accessToken: igConnection.accessToken,
-            imageUrl: mediaPreview || undefined,
+            imageUrl: scheduleImageUrl,
             caption: message || undefined,
             scheduledPublishTime: unixTimestamp,
           }),

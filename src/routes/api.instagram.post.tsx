@@ -1,6 +1,44 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createClient } from "@supabase/supabase-js";
 
 const GRAPH_API_VERSION = "v21.0";
+
+const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] || "";
+const supabaseServiceKey = import.meta.env["VITE_SUPABASE_SERVICE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "";
+
+function getSupabaseAdmin() {
+  if (!supabaseUrl || !supabaseServiceKey) return null;
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+async function uploadBlobToSupabase(
+  blob: Blob,
+  ext: string
+): Promise<string | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    console.error("[InstagramPost] Supabase not configured");
+    return null;
+  }
+
+  const path = `content/instagram-publish/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage
+    .from("media")
+    .upload(path, blob, { contentType: blob.type || "image/jpeg", upsert: false });
+
+  if (error) {
+    console.error("[InstagramPost] Supabase upload error:", error);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+  if (!urlData?.publicUrl) {
+    console.error("[InstagramPost] Failed to get public URL");
+    return null;
+  }
+  console.log("[InstagramPost] Uploaded to Supabase:", urlData.publicUrl);
+  return urlData.publicUrl;
+}
 
 function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } | null {
   const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
@@ -15,57 +53,24 @@ function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } | null {
   return { blob: new Blob([bytes], { type: mimeType }), ext: mimeType.split("/")[1] || "jpg" };
 }
 
-async function fetchImageAsBlob(url: string): Promise<{ blob: Blob; ext: string } | null> {
-  try {
-    const resp = await fetch(url, {
-      headers: { "User-Agent": "SocialMediaConnective/1.0" },
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!resp.ok) return null;
-    const blob = await resp.blob();
-    const contentType = resp.headers.get("content-type") || blob.type || "image/jpeg";
-    const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
-    return { blob, ext };
-  } catch (err) {
-    console.error("[InstagramPost] Failed to fetch image from URL:", url, err);
-    return null;
-  }
-}
-
-async function uploadImageToInstagram(
-  igUserId: string,
-  accessToken: string,
-  imageBlob: Blob,
-  ext: string,
-  caption?: string
-): Promise<string | null> {
-  const formData = new FormData();
-  formData.append("source", imageBlob, `photo.${ext}`);
-  formData.append("access_token", accessToken);
-  if (caption) {
-    formData.append("caption", caption);
+async function resolveImageUrl(imageUrl: string): Promise<string> {
+  if (imageUrl.startsWith("http")) {
+    return imageUrl;
   }
 
-  console.log("[InstagramPost] Uploading to Instagram:", {
-    igUserId,
-    blobSize: imageBlob.size,
-    blobType: imageBlob.type,
-    ext,
-    hasCaption: !!caption,
-  });
+  if (imageUrl.startsWith("data:")) {
+    const result = dataUrlToBlob(imageUrl);
+    if (!result) throw new Error("Invalid data URL format");
 
-  const containerResponse = await fetch(
-    `https://graph.facebook.com/${GRAPH_API_VERSION}/${igUserId}/media`,
-    { method: "POST", body: formData }
-  );
-
-  const containerData = await containerResponse.json();
-  console.log("[InstagramPost] Instagram /media response:", JSON.stringify(containerData));
-  if (containerData.error) {
-    console.error("[InstagramPost] Instagram API error:", containerData.error);
-    return null;
+    console.log("[InstagramPost] Data URL detected, uploading to Supabase...");
+    const publicUrl = await uploadBlobToSupabase(result.blob, result.ext);
+    if (!publicUrl) {
+      throw new Error("Failed to host image. Please try uploading the image manually instead.");
+    }
+    return publicUrl;
   }
-  return containerData.id;
+
+  throw new Error("Unsupported image URL format");
 }
 
 export const Route = createFileRoute("/api/instagram/post")({
@@ -81,11 +86,18 @@ export const Route = createFileRoute("/api/instagram/post")({
             accessToken: accessToken ? "present" : "MISSING",
             imageUrl: imageUrl ? `${imageUrl.substring(0, 80)}...` : "EMPTY/MISSING",
             caption: caption ? `${caption.substring(0, 50)}...` : "none",
-            imageUrlType: imageUrl ? (imageUrl.startsWith("data:") ? "data-url" : imageUrl.startsWith("blob:") ? "blob-url" : imageUrl.startsWith("http") ? "http-url" : "unknown") : "none",
+            imageUrlType: imageUrl
+              ? imageUrl.startsWith("data:")
+                ? "data-url"
+                : imageUrl.startsWith("blob:")
+                  ? "blob-url"
+                  : imageUrl.startsWith("http")
+                    ? "http-url"
+                    : "unknown"
+              : "none",
           });
 
           if (!igUserId || !accessToken) {
-            console.error("[InstagramPost] Missing igUserId or accessToken");
             return new Response(
               JSON.stringify({ error: "Missing required fields: igUserId, accessToken" }),
               { status: 400, headers: { "Content-Type": "application/json" } }
@@ -93,7 +105,6 @@ export const Route = createFileRoute("/api/instagram/post")({
           }
 
           if (!imageUrl) {
-            console.error("[InstagramPost] imageUrl is empty/missing");
             return new Response(
               JSON.stringify({ error: "Image URL is required for Instagram posts. Please upload an image before publishing." }),
               { status: 400, headers: { "Content-Type": "application/json" } }
@@ -107,43 +118,46 @@ export const Route = createFileRoute("/api/instagram/post")({
             );
           }
 
-          let containerId: string | null = null;
-
-          if (imageUrl.startsWith("data:")) {
-            console.log("[InstagramPost] Processing data URL");
-            const result = dataUrlToBlob(imageUrl);
-            if (!result) {
-              console.error("[InstagramPost] Failed to parse data URL");
-              return new Response(
-                JSON.stringify({ error: "Invalid data URL format" }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
-              );
-            }
-            console.log("[InstagramPost] Data URL parsed, blob size:", result.blob.size, "ext:", result.ext);
-            containerId = await uploadImageToInstagram(igUserId, accessToken, result.blob, result.ext, caption);
-          } else {
-            console.log("[InstagramPost] Fetching image from URL:", imageUrl.substring(0, 100));
-            const result = await fetchImageAsBlob(imageUrl);
-            if (!result) {
-              console.error("[InstagramPost] Failed to fetch image from URL:", imageUrl.substring(0, 100));
-              return new Response(
-                JSON.stringify({ error: "Failed to fetch image from the provided URL. The image may be temporarily unavailable. Please try downloading and re-uploading the image." }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
-              );
-            }
-            console.log("[InstagramPost] Image fetched, blob size:", result.blob.size, "ext:", result.ext);
-            containerId = await uploadImageToInstagram(igUserId, accessToken, result.blob, result.ext, caption);
-          }
-
-          console.log("[InstagramPost] Container ID:", containerId);
-
-          if (!containerId) {
-            console.error("[InstagramPost] Failed to create container");
+          let publicImageUrl: string;
+          try {
+            publicImageUrl = await resolveImageUrl(imageUrl);
+          } catch (err) {
             return new Response(
-              JSON.stringify({ error: "Failed to create Instagram media container. Please try again." }),
+              JSON.stringify({ error: err instanceof Error ? err.message : "Failed to process image" }),
               { status: 400, headers: { "Content-Type": "application/json" } }
             );
           }
+
+          console.log("[InstagramPost] Creating container with image_url:", publicImageUrl.substring(0, 120));
+
+          const containerParams: Record<string, string> = {
+            image_url: publicImageUrl,
+            access_token: accessToken,
+          };
+          if (caption) {
+            containerParams["caption"] = caption;
+          }
+
+          const containerResponse = await fetch(
+            `https://graph.facebook.com/${GRAPH_API_VERSION}/${igUserId}/media`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(containerParams),
+            }
+          );
+
+          const containerData = await containerResponse.json();
+          console.log("[InstagramPost] Container response:", JSON.stringify(containerData));
+
+          if (containerData.error) {
+            return new Response(
+              JSON.stringify({ error: containerData.error.message, code: containerData.error.code }),
+              { status: 400, headers: { "Content-Type": "application/json" } }
+            );
+          }
+
+          const containerId = containerData.id;
 
           const publishResponse = await fetch(
             `https://graph.facebook.com/${GRAPH_API_VERSION}/${igUserId}/media_publish`,
