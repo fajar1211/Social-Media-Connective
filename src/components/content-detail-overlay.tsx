@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Trash2, Image, Film, Upload, Send, CalendarClock, CheckCircle2 } from "lucide-react";
+import { Trash2, Image, Film, Upload, Send, CalendarClock, CheckCircle2, ExternalLink } from "lucide-react";
 import { actions, formatDate, useStore, type ContentItem, type FacebookPage } from "@/lib/content-store";
 import { ContentTypeBadge, PlatformBadge, StatusBadge } from "@/components/badges";
 import { SocialMediaPreviewCard } from "@/components/social-media-preview-card";
@@ -952,6 +952,34 @@ export function ContentDetailOverlay({
                   <p className="mt-1 text-sm text-muted-foreground">{item.notes || "—"}</p>
                 )}
               </div>
+
+              {/* Preview Link - show when post has been published */}
+              {!editing && (() => {
+                const postIdMatch = item.notes?.match(/Post ID:\s*(\d+_\d+)/);
+                const postId = postIdMatch?.[1];
+                if (!postId) return null;
+
+                const postUrl = item.platform === "Instagram"
+                  ? `https://www.facebook.com/${postId}`
+                  : `https://www.facebook.com/${postId}`;
+
+                return (
+                  <div>
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Preview Link
+                    </Label>
+                    <a
+                      href={postUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      View published post
+                    </a>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
