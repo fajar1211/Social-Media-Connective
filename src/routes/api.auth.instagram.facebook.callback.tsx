@@ -151,6 +151,38 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
               self.findIndex((p) => p.id === page.id) === index
           );
 
+          // Exchange short-lived user token for long-lived user token (~60 days)
+          let longLivedUserToken = accessToken;
+          let longLivedExpiresIn = tokenData.expires_in || 0;
+          try {
+            const llExchangeResponse = await fetch(
+              `https://graph.facebook.com/${GRAPH_API_VERSION}/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&fb_exchange_token=${accessToken}`
+            );
+            const llExchangeData = await llExchangeResponse.json();
+            if (llExchangeData.access_token) {
+              longLivedUserToken = llExchangeData.access_token;
+              longLivedExpiresIn = llExchangeData.expires_in || 5184000;
+              console.log("[InstagramFacebookCallback] Long-lived user token obtained, expires_in:", longLivedExpiresIn);
+            } else {
+              console.log("[InstagramFacebookCallback] Long-lived exchange failed, using short-lived token");
+            }
+          } catch (e) {
+            console.log("[InstagramFacebookCallback] Long-lived exchange error:", e);
+          }
+
+          // Get page access tokens using the long-lived user token
+          for (const page of allBusinessPages) {
+            try {
+              const pageTokenResponse = await fetch(
+                `https://graph.facebook.com/${GRAPH_API_VERSION}/${page.id}?fields=access_token&access_token=${longLivedUserToken}`
+              );
+              const pageTokenData = await pageTokenResponse.json();
+              if (pageTokenData.access_token) {
+                page.access_token = pageTokenData.access_token;
+              }
+            } catch {}
+          }
+
           const autoConnect = businesses.length === 1 && allBusinessPages.length === 1;
 
           // Build pages with business info for frontend hierarchy display
@@ -212,9 +244,9 @@ export const Route = createFileRoute("/api/auth/instagram/facebook/callback")({
               business_id: p.business_id,
               business_name: p.business_name,
             })),
-            access_token: accessToken,
-            token_type: tokenData.token_type || "bearer",
-            expires_in: tokenData.expires_in || 0,
+            access_token: longLivedUserToken,
+            token_type: "bearer",
+            expires_in: longLivedExpiresIn,
           });
 
           const debugInfo = {
