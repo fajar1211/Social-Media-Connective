@@ -801,6 +801,29 @@ export function ContentDetailOverlay({
               <Field label="Scheduled">{item.scheduledDate ? `${item.scheduledDate} ${item.scheduledTime || ""}` : formatDate(item.date)}</Field>
             </div>
 
+            {/* Preview Link - show when post has been published */}
+            {!editing && (() => {
+              const postIdMatch = item.notes?.match(/Post ID:\s*(\d+_\d+)/);
+              const postId = postIdMatch?.[1];
+              if (!postId) return null;
+
+              const postUrl = item.platform === "Instagram"
+                ? `https://www.facebook.com/${postId}`
+                : `https://www.facebook.com/${postId}`;
+
+              return (
+                <a
+                  href={postUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink className="size-3.5" />
+                  View published post
+                </a>
+              );
+            })()}
+
             {/* Platform-specific Preview */}
             <div>
               <p className="mb-2 text-sm font-medium">Post Preview</p>
@@ -952,34 +975,6 @@ export function ContentDetailOverlay({
                   <p className="mt-1 text-sm text-muted-foreground">{item.notes || "—"}</p>
                 )}
               </div>
-
-              {/* Preview Link - show when post has been published */}
-              {!editing && (() => {
-                const postIdMatch = item.notes?.match(/Post ID:\s*(\d+_\d+)/);
-                const postId = postIdMatch?.[1];
-                if (!postId) return null;
-
-                const postUrl = item.platform === "Instagram"
-                  ? `https://www.facebook.com/${postId}`
-                  : `https://www.facebook.com/${postId}`;
-
-                return (
-                  <div>
-                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                      Preview Link
-                    </Label>
-                    <a
-                      href={postUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-1 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                    >
-                      <ExternalLink className="size-3.5" />
-                      View published post
-                    </a>
-                  </div>
-                );
-              })()}
             </div>
           </div>
 
@@ -993,12 +988,7 @@ export function ContentDetailOverlay({
               </>
             ) : (
               <>
-                {item.status !== "Deleted" && (
-                  <Button variant="outline" onClick={() => setEditing(true)}>
-                    Edit
-                  </Button>
-                )}
-                {item.status === "Deleted" ? (
+                {item.status === "Deleted" && (
                   <>
                     <Button
                       variant="outline"
@@ -1014,34 +1004,44 @@ export function ContentDetailOverlay({
                       Delete Permanently
                     </Button>
                   </>
-                ) : (
+                )}
+                {item.status === "Approved" && (
                   <>
-                    {item.status !== "Approved" && (
-                      <Button
-                        onClick={handlePublishNow}
-                        disabled={publishingNow || scheduling}
-                      >
-                        {publishingNow ? "Publishing..." : "Publish Now"}
-                      </Button>
-                    )}
-                    {item.status !== "Approved" && (
-                      <Button
-                        variant="outline"
-                        onClick={handleApprove}
-                        disabled={scheduling || publishingNow}
-                      >
-                        {scheduling ? "Processing..." : "Approve"}
-                      </Button>
-                    )}
-                    {item.status !== "Approved" && item.scheduledDate && (
-                      <Button
-                        variant="outline"
-                        onClick={handleApprove}
-                        disabled={scheduling || publishingNow}
-                      >
-                        {scheduling ? "Processing..." : "Reschedule & Approve"}
-                      </Button>
-                    )}
+                    <Button
+                      onClick={handlePublishNow}
+                      disabled={publishingNow}
+                    >
+                      {publishingNow ? "Publishing..." : "Publish Now"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setEditing(true);
+                        toast.info("Edit scheduled date, then save to reschedule");
+                      }}
+                    >
+                      Reschedule
+                    </Button>
+                  </>
+                )}
+                {item.status !== "Approved" && item.status !== "Deleted" && item.status !== "Submitted" && (
+                  <>
+                    <Button variant="outline" onClick={() => setEditing(true)}>
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={handlePublishNow}
+                      disabled={publishingNow || scheduling}
+                    >
+                      {publishingNow ? "Publishing..." : "Publish Now"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleApprove}
+                      disabled={scheduling || publishingNow}
+                    >
+                      {scheduling ? "Processing..." : "Approve"}
+                    </Button>
                     <Button variant="destructive" onClick={() => setConfirmDelete(true)}>
                       Delete
                     </Button>
