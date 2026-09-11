@@ -462,6 +462,8 @@ function SocialIntegrationCard({
   selectedBusinessName,
   selectedPageName,
   facebookUserName,
+  connectedAt,
+  tokenExpiresIn,
   onConnect,
   onDisconnect,
   onManualConnect,
@@ -472,6 +474,8 @@ function SocialIntegrationCard({
   selectedBusinessName?: string | undefined;
   selectedPageName?: string | undefined;
   facebookUserName?: string | undefined;
+  connectedAt?: string | undefined;
+  tokenExpiresIn?: number | undefined;
   onConnect: () => void;
   onDisconnect: () => void;
   onManualConnect?: () => void;
@@ -517,6 +521,24 @@ function SocialIntegrationCard({
               )}
               {selectedPageName && (
                 <p className="mt-1 text-xs text-muted-foreground">Page: {selectedPageName}</p>
+              )}
+              {connectedAt && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Connected: {connectedAt}
+                  {tokenExpiresIn && tokenExpiresIn > 0 && (() => {
+                    const connectedDate = new Date(connectedAt);
+                    const expiryDate = new Date(connectedDate.getTime() + tokenExpiresIn * 1000);
+                    const now = new Date();
+                    const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    if (daysLeft <= 0) {
+                      return <span className="ml-1 text-destructive font-medium">(Expired)</span>;
+                    } else if (daysLeft <= 7) {
+                      return <span className="ml-1 text-warning font-medium">(Expires in {daysLeft}d)</span>;
+                    } else {
+                      return <span className="ml-1 text-success">| Expires: {expiryDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>;
+                    }
+                  })()}
+                </p>
               )}
             </div>
           )}
@@ -1419,6 +1441,8 @@ function SettingsTab({ clientId }: { clientId: string }) {
               selectedBusinessName={socialIntegrations[platform]?.selectedBusinessName}
               selectedPageName={socialIntegrations[platform]?.selectedPageName}
               facebookUserName={socialIntegrations[platform]?.facebookUserName}
+              connectedAt={socialIntegrations[platform]?.connectedAt}
+              tokenExpiresIn={socialIntegrations[platform]?.tokenExpiresIn}
               onConnect={() => handleConnect(platform)}
               onDisconnect={() => handleDisconnect(platform)}
               {...((platform === "Facebook" || platform === "Instagram") ? {
