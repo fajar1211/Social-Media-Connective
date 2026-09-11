@@ -1206,6 +1206,42 @@ function SettingsTab({ clientId }: { clientId: string }) {
     }
     setManualFetching(true);
     try {
+      let accessToken = manualToken.trim();
+
+      // Check if token is short-lived and exchange to long-lived
+      try {
+        const debugResponse = await fetch(
+          `https://graph.facebook.com/v21.0/debug_token?input_token=${accessToken}&access_token=${META_APP_ID}|${META_APP_SECRET}`
+        );
+        const debugData = await debugResponse.json();
+        const tokenInfo = debugData.data;
+        if (tokenInfo) {
+          const expiresAt = tokenInfo.expires_at || 0;
+          const now = Math.floor(Date.now() / 1000);
+          const remainingSec = expiresAt > 0 ? expiresAt - now : 0;
+
+          // If token expires in less than 10 days, try to exchange for long-lived
+          if (remainingSec > 0 && remainingSec < 864000) {
+            toast.info("Token short-lived, exchanging to long-lived...");
+            const exchangeResponse = await fetch(
+              `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&fb_exchange_token=${accessToken}`
+            );
+            const exchangeData = await exchangeResponse.json();
+            if (exchangeData.access_token) {
+              accessToken = exchangeData.access_token;
+              toast.success("Token exchanged to long-lived (~60 days)");
+            } else {
+              console.log("[ManualToken] Exchange failed:", exchangeData);
+            }
+          }
+        }
+      } catch (e) {
+        console.log("[ManualToken] Debug/exchange error:", e);
+      }
+
+      // Store the (possibly exchanged) token for later use
+      setManualToken(accessToken);
+
       if (manualTokenPlatform === "Instagram") {
         // Fetch pages with Instagram Business Account
         const accountsResponse = await fetch(
