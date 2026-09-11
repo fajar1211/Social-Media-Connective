@@ -157,15 +157,18 @@ export const Route = createFileRoute("/api/auth/instagram-direct/callback")({
               `https://graph.facebook.com/${GRAPH_API_VERSION}/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&fb_exchange_token=${accessToken}`
             );
             const llExchangeData = await llExchangeResponse.json();
+            console.log("[InstagramDirectCallback] Long-lived exchange response:", JSON.stringify(llExchangeData));
             if (llExchangeData.access_token) {
               longLivedUserToken = llExchangeData.access_token;
               longLivedExpiresIn = llExchangeData.expires_in || 5184000;
               console.log("[InstagramDirectCallback] Long-lived user token obtained, expires_in:", longLivedExpiresIn);
             } else {
               console.log("[InstagramDirectCallback] Long-lived exchange failed, using short-lived token");
+              longLivedExpiresIn = 5184000;
             }
           } catch (e) {
             console.log("[InstagramDirectCallback] Long-lived exchange error:", e);
+            longLivedExpiresIn = 5184000;
           }
 
           // Get page access tokens using the long-lived user token

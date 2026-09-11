@@ -1309,7 +1309,7 @@ function SettingsTab({ clientId }: { clientId: string }) {
     if (!selectedPage) return;
 
     // Get token expiry from Facebook debug_token endpoint
-    let tokenExpiresIn = 0;
+    let tokenExpiresIn = 5184000; // Default ~60 days for long-lived tokens
     try {
       const debugResponse = await fetch(
         `https://graph.facebook.com/v21.0/debug_token?input_token=${manualToken.trim()}&access_token=${META_APP_ID}|${META_APP_SECRET}`

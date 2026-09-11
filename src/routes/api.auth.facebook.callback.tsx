@@ -163,16 +163,23 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
               `https://graph.facebook.com/${GRAPH_API_VERSION}/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&fb_exchange_token=${accessToken}`
             );
             const llExchangeData = await llExchangeResponse.json();
+            console.log("[FacebookCallback] Long-lived exchange response:", JSON.stringify(llExchangeData));
             if (llExchangeData.access_token) {
               longLivedUserToken = llExchangeData.access_token;
               longLivedExpiresIn = llExchangeData.expires_in || 5184000;
               console.log("[FacebookCallback] Long-lived user token obtained, expires_in:", longLivedExpiresIn);
             } else {
               console.log("[FacebookCallback] Long-lived exchange failed, using short-lived token");
+              longLivedExpiresIn = 5184000;
             }
           } catch (e) {
             console.log("[FacebookCallback] Long-lived exchange error:", e);
+            longLivedExpiresIn = 5184000;
           }
+
+          // Page access tokens from long-lived user tokens are non-expiring (~60 days)
+          // Use the user token expiry for all pages since page tokens don't expire
+          const pageExpiresIn = longLivedExpiresIn;
 
           // Get page access tokens using the long-lived user token
           const longLivedPages: Array<{
@@ -221,7 +228,7 @@ export const Route = createFileRoute("/api/auth/facebook/callback")({
             pages: longLivedPages,
             access_token: longLivedUserToken,
             token_type: "bearer",
-            expires_in: longLivedExpiresIn,
+            expires_in: pageExpiresIn,
             auto_connect: autoConnect,
           });
 
