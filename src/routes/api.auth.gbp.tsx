@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/auth/gbp")({
           client_id: GOOGLE_CLIENT_ID,
           redirect_uri: REDIRECT_URI,
           response_type: "code",
-          scope: "https://www.googleapis.com/auth/business.manage",
+          scope: "openid email profile https://www.googleapis.com/auth/business.manage",
           access_type: "offline",
           prompt: "consent",
           state: clientId,

@@ -72,13 +72,36 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
           const refreshToken = tokenData.refresh_token;
           const expiresIn = tokenData.expires_in || 3600;
 
-          const userResponse = await fetch(
-            "https://www.googleapis.com/oauth2/v2/userinfo",
-            {
-              headers: { Authorization: `Bearer ${accessToken}` },
+          // Try userinfo endpoint first
+          let userData: { id?: string; name?: string; email?: string } = {};
+          try {
+            const userResponse = await fetch(
+              "https://www.googleapis.com/oauth2/v2/userinfo",
+              {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              }
+            );
+            userData = await userResponse.json();
+            console.log("[GBP Callback] User info response:", JSON.stringify(userData));
+          } catch (e) {
+            console.log("[GBP Callback] User info fetch failed:", e);
+          }
+
+          // Fallback: extract from id_token JWT payload
+          if (!userData.id && tokenData.id_token) {
+            try {
+              const payload = tokenData.id_token.split(".")[1];
+              const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+              userData = {
+                id: decoded.sub || "",
+                name: decoded.name || "",
+                email: decoded.email || "",
+              };
+              console.log("[GBP Callback] User info from id_token:", JSON.stringify(userData));
+            } catch (e) {
+              console.log("[GBP Callback] id_token decode failed:", e);
             }
-          );
-          const userData = await userResponse.json();
+          }
 
           const accountsResponse = await fetch(
             "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
@@ -194,6 +217,13 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
               ${flatLocations.map(l => `<p>Location: ${escapeHtml(l.name)} - ID: ${escapeHtml(l.id)} (account: ${escapeHtml(l.accountId)})</p>`).join("")}
               ${accounts.length === 0 ? '<p style="color:red;">No accounts found. Check if Google My Business Account Management API is enabled.</p>' : ''}
               ${accounts.length > 0 && flatLocations.length === 0 ? '<p style="color:orange;">Accounts found but no locations. Check if Google My Business Business Information API is enabled and GBP location is verified.</p>' : ''}
+              <details>
+                <summary>Raw API Responses (Debug)</summary>
+                <pre style="font-size:11px;max-height:400px;overflow:auto;background:#f5f5f5;padding:10px;">Token keys: ${escapeHtml(Object.keys(tokenData).join(", "))}
+User data: ${escapeHtml(JSON.stringify(userData, null, 2))}
+Accounts raw: ${escapeHtml(JSON.stringify(accountsData, null, 2))}
+Locations raw: ${escapeHtml(JSON.stringify(flatLocations.map(l => ({id: l.id, name: l.name, accountId: l.accountId})), null, 2))}</pre>
+              </details>
               <p id="status" style="color:green;">Connecting...</p>
             `,
             script: `
