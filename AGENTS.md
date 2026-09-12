@@ -94,3 +94,19 @@ git add -A; git commit -m "message"; git push origin main
 - Gemini Model: `gemma-4-26b-a4b-it`
 - Supabase URL: `https://jzwmgcldazvuoxvbmkzu.supabase.co`
 - Supabase Anon Key: `sb_publishable_g1Z1qWDQELk9jNUkQrE71A_cZES6Y-n`
+
+## Google Business Profile OAuth
+- Redirect URI: `https://socmed.marketingconnective.com/api/auth/gbp/callback`
+- Scope: `https://www.googleapis.com/auth/business.manage`
+- Google Cloud Project: `gbp-agent-image`
+
+### Cloudflare Workers Env Vars Setup
+Untuk production, set environment variables di Cloudflare Dashboard:
+1. Buka: https://dash.cloudflare.com
+2. Pilih domain: `marketingconnective.com`
+3. Go to: Workers & Pages → `social-media-connective` → Settings → Variables
+4. Tambahkan:
+   - `GOOGLE_CLIENT_ID` (from Google Cloud Console → APIs & Services → Credentials)
+   - `GOOGLE_CLIENT_SECRET` (from Google Cloud Console → APIs & Services → Credentials)
+5. Klik "Encrypt" untuk GOOGLE_CLIENT_SECRET
+6. Klik "Save"
