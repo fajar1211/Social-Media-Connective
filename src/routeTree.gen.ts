@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdditionalRouteImport } from './routes/additional'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ApprovedRouteImport } from './routes/approved'
@@ -66,6 +67,11 @@ import { Route as ApiAuthInstagramFacebookCallbackRouteImport } from './routes/a
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdditionalRoute = AdditionalRouteImport.update({
@@ -337,6 +343,7 @@ const ApiAuthInstagramFacebookCallbackRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/additional': typeof AdditionalRoute
   '/analytics': typeof AnalyticsRoute
   '/approved': typeof ApprovedRoute
@@ -392,6 +399,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/additional': typeof AdditionalRoute
   '/analytics': typeof AnalyticsRoute
   '/approved': typeof ApprovedRoute
@@ -448,6 +456,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/additional': typeof AdditionalRoute
   '/analytics': typeof AnalyticsRoute
   '/approved': typeof ApprovedRoute
@@ -505,6 +514,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/additional'
     | '/analytics'
     | '/approved'
@@ -560,6 +570,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/additional'
     | '/analytics'
     | '/approved'
@@ -615,6 +626,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/additional'
     | '/analytics'
     | '/approved'
@@ -671,6 +683,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AdditionalRoute: typeof AdditionalRoute
   AnalyticsRoute: typeof AnalyticsRoute
   ApprovedRoute: typeof ApprovedRoute
@@ -725,6 +738,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/additional': {
@@ -1173,6 +1193,7 @@ const ApiAuthInstagramDirectRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AdditionalRoute: AdditionalRoute,
   AnalyticsRoute: AnalyticsRoute,
   ApprovedRoute: ApprovedRoute,
