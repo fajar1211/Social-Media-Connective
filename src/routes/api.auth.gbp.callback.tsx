@@ -81,12 +81,13 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
           const userData = await userResponse.json();
 
           const accountsResponse = await fetch(
-            "https://mybusinessbusinessinformation.googleapis.com/v1/accounts",
+            "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
             {
               headers: { Authorization: `Bearer ${accessToken}` },
             }
           );
           const accountsData = await accountsResponse.json();
+          console.log("[GBP Callback] Accounts API response:", JSON.stringify(accountsData, null, 2));
 
           const accounts: Array<{
             id: string;
@@ -106,9 +107,7 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
           > = {};
 
           for (const account of accounts) {
-            if (account.type === "PERSONAL" || account.type === "AD_GROUP") {
-              continue;
-            }
+            console.log(`[GBP Callback] Fetching locations for account: ${account.id} (${account.name}) type=${account.type}`);
             try {
               const locationsResponse = await fetch(
                 `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${account.id}/locations?readMask=name,title,address,websiteUri,phoneNumbers`,
@@ -155,15 +154,17 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
             type: "gbp-auth-success",
             clientId: clientId,
             user: userData,
-            accounts: accounts.filter(
-              (a) => a.type !== "PERSONAL" && a.type !== "AD_GROUP"
-            ),
+            accounts: accounts,
             locations: flatLocations,
             access_token: accessToken,
             refresh_token: refreshToken,
             token_type: "bearer",
             expires_in: expiresIn,
           });
+
+          console.log("[GBP Callback] Total accounts:", accounts.length);
+          console.log("[GBP Callback] Total flat locations:", flatLocations.length);
+          console.log("[GBP Callback] Locations:", JSON.stringify(flatLocations, null, 2));
 
           const successHtml = buildHtml({
             title: "Google Business Profile Auth Success",
@@ -172,6 +173,7 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
               <p>User: ${escapeHtml(userData.name || userData.email || "Unknown")} (${userData.id})</p>
               <p>Business Accounts: ${accounts.length} found</p>
               <p>Locations: ${flatLocations.length} found</p>
+              ${accounts.length > 0 ? `<p>Account types: ${accounts.map(a => `${a.name} (${a.type})`).join(", ")}</p>` : ""}
               <p id="status" style="color:green;">Connecting...</p>
             `,
             script: `
