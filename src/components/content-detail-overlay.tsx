@@ -367,6 +367,11 @@ export function ContentDetailOverlay({
     const isInstagram = item.platform === "Instagram";
     const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
 
+    // ── GBP Publish ──
+    const gbpConnection = client?.socialIntegrations?.GBP;
+    const isGBP = item.platform === "GBP";
+    const canPublishGbp = isGBP && gbpConnection?.connected && gbpConnection?.accessToken && gbpConnection?.selectedPageId;
+
     const message = (item.body || item.caption || "").trim();
     const hasImage = mediaUrls.length > 0 && !!mediaUrls[0] && !mediaUrls[0].startsWith("blob:");
 
@@ -552,6 +557,39 @@ export function ContentDetailOverlay({
       } finally {
         setScheduling(false);
       }
+    } else if (canPublishGbp) {
+      // ── GBP Publish ──
+      setScheduling(true);
+      try {
+        const accountId = gbpConnection?.accountId || "";
+        const locationId = gbpConnection?.selectedPageId || "";
+        const response = await fetch("/api/gbp/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountId,
+            locationId,
+            accessToken: gbpConnection?.accessToken,
+            summary: message,
+            media: hasImage ? [{ url: mediaUrls[0], mediaFormat: "PHOTO" }] : undefined,
+          }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Approved",
+            notes: `Published to GBP (Post ID: ${data.postId})`,
+          });
+          toast.success("Published to Google Business Profile!");
+          onClose();
+        } else {
+          toast.error(`Failed to publish to GBP: ${data.error}`);
+        }
+      } catch {
+        toast.error("Failed to publish to Google Business Profile. Please try again.");
+      } finally {
+        setScheduling(false);
+      }
     } else {
       // No platform connection - just approve
       actions.update(item.id, { status: "Approved" });
@@ -606,11 +644,14 @@ export function ContentDetailOverlay({
 
     const isFacebook = item.platform === "Facebook";
     const isInstagram = item.platform === "Instagram";
+    const isGBP = item.platform === "GBP";
     const fbConnection = client?.socialIntegrations?.Facebook;
     const fbPages: FacebookPage[] = fbConnection?.pages || [];
     const canPublishFb = isFacebook && fbConnection?.connected && fbConnection?.accessToken && fbPages.length > 0;
     const igConnection = client?.socialIntegrations?.Instagram;
     const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
+    const gbpConnection = client?.socialIntegrations?.GBP;
+    const canPublishGbp = isGBP && gbpConnection?.connected && gbpConnection?.accessToken && gbpConnection?.selectedPageId;
 
     const message = (item.body || item.caption || "").trim();
     const hasImage = mediaUrls.length > 0 && !!mediaUrls[0] && !mediaUrls[0].startsWith("blob:");
@@ -742,6 +783,31 @@ export function ContentDetailOverlay({
           onClose();
         } else {
           toast.error(`Failed to publish to Instagram: ${data.error}`);
+        }
+      } else if (canPublishGbp) {
+        const accountId = gbpConnection?.accountId || "";
+        const locationId = gbpConnection?.selectedPageId || "";
+        const response = await fetch("/api/gbp/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountId,
+            locationId,
+            accessToken: gbpConnection?.accessToken,
+            summary: message,
+            media: hasImage ? [{ url: mediaUrls[0], mediaFormat: "PHOTO" }] : undefined,
+          }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Submitted",
+            notes: `Published to GBP (Post ID: ${data.postId})`,
+          });
+          toast.success("Published to Google Business Profile!");
+          onClose();
+        } else {
+          toast.error(`Failed to publish to GBP: ${data.error}`);
         }
       } else {
         actions.update(item.id, { status: "Submitted" });

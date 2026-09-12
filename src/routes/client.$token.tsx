@@ -93,7 +93,6 @@ const PLATFORM_CONFIG: Record<SocialPlatform, { color: string; icon: React.React
       </svg>
     ),
     description: "Manage local posts and reviews.",
-    comingSoon: true,
   },
   LinkedIn: {
     color: "bg-[#0A66C2]",

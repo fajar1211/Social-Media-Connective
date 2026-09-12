@@ -60,12 +60,16 @@ export interface SocialConnection {
   account_name: string;
   account_id: string;
   access_token: string;
+  refresh_token?: string;
   token_expires_in: number;
   pages: FacebookPage[];
   selected_business_id: string;
   selected_business_name: string;
   selected_page_id: string;
   selected_page_name: string;
+  gbp_locations?: Array<{ id: string; name: string; accountId: string; accountName: string; address?: string; phoneNumber?: string; websiteUrl?: string }>;
+  gbp_accounts?: Array<{ id: string; name: string; type: string }>;
+  gbp_user?: { id: string; name: string; email?: string };
   created_at: string;
   updated_at: string;
 }

@@ -66,6 +66,7 @@ export type SocialConnection = {
   accountId?: string;
   connectedAt?: string;
   accessToken?: string;
+  refreshToken?: string;
   tokenExpiresIn?: number;
   pages?: FacebookPage[];
   selectedBusinessId?: string;
@@ -74,6 +75,9 @@ export type SocialConnection = {
   selectedPageName?: string;
   facebookUserName?: string;
   profilePicture?: string;
+  gbpLocations?: Array<{ id: string; name: string; accountId: string; accountName: string; address?: string; phoneNumber?: string; websiteUrl?: string }>;
+  gbpAccounts?: Array<{ id: string; name: string; type: string }>;
+  gbpUser?: { id: string; name: string; email?: string } | null | undefined;
 };
 
 export type Client = {

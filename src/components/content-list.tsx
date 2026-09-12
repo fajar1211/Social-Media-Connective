@@ -44,12 +44,15 @@ function ContentActions({ item }: { item: ContentItem }) {
   const client = clients.find((c) => c.name === item.client);
   const fbConnection = client?.socialIntegrations?.Facebook;
   const igConnection = client?.socialIntegrations?.Instagram;
+  const gbpConnection = client?.socialIntegrations?.GBP;
   const pages: FacebookPage[] = fbConnection?.pages || [];
   const isFacebook = item.platform === "Facebook";
   const isInstagram = item.platform === "Instagram";
+  const isGBP = item.platform === "GBP";
   const canPublishFb = isFacebook && fbConnection?.connected && fbConnection?.accessToken && pages.length > 0;
   const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken && igConnection?.accountId;
-  const canPublish = canPublishFb || canPublishIg;
+  const canPublishGbp = isGBP && gbpConnection?.connected && gbpConnection?.accessToken && gbpConnection?.selectedPageId;
+  const canPublish = canPublishFb || canPublishIg || canPublishGbp;
 
   if (!canPublish || item.status === "Deleted" || item.status === "Approved") {
     return null;
@@ -181,6 +184,46 @@ function ContentActions({ item }: { item: ContentItem }) {
     }
   };
 
+  const handlePublishGBP = async () => {
+    if (!gbpConnection?.accountId || !gbpConnection?.accessToken || !gbpConnection?.selectedPageId) return;
+
+    const imageUrl = item.media && item.media.length > 0 ? item.media[0] : null;
+
+    setPublishing(true);
+    try {
+      const message = `${item.caption}\n\n${item.body || ""}\n\n${item.hashtags.join(" ")}`;
+
+      const response = await fetch("/api/gbp/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: gbpConnection.accountId,
+          locationId: gbpConnection.selectedPageId,
+          accessToken: gbpConnection.accessToken,
+          summary: message,
+          media: imageUrl ? [{ url: imageUrl, mediaFormat: "PHOTO" }] : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        actions.update(item.id, {
+          status: "Approved",
+          notes: `Published to GBP (Post ID: ${data.postId})`,
+        });
+        toast.success("Published to Google Business Profile!");
+        setShowPageSelect(false);
+      } else {
+        toast.error(`Failed: ${data.error}`);
+      }
+    } catch {
+      toast.error("Failed to publish to Google Business Profile");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const handleScheduleFacebook = async (pageId: string) => {
     const page = pages.find((p) => p.id === pageId);
     if (!page || !scheduleTime) return;
@@ -306,6 +349,20 @@ function ContentActions({ item }: { item: ContentItem }) {
                 className="size-7"
                 title="Publish to Instagram"
                 onClick={() => handlePublishInstagram()}
+                disabled={publishing}
+              >
+                <Send className="size-3.5" />
+              </Button>
+            </>
+          )}
+          {canPublishGbp && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                title="Publish to GBP"
+                onClick={() => handlePublishGBP()}
                 disabled={publishing}
               >
                 <Send className="size-3.5" />

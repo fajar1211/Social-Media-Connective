@@ -204,13 +204,15 @@ function CreateContent() {
   const client = clients.find((c) => c.id === selectedClientId);
   const fbConnection = client?.socialIntegrations?.Facebook;
   const igConnection = client?.socialIntegrations?.Instagram;
+  const gbpConnection = client?.socialIntegrations?.GBP;
   const pages: FacebookPage[] = fbConnection?.pages || [];
   const isFacebook = platform === "Facebook";
   const isInstagram = platform === "Instagram";
   const isGBP = platform === "GBP";
   const isBlog = platform === "Blog";
   const canPublish = (isFacebook && fbConnection?.connected && fbConnection?.accessToken) ||
-    (isInstagram && igConnection?.connected && igConnection?.accessToken && igConnection?.accountId);
+    (isInstagram && igConnection?.connected && igConnection?.accessToken && igConnection?.accountId) ||
+    (isGBP && gbpConnection?.connected && gbpConnection?.accessToken && gbpConnection?.selectedPageId);
 
   const availableContentTypes = isBlog
     ? ["Blog Article" as const]
@@ -580,6 +582,32 @@ function CreateContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+      } else if (isGBP) {
+        const accountId = gbpConnection?.accountId || "";
+        const locationId = gbpConnection?.selectedPageId || "";
+        let publishImageUrl = mediaPreview || "";
+        if (publishImageUrl && (publishImageUrl.startsWith("blob:") || publishImageUrl.startsWith("data:"))) {
+          toast.info("Uploading image for publishing...");
+          const resolvedUrls = await resolveMediaUrl();
+          if (resolvedUrls.length > 0 && resolvedUrls[0]) {
+            publishImageUrl = resolvedUrls[0];
+          } else {
+            toast.error("Failed to upload image. Please try again.");
+            setPublishing(false);
+            return;
+          }
+        }
+        response = await fetch("/api/gbp/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountId,
+            locationId,
+            accessToken: gbpConnection?.accessToken,
+            summary: message || undefined,
+            media: publishImageUrl ? [{ url: publishImageUrl, mediaFormat: "PHOTO" }] : undefined,
+          }),
+        });
       } else {
         toast.error("Platform not supported for publishing.");
         setPublishing(false);
@@ -591,6 +619,8 @@ function CreateContent() {
       if (data.success) {
         const publishNote = isInstagram
           ? `Published to Instagram: ${igConnection?.accountName || "Instagram Account"} (Post ID: ${data.postId})`
+          : isGBP
+          ? `Published to GBP: ${gbpConnection?.accountName || "Google Business Profile"} (Post ID: ${data.postId})`
           : `Published to Facebook: ${pages.find((p) => p.id === selectedPage)?.name || "Facebook Page"} (Post ID: ${data.postId})`;
         await actions.addContent({
           title: topic.trim(),
@@ -608,7 +638,7 @@ function CreateContent() {
           media: await resolveMediaUrl(),
           timezone,
         });
-        toast.success(`Published to ${isInstagram ? "Instagram" : pages.find((p) => p.id === selectedPage)?.name || "Facebook"}!`);
+        toast.success(`Published to ${isInstagram ? "Instagram" : isGBP ? "Google Business Profile" : pages.find((p) => p.id === selectedPage)?.name || "Facebook"}!`);
         navigate({ to: "/approved" });
       } else {
         toast.error(`Failed to publish: ${data.error}`);

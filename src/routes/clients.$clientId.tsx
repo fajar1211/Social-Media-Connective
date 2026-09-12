@@ -807,6 +807,149 @@ function SettingsTab({ clientId }: { clientId: string }) {
       }
     } else if (platform === "Instagram") {
       setIgLoginDialogOpen(true);
+    } else if (platform === "GBP") {
+      const width = 600;
+      const height = 700;
+      const left = (window.innerWidth - width) / 2;
+      const top = (window.innerHeight - height) / 2;
+
+      const authUrl = `/api/auth/gbp?client_id=${clientId}`;
+
+      const popup = window.open(
+        authUrl,
+        `gbp_oauth_${clientId}`,
+        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+      );
+
+      let gbpAuthSuccessful = false;
+      let popupClosed = false;
+
+      const processGbpAuth = (eventData: Record<string, unknown>) => {
+        gbpAuthSuccessful = true;
+        const user = eventData['user'] as { id: string; name: string; email?: string } | undefined;
+        const accounts = (eventData['accounts'] || []) as Array<{ id: string; name: string; type: string }>;
+        const locations = (eventData['locations'] || []) as Array<{ id: string; name: string; accountId: string; accountName: string; address?: string; phoneNumber?: string; websiteUrl?: string }>;
+        const accessToken = eventData['access_token'] as string;
+        const refreshToken = eventData['refresh_token'] as string;
+        const expiresIn = eventData['expires_in'] as number;
+
+        if (locations.length === 1) {
+          const loc = locations[0]!;
+
+          const newIntegrations = {
+            ...socialIntegrationsRef.current,
+            GBP: {
+              connected: true,
+              accountName: loc.accountName || user?.name || "Google Business",
+              accountId: loc.accountId,
+              connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+              accessToken,
+              refreshToken,
+              tokenExpiresIn: expiresIn,
+              selectedPageId: loc.id,
+              selectedPageName: loc.name,
+              gbpLocations: locations,
+              gbpAccounts: accounts,
+              gbpUser: user,
+            },
+          };
+          setSocialIntegrations(newIntegrations);
+          socialIntegrationsRef.current = newIntegrations;
+          actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+          forceUpdate();
+
+          toast.success(`GBP connected to "${loc.name}" successfully!`);
+        } else if (locations.length > 1) {
+          const newIntegrations = {
+            ...socialIntegrationsRef.current,
+            GBP: {
+              connected: true,
+              accountName: user?.name || "Google Business",
+              accountId: accounts[0]?.id || "",
+              connectedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+              accessToken,
+              refreshToken,
+              tokenExpiresIn: expiresIn,
+              selectedPageId: locations[0]?.id || "",
+              selectedPageName: locations[0]?.name || "",
+              gbpLocations: locations,
+              gbpAccounts: accounts,
+              gbpUser: user,
+            },
+          };
+          setSocialIntegrations(newIntegrations);
+          socialIntegrationsRef.current = newIntegrations;
+          actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+          forceUpdate();
+
+          toast.success(`GBP connected with ${locations.length} locations!`);
+        } else {
+          toast.error("No Google Business Profile locations found. Please create a location in Google Business Profile first.");
+        }
+      };
+
+      const handler = (event: MessageEvent) => {
+        if (event.data?.type === "gbp-auth-success" && event.data.clientId === clientId) {
+          processGbpAuth(event.data);
+          window.removeEventListener("message", handler);
+        } else if (event.data?.type === "gbp-auth-error" && event.data.clientId === clientId) {
+          toast.error(`Failed to connect GBP: ${event.data.error}`);
+          window.removeEventListener("message", handler);
+        }
+      };
+
+      window.addEventListener("message", handler);
+
+      const handleStorage = (e: StorageEvent) => {
+        if (e.key === "socmedconnective-gbp-auth" && e.newValue) {
+          try {
+            const data = JSON.parse(e.newValue);
+            if (data.type === "gbp-auth-success" && data.clientId === clientId) {
+              processGbpAuth(data);
+              localStorage.removeItem("socmedconnective-gbp-auth");
+            }
+          } catch {}
+        }
+      };
+      window.addEventListener("storage", handleStorage);
+
+      const checkExisting = setInterval(() => {
+        try {
+          const raw = localStorage.getItem("socmedconnective-gbp-auth");
+          if (raw) {
+            const data = JSON.parse(raw);
+            if (data.type === "gbp-auth-success" && data.clientId === clientId) {
+              processGbpAuth(data);
+              localStorage.removeItem("socmedconnective-gbp-auth");
+            }
+          }
+        } catch {}
+      }, 200);
+
+      if (popup) {
+        const check = setInterval(() => {
+          if (popup.closed) {
+            popupClosed = true;
+            clearInterval(check);
+            clearInterval(checkExisting);
+            window.removeEventListener("message", handler);
+            window.removeEventListener("storage", handleStorage);
+
+            if (gbpAuthSuccessful) {
+              forceUpdate();
+            } else {
+              const newIntegrations = {
+                ...socialIntegrationsRef.current,
+                GBP: { connected: false },
+              };
+              setSocialIntegrations(newIntegrations);
+              socialIntegrationsRef.current = newIntegrations;
+              actions.updateClient(clientId, { socialIntegrations: newIntegrations });
+              forceUpdate();
+            }
+          }
+        }, 500);
+      }
     } else {
       toast.info(`${platform} is coming soon!`);
     }
@@ -3021,6 +3164,7 @@ function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]
     const client = clients.find((c) => c.name === item.client);
     const isFacebook = item.platform === "Facebook";
     const isInstagram = item.platform === "Instagram";
+    const isGBP = item.platform === "GBP";
 
     const fbConnection = client?.socialIntegrations?.Facebook;
     const fbPages: FacebookPage[] = fbConnection?.pages || [];
@@ -3028,6 +3172,9 @@ function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]
 
     const igConnection = client?.socialIntegrations?.Instagram;
     const canPublishIg = isInstagram && igConnection?.connected && igConnection?.accessToken;
+
+    const gbpConnection = client?.socialIntegrations?.GBP;
+    const canPublishGbp = isGBP && gbpConnection?.connected && gbpConnection?.accessToken && gbpConnection?.selectedPageId;
 
     const message = (item.body || item.caption || "").trim();
     const hasImage = item.media && item.media.length > 0 && item.media[0];
@@ -3125,6 +3272,30 @@ function SuggestedPostsSection({ content, clientName }: { content: ContentItem[]
           toast.success("Published to Instagram!");
         } else {
           toast.error(`Failed to publish to Instagram: ${data.error}`);
+        }
+      } else if (canPublishGbp) {
+        const accountId = gbpConnection?.accountId || "";
+        const locationId = gbpConnection?.selectedPageId || "";
+        const response = await fetch("/api/gbp/post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountId,
+            locationId,
+            accessToken: gbpConnection?.accessToken,
+            summary: message,
+            media: hasImage ? [{ url: item.media![0], mediaFormat: "PHOTO" }] : undefined,
+          }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          actions.update(item.id, {
+            status: "Submitted",
+            notes: `Published to GBP (Post ID: ${data.postId})`,
+          });
+          toast.success("Published to Google Business Profile!");
+        } else {
+          toast.error(`Failed to publish to GBP: ${data.error}`);
         }
       } else {
         toast.error(`No platform connection for ${item.client}. Please connect ${item.platform} first.`);

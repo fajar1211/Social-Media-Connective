@@ -41,6 +41,7 @@ import { Route as ApiAiResearchTrendsRouteImport } from './routes/api.ai.researc
 import { Route as ApiAiStrategizeRouteImport } from './routes/api.ai.strategize'
 import { Route as ApiAiWriteCaptionRouteImport } from './routes/api.ai.write-caption'
 import { Route as ApiAuthFacebookRouteImport } from './routes/api.auth.facebook'
+import { Route as ApiAuthGbpRouteImport } from './routes/api.auth.gbp'
 import { Route as ApiAuthInstagramRouteImport } from './routes/api.auth.instagram'
 import { Route as ApiAuthInstagramDirectRouteImport } from './routes/api.auth.instagram-direct'
 import { Route as ApiFacebookDeleteRouteImport } from './routes/api.facebook.delete'
@@ -50,10 +51,13 @@ import { Route as ApiFacebookPostRouteImport } from './routes/api.facebook.post'
 import { Route as ApiFacebookRefreshTokenRouteImport } from './routes/api.facebook.refresh-token'
 import { Route as ApiFacebookScheduleRouteImport } from './routes/api.facebook.schedule'
 import { Route as ApiFacebookValidateTokenRouteImport } from './routes/api.facebook.validate-token'
+import { Route as ApiGbpPostRouteImport } from './routes/api.gbp.post'
+import { Route as ApiGbpRefreshTokenRouteImport } from './routes/api.gbp.refresh-token'
 import { Route as ApiInstagramPostRouteImport } from './routes/api.instagram.post'
 import { Route as ApiInstagramScheduleRouteImport } from './routes/api.instagram.schedule'
 import { Route as ApiWebhookInstagramRouteImport } from './routes/api.webhook.instagram'
 import { Route as ApiAuthFacebookCallbackRouteImport } from './routes/api.auth.facebook.callback'
+import { Route as ApiAuthGbpCallbackRouteImport } from './routes/api.auth.gbp.callback'
 import { Route as ApiAuthInstagramDirectCallbackRouteImport } from './routes/api.auth.instagram-direct.callback'
 import { Route as ApiAuthInstagramCallbackRouteImport } from './routes/api.auth.instagram.callback'
 import { Route as ApiAuthInstagramFacebookRouteImport } from './routes/api.auth.instagram.facebook'
@@ -220,6 +224,11 @@ const ApiAuthFacebookRoute = ApiAuthFacebookRouteImport.update({
   path: '/api/auth/facebook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthGbpRoute = ApiAuthGbpRouteImport.update({
+  id: '/api/auth/gbp',
+  path: '/api/auth/gbp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthInstagramRoute = ApiAuthInstagramRouteImport.update({
   id: '/api/auth/instagram',
   path: '/api/auth/instagram',
@@ -266,6 +275,16 @@ const ApiFacebookValidateTokenRoute =
     path: '/api/facebook/validate-token',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiGbpPostRoute = ApiGbpPostRouteImport.update({
+  id: '/api/gbp/post',
+  path: '/api/gbp/post',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGbpRefreshTokenRoute = ApiGbpRefreshTokenRouteImport.update({
+  id: '/api/gbp/refresh-token',
+  path: '/api/gbp/refresh-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiInstagramPostRoute = ApiInstagramPostRouteImport.update({
   id: '/api/instagram/post',
   path: '/api/instagram/post',
@@ -285,6 +304,11 @@ const ApiAuthFacebookCallbackRoute = ApiAuthFacebookCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
   getParentRoute: () => ApiAuthFacebookRoute,
+} as any)
+const ApiAuthGbpCallbackRoute = ApiAuthGbpCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => ApiAuthGbpRoute,
 } as any)
 const ApiAuthInstagramDirectCallbackRoute =
   ApiAuthInstagramDirectCallbackRouteImport.update({
@@ -344,6 +368,7 @@ export interface FileRoutesByFullPath {
   '/api/ai/strategize': typeof ApiAiStrategizeRoute
   '/api/ai/write-caption': typeof ApiAiWriteCaptionRoute
   '/api/auth/facebook': typeof ApiAuthFacebookRouteWithChildren
+  '/api/auth/gbp': typeof ApiAuthGbpRouteWithChildren
   '/api/auth/instagram': typeof ApiAuthInstagramRouteWithChildren
   '/api/auth/instagram-direct': typeof ApiAuthInstagramDirectRouteWithChildren
   '/api/facebook/delete': typeof ApiFacebookDeleteRoute
@@ -353,10 +378,13 @@ export interface FileRoutesByFullPath {
   '/api/facebook/refresh-token': typeof ApiFacebookRefreshTokenRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
   '/api/facebook/validate-token': typeof ApiFacebookValidateTokenRoute
+  '/api/gbp/post': typeof ApiGbpPostRoute
+  '/api/gbp/refresh-token': typeof ApiGbpRefreshTokenRoute
   '/api/instagram/post': typeof ApiInstagramPostRoute
   '/api/instagram/schedule': typeof ApiInstagramScheduleRoute
   '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
   '/api/auth/facebook/callback': typeof ApiAuthFacebookCallbackRoute
+  '/api/auth/gbp/callback': typeof ApiAuthGbpCallbackRoute
   '/api/auth/instagram-direct/callback': typeof ApiAuthInstagramDirectCallbackRoute
   '/api/auth/instagram/callback': typeof ApiAuthInstagramCallbackRoute
   '/api/auth/instagram/facebook': typeof ApiAuthInstagramFacebookRouteWithChildren
@@ -395,6 +423,7 @@ export interface FileRoutesByTo {
   '/api/ai/strategize': typeof ApiAiStrategizeRoute
   '/api/ai/write-caption': typeof ApiAiWriteCaptionRoute
   '/api/auth/facebook': typeof ApiAuthFacebookRouteWithChildren
+  '/api/auth/gbp': typeof ApiAuthGbpRouteWithChildren
   '/api/auth/instagram': typeof ApiAuthInstagramRouteWithChildren
   '/api/auth/instagram-direct': typeof ApiAuthInstagramDirectRouteWithChildren
   '/api/facebook/delete': typeof ApiFacebookDeleteRoute
@@ -404,10 +433,13 @@ export interface FileRoutesByTo {
   '/api/facebook/refresh-token': typeof ApiFacebookRefreshTokenRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
   '/api/facebook/validate-token': typeof ApiFacebookValidateTokenRoute
+  '/api/gbp/post': typeof ApiGbpPostRoute
+  '/api/gbp/refresh-token': typeof ApiGbpRefreshTokenRoute
   '/api/instagram/post': typeof ApiInstagramPostRoute
   '/api/instagram/schedule': typeof ApiInstagramScheduleRoute
   '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
   '/api/auth/facebook/callback': typeof ApiAuthFacebookCallbackRoute
+  '/api/auth/gbp/callback': typeof ApiAuthGbpCallbackRoute
   '/api/auth/instagram-direct/callback': typeof ApiAuthInstagramDirectCallbackRoute
   '/api/auth/instagram/callback': typeof ApiAuthInstagramCallbackRoute
   '/api/auth/instagram/facebook': typeof ApiAuthInstagramFacebookRouteWithChildren
@@ -447,6 +479,7 @@ export interface FileRoutesById {
   '/api/ai/strategize': typeof ApiAiStrategizeRoute
   '/api/ai/write-caption': typeof ApiAiWriteCaptionRoute
   '/api/auth/facebook': typeof ApiAuthFacebookRouteWithChildren
+  '/api/auth/gbp': typeof ApiAuthGbpRouteWithChildren
   '/api/auth/instagram': typeof ApiAuthInstagramRouteWithChildren
   '/api/auth/instagram-direct': typeof ApiAuthInstagramDirectRouteWithChildren
   '/api/facebook/delete': typeof ApiFacebookDeleteRoute
@@ -456,10 +489,13 @@ export interface FileRoutesById {
   '/api/facebook/refresh-token': typeof ApiFacebookRefreshTokenRoute
   '/api/facebook/schedule': typeof ApiFacebookScheduleRoute
   '/api/facebook/validate-token': typeof ApiFacebookValidateTokenRoute
+  '/api/gbp/post': typeof ApiGbpPostRoute
+  '/api/gbp/refresh-token': typeof ApiGbpRefreshTokenRoute
   '/api/instagram/post': typeof ApiInstagramPostRoute
   '/api/instagram/schedule': typeof ApiInstagramScheduleRoute
   '/api/webhook/instagram': typeof ApiWebhookInstagramRoute
   '/api/auth/facebook/callback': typeof ApiAuthFacebookCallbackRoute
+  '/api/auth/gbp/callback': typeof ApiAuthGbpCallbackRoute
   '/api/auth/instagram-direct/callback': typeof ApiAuthInstagramDirectCallbackRoute
   '/api/auth/instagram/callback': typeof ApiAuthInstagramCallbackRoute
   '/api/auth/instagram/facebook': typeof ApiAuthInstagramFacebookRouteWithChildren
@@ -500,6 +536,7 @@ export interface FileRouteTypes {
     | '/api/ai/strategize'
     | '/api/ai/write-caption'
     | '/api/auth/facebook'
+    | '/api/auth/gbp'
     | '/api/auth/instagram'
     | '/api/auth/instagram-direct'
     | '/api/facebook/delete'
@@ -509,10 +546,13 @@ export interface FileRouteTypes {
     | '/api/facebook/refresh-token'
     | '/api/facebook/schedule'
     | '/api/facebook/validate-token'
+    | '/api/gbp/post'
+    | '/api/gbp/refresh-token'
     | '/api/instagram/post'
     | '/api/instagram/schedule'
     | '/api/webhook/instagram'
     | '/api/auth/facebook/callback'
+    | '/api/auth/gbp/callback'
     | '/api/auth/instagram-direct/callback'
     | '/api/auth/instagram/callback'
     | '/api/auth/instagram/facebook'
@@ -551,6 +591,7 @@ export interface FileRouteTypes {
     | '/api/ai/strategize'
     | '/api/ai/write-caption'
     | '/api/auth/facebook'
+    | '/api/auth/gbp'
     | '/api/auth/instagram'
     | '/api/auth/instagram-direct'
     | '/api/facebook/delete'
@@ -560,10 +601,13 @@ export interface FileRouteTypes {
     | '/api/facebook/refresh-token'
     | '/api/facebook/schedule'
     | '/api/facebook/validate-token'
+    | '/api/gbp/post'
+    | '/api/gbp/refresh-token'
     | '/api/instagram/post'
     | '/api/instagram/schedule'
     | '/api/webhook/instagram'
     | '/api/auth/facebook/callback'
+    | '/api/auth/gbp/callback'
     | '/api/auth/instagram-direct/callback'
     | '/api/auth/instagram/callback'
     | '/api/auth/instagram/facebook'
@@ -602,6 +646,7 @@ export interface FileRouteTypes {
     | '/api/ai/strategize'
     | '/api/ai/write-caption'
     | '/api/auth/facebook'
+    | '/api/auth/gbp'
     | '/api/auth/instagram'
     | '/api/auth/instagram-direct'
     | '/api/facebook/delete'
@@ -611,10 +656,13 @@ export interface FileRouteTypes {
     | '/api/facebook/refresh-token'
     | '/api/facebook/schedule'
     | '/api/facebook/validate-token'
+    | '/api/gbp/post'
+    | '/api/gbp/refresh-token'
     | '/api/instagram/post'
     | '/api/instagram/schedule'
     | '/api/webhook/instagram'
     | '/api/auth/facebook/callback'
+    | '/api/auth/gbp/callback'
     | '/api/auth/instagram-direct/callback'
     | '/api/auth/instagram/callback'
     | '/api/auth/instagram/facebook'
@@ -653,6 +701,7 @@ export interface RootRouteChildren {
   ApiAiStrategizeRoute: typeof ApiAiStrategizeRoute
   ApiAiWriteCaptionRoute: typeof ApiAiWriteCaptionRoute
   ApiAuthFacebookRoute: typeof ApiAuthFacebookRouteWithChildren
+  ApiAuthGbpRoute: typeof ApiAuthGbpRouteWithChildren
   ApiAuthInstagramRoute: typeof ApiAuthInstagramRouteWithChildren
   ApiAuthInstagramDirectRoute: typeof ApiAuthInstagramDirectRouteWithChildren
   ApiFacebookDeleteRoute: typeof ApiFacebookDeleteRoute
@@ -662,6 +711,8 @@ export interface RootRouteChildren {
   ApiFacebookRefreshTokenRoute: typeof ApiFacebookRefreshTokenRoute
   ApiFacebookScheduleRoute: typeof ApiFacebookScheduleRoute
   ApiFacebookValidateTokenRoute: typeof ApiFacebookValidateTokenRoute
+  ApiGbpPostRoute: typeof ApiGbpPostRoute
+  ApiGbpRefreshTokenRoute: typeof ApiGbpRefreshTokenRoute
   ApiInstagramPostRoute: typeof ApiInstagramPostRoute
   ApiInstagramScheduleRoute: typeof ApiInstagramScheduleRoute
   ApiWebhookInstagramRoute: typeof ApiWebhookInstagramRoute
@@ -893,6 +944,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthFacebookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/gbp': {
+      id: '/api/auth/gbp'
+      path: '/api/auth/gbp'
+      fullPath: '/api/auth/gbp'
+      preLoaderRoute: typeof ApiAuthGbpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/instagram': {
       id: '/api/auth/instagram'
       path: '/api/auth/instagram'
@@ -956,6 +1014,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFacebookValidateTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/gbp/post': {
+      id: '/api/gbp/post'
+      path: '/api/gbp/post'
+      fullPath: '/api/gbp/post'
+      preLoaderRoute: typeof ApiGbpPostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/gbp/refresh-token': {
+      id: '/api/gbp/refresh-token'
+      path: '/api/gbp/refresh-token'
+      fullPath: '/api/gbp/refresh-token'
+      preLoaderRoute: typeof ApiGbpRefreshTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/instagram/post': {
       id: '/api/instagram/post'
       path: '/api/instagram/post'
@@ -983,6 +1055,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/auth/facebook/callback'
       preLoaderRoute: typeof ApiAuthFacebookCallbackRouteImport
       parentRoute: typeof ApiAuthFacebookRoute
+    }
+    '/api/auth/gbp/callback': {
+      id: '/api/auth/gbp/callback'
+      path: '/callback'
+      fullPath: '/api/auth/gbp/callback'
+      preLoaderRoute: typeof ApiAuthGbpCallbackRouteImport
+      parentRoute: typeof ApiAuthGbpRoute
     }
     '/api/auth/instagram-direct/callback': {
       id: '/api/auth/instagram-direct/callback'
@@ -1036,6 +1115,18 @@ const ApiAuthFacebookRouteChildren: ApiAuthFacebookRouteChildren = {
 
 const ApiAuthFacebookRouteWithChildren = ApiAuthFacebookRoute._addFileChildren(
   ApiAuthFacebookRouteChildren,
+)
+
+interface ApiAuthGbpRouteChildren {
+  ApiAuthGbpCallbackRoute: typeof ApiAuthGbpCallbackRoute
+}
+
+const ApiAuthGbpRouteChildren: ApiAuthGbpRouteChildren = {
+  ApiAuthGbpCallbackRoute: ApiAuthGbpCallbackRoute,
+}
+
+const ApiAuthGbpRouteWithChildren = ApiAuthGbpRoute._addFileChildren(
+  ApiAuthGbpRouteChildren,
 )
 
 interface ApiAuthInstagramFacebookRouteChildren {
@@ -1112,6 +1203,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiStrategizeRoute: ApiAiStrategizeRoute,
   ApiAiWriteCaptionRoute: ApiAiWriteCaptionRoute,
   ApiAuthFacebookRoute: ApiAuthFacebookRouteWithChildren,
+  ApiAuthGbpRoute: ApiAuthGbpRouteWithChildren,
   ApiAuthInstagramRoute: ApiAuthInstagramRouteWithChildren,
   ApiAuthInstagramDirectRoute: ApiAuthInstagramDirectRouteWithChildren,
   ApiFacebookDeleteRoute: ApiFacebookDeleteRoute,
@@ -1121,6 +1213,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFacebookRefreshTokenRoute: ApiFacebookRefreshTokenRoute,
   ApiFacebookScheduleRoute: ApiFacebookScheduleRoute,
   ApiFacebookValidateTokenRoute: ApiFacebookValidateTokenRoute,
+  ApiGbpPostRoute: ApiGbpPostRoute,
+  ApiGbpRefreshTokenRoute: ApiGbpRefreshTokenRoute,
   ApiInstagramPostRoute: ApiInstagramPostRoute,
   ApiInstagramScheduleRoute: ApiInstagramScheduleRoute,
   ApiWebhookInstagramRoute: ApiWebhookInstagramRoute,
@@ -1128,3 +1222,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
