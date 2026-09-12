@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const GOOGLE_CLIENT_ID = "396802055324-s0iv979okqkku75k1fudsatsmvuocu4t.apps.googleusercontent.com";
-const GOOGLE_CLIENT_SECRET = "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";
+const GOOGLE_CLIENT_ID = "1052426132622-0prhe3i370pm94cghgm3d7df1v55jpon.apps.googleusercontent.com";
+const GOOGLE_CLIENT_SECRET = "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";
 
 export const Route = createFileRoute("/api/gbp/refresh-token")({
   server: {
