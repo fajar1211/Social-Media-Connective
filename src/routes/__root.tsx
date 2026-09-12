@@ -139,6 +139,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
     location.pathname === "/" ||
     location.pathname === "/auth" ||
     location.pathname === "/privacy" ||
+    location.pathname === "/about" ||
     location.pathname.startsWith("/client/");
 
   useEffect(() => {
@@ -239,6 +240,7 @@ function RootComponent() {
   const isPublicPage =
     path === "/" ||
     path === "/privacy" ||
+    path === "/about" ||
     path.startsWith("/client/");
 
   return (
