@@ -87,13 +87,22 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
             }
           );
           const accountsData = await accountsResponse.json();
-          console.log("[GBP Callback] Accounts API response:", JSON.stringify(accountsData, null, 2));
+          console.log("[GBP Callback] Raw accounts response:", JSON.stringify(accountsData, null, 2));
 
-          const accounts: Array<{
-            id: string;
+          // Account Management API v1 returns: { name: "accounts/123", accountName: "...", type: "..." }
+          const rawAccounts: Array<{
             name: string;
+            accountName: string;
             type: string;
           }> = accountsData.accounts || [];
+
+          const accounts = rawAccounts.map((a) => ({
+            id: a.name?.replace("accounts/", "") || "",
+            name: a.accountName || a.name || "Unknown",
+            type: a.type || "UNKNOWN",
+          }));
+
+          console.log("[GBP Callback] Parsed accounts:", JSON.stringify(accounts, null, 2));
 
           const locationsMap: Record<
             string,
@@ -107,30 +116,37 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
           > = {};
 
           for (const account of accounts) {
-            console.log(`[GBP Callback] Fetching locations for account: ${account.id} (${account.name}) type=${account.type}`);
+            console.log(`[GBP Callback] Fetching locations for account: id=${account.id} name=${account.name} type=${account.type}`);
             try {
+              const locationsUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${account.id}/locations?readMask=name,title,address,websiteUri,phoneNumbers`;
+              console.log(`[GBP Callback] Locations URL: ${locationsUrl}`);
               const locationsResponse = await fetch(
-                `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${account.id}/locations?readMask=name,title,address,websiteUri,phoneNumbers`,
+                locationsUrl,
                 {
                   headers: { Authorization: `Bearer ${accessToken}` },
                 }
               );
               const locationsData = await locationsResponse.json();
-              locationsMap[account.id] = (locationsData.locations || []).map(
-                (loc: {
-                  name: string;
-                  title?: string;
-                  address?: { addressLines?: string[] };
-                  websiteUri?: string;
-                  phoneNumbers?: { primaryPhone?: string };
-                }) => ({
-                  id: loc.name?.replace("locations/", "") || "",
-                  name: loc.title || "Untitled Location",
-                  address: loc.address?.addressLines?.join(", ") || "",
-                  phoneNumber: loc.phoneNumbers?.primaryPhone || "",
-                  websiteUrl: loc.websiteUri || "",
-                })
-              );
+              console.log(`[GBP Callback] Locations response for ${account.id}:`, JSON.stringify(locationsData, null, 2));
+
+              // Business Information API v1 returns: { locations: [{ name: "accounts/123/locations/456", title: "..." }] }
+              const rawLocations: Array<{
+                name: string;
+                title?: string;
+                address?: { addressLines?: string[] };
+                websiteUri?: string;
+                phoneNumbers?: { primaryPhone?: string };
+              }> = locationsData.locations || [];
+
+              locationsMap[account.id] = rawLocations.map((loc) => ({
+                id: loc.name?.split("/").pop() || "",
+                name: loc.title || "Untitled Location",
+                address: loc.address?.addressLines?.join(", ") || "",
+                phoneNumber: loc.phoneNumbers?.primaryPhone || "",
+                websiteUrl: loc.websiteUri || "",
+              }));
+
+              console.log(`[GBP Callback] Parsed locations for ${account.id}:`, JSON.stringify(locationsMap[account.id], null, 2));
             } catch (e) {
               console.error(
                 `Error fetching locations for account ${account.id}:`,
@@ -164,7 +180,8 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
 
           console.log("[GBP Callback] Total accounts:", accounts.length);
           console.log("[GBP Callback] Total flat locations:", flatLocations.length);
-          console.log("[GBP Callback] Locations:", JSON.stringify(flatLocations, null, 2));
+          console.log("[GBP Callback] All accounts:", JSON.stringify(accounts, null, 2));
+          console.log("[GBP Callback] All locations:", JSON.stringify(flatLocations, null, 2));
 
           const successHtml = buildHtml({
             title: "Google Business Profile Auth Success",
@@ -173,7 +190,10 @@ export const Route = createFileRoute("/api/auth/gbp/callback")({
               <p>User: ${escapeHtml(userData.name || userData.email || "Unknown")} (${userData.id})</p>
               <p>Business Accounts: ${accounts.length} found</p>
               <p>Locations: ${flatLocations.length} found</p>
-              ${accounts.length > 0 ? `<p>Account types: ${accounts.map(a => `${a.name} (${a.type})`).join(", ")}</p>` : ""}
+              ${accounts.map(a => `<p>Account: ${escapeHtml(a.name)} (${a.type}) - ID: ${escapeHtml(a.id)}</p>`).join("")}
+              ${flatLocations.map(l => `<p>Location: ${escapeHtml(l.name)} - ID: ${escapeHtml(l.id)} (account: ${escapeHtml(l.accountId)})</p>`).join("")}
+              ${accounts.length === 0 ? '<p style="color:red;">No accounts found. Check if Google My Business Account Management API is enabled.</p>' : ''}
+              ${accounts.length > 0 && flatLocations.length === 0 ? '<p style="color:orange;">Accounts found but no locations. Check if Google My Business Business Information API is enabled and GBP location is verified.</p>' : ''}
               <p id="status" style="color:green;">Connecting...</p>
             `,
             script: `

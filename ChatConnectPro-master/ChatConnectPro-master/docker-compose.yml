@@ -1,0 +1,58 @@
+# ─── ChatConnect Pro — Docker Compose ─────────────────
+# Usage:
+#   docker-compose up -d --build
+#
+# Environment variables dibaca dari file .env
+# (backend: ./wa-bot-server/.env, frontend: otomatis via Vite build)
+
+services:
+  # ─── Backend: wa-bot-server ──────────────────────
+  bot:
+    build:
+      context: ./wa-bot-server
+      dockerfile: Dockerfile
+    container_name: chatconnect-bot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./wa-bot-server/.env
+    volumes:
+      - wa_auth_data:/app/wa_auth
+    networks:
+      - chatconnect-net
+
+  # ─── Frontend: Nginx + static build ──────────────
+  frontend:
+    image: nginx:alpine
+    container_name: chatconnect-frontend
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - frontend_dist:/usr/share/nginx/html:ro
+    depends_on:
+      - bot
+    networks:
+      - chatconnect-net
+
+  # ─── Build frontend (one-shot) ───────────────────
+  frontend-builder:
+    image: node:22-alpine
+    container_name: chatconnect-frontend-builder
+    working_dir: /app
+    volumes:
+      - .:/app
+      - frontend_dist:/app/dist
+    command: sh -c "npm ci && npm run build && cp -r dist/* /app/dist/ || true"
+    networks:
+      - chatconnect-net
+
+volumes:
+  wa_auth_data:
+  frontend_dist:
+
+networks:
+  chatconnect-net:
+    driver: bridge

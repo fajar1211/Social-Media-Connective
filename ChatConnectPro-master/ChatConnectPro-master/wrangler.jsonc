@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "account_id": "b9d041947ae4722d18a6fa2cbddbd71a",
+  "name": "chatconnectpro",
+  "compatibility_date": "2025-09-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "src/server.ts",
+}
