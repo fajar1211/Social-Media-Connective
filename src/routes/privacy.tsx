@@ -1,5 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Shield, Mail, Globe, Lock, Eye, Database, Users, FileText, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Shield,
+  Mail,
+  Globe,
+  Lock,
+  Eye,
+  Database,
+  Users,
+  FileText,
+  AlertCircle,
+} from "lucide-react";
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
@@ -7,7 +18,8 @@ export const Route = createFileRoute("/privacy")({
       { title: "Privacy Policy — Social Media Connective" },
       {
         name: "description",
-        content: "Privacy Policy for Social Media Connective marketing platform.",
+        content:
+          "Privacy Policy for Social Media Connective marketing platform.",
       },
     ],
   }),
@@ -38,7 +50,7 @@ function PrivacyPolicy() {
                 Privacy Policy
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Last updated: September 2, 2026
+                Effective Date: September 2, 2026
               </p>
             </div>
           </div>
@@ -52,7 +64,11 @@ function PrivacyPolicy() {
           {[
             { icon: Lock, title: "Data Encrypted", desc: "TLS/SSL encryption" },
             { icon: Eye, title: "No Tracking", desc: "We don't sell your data" },
-            { icon: Database, title: "Secure Storage", desc: "Industry-standard security" },
+            {
+              icon: Database,
+              title: "Secure Storage",
+              desc: "Industry-standard security",
+            },
             { icon: Users, title: "Your Control", desc: "Delete anytime" },
           ].map((item) => (
             <div
@@ -62,7 +78,9 @@ function PrivacyPolicy() {
               <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
                 <item.icon className="size-5 text-primary" />
               </div>
-              <h3 className="mt-3 font-semibold text-foreground">{item.title}</h3>
+              <h3 className="mt-3 font-semibold text-foreground">
+                {item.title}
+              </h3>
               <p className="text-xs text-muted-foreground">{item.desc}</p>
             </div>
           ))}
@@ -70,51 +88,83 @@ function PrivacyPolicy() {
 
         {/* Main Content */}
         <div className="space-y-8">
-          <Section
-            number="1"
-            title="Introduction"
-            icon={FileText}
-          >
+          <Section number="1" title="Introduction" icon={FileText}>
             <p>
-              Welcome to Social Media Connective ("we," "our," or "us"). We are committed to
-              protecting your privacy and ensuring the security of your personal information. This
-              Privacy Policy explains how we collect, use, disclose, and safeguard your information
-              when you use our marketing platform and related services (collectively, the "Service").
+              Welcome to Social Media Connective ("we," "our," or "us"). We are
+              committed to protecting your privacy and ensuring the security of
+              your personal information. This Privacy Policy explains how we
+              collect, use, disclose, and safeguard your information when you
+              use our marketing platform and related services (collectively, the
+              "Service").
             </p>
             <p>
-              By accessing or using the Service, you agree to the collection and use of information
-              in accordance with this policy. If you do not agree with the terms of this policy,
-              please do not access the Service.
+              By accessing or using the Service, you agree to the collection and
+              use of information in accordance with this policy. If you do not
+              agree with the terms of this policy, please do not access the
+              Service.
             </p>
           </Section>
 
-          <Section
-            number="2"
-            title="Information We Collect"
-            icon={Database}
-          >
+          <Section number="2" title="Information We Collect" icon={Database}>
             <SubSection title="2.1 Account Information">
               <p>When you create an account, we may collect:</p>
               <ul>
                 <li>Full name and email address</li>
                 <li>Organization or company name</li>
                 <li>Role and permissions within the platform</li>
-                <li>Authentication credentials (managed via secure OAuth providers)</li>
+                <li>
+                  Authentication credentials (managed via secure OAuth
+                  providers)
+                </li>
               </ul>
             </SubSection>
 
             <SubSection title="2.2 Social Media Integration Data">
               <p>When you connect social media accounts, we may access:</p>
               <ul>
-                <li>Profile information (name, profile picture, account ID)</li>
+                <li>
+                  Profile information (name, profile picture, account ID)
+                </li>
                 <li>Page and business portfolio details</li>
-                <li>Access tokens required to publish content on your behalf</li>
+                <li>
+                  Access tokens required to publish content on your behalf
+                </li>
                 <li>Content you choose to publish through our platform</li>
               </ul>
             </SubSection>
 
-            <SubSection title="2.3 Usage Data">
-              <p>We automatically collect certain information when you use the Service:</p>
+            <SubSection title="2.3 Google Business Profile Data">
+              <p>
+                When you connect your Google Business Profile, we may access
+                the following information through the Google Business Profile
+                APIs:
+              </p>
+              <ul>
+                <li>Google account ID, name, and email address</li>
+                <li>
+                  Business account details (account name, account type)
+                </li>
+                <li>
+                  Business location information (name, address, phone number,
+                  website)
+                </li>
+                <li>
+                  Access tokens required to create and manage local posts on
+                  your behalf
+                </li>
+              </ul>
+              <p className="mt-2">
+                <strong>We do NOT access:</strong> Google reviews, customer
+                messages, Google Ads data, or any other data beyond what is
+                necessary for content publishing functionality.
+              </p>
+            </SubSection>
+
+            <SubSection title="2.4 Usage Data">
+              <p>
+                We automatically collect certain information when you use the
+                Service:
+              </p>
               <ul>
                 <li>Device type, browser, and operating system</li>
                 <li>IP address and geographic location (country/region level)</li>
@@ -132,32 +182,35 @@ function PrivacyPolicy() {
             <p>We use the collected information for the following purposes:</p>
             <ul>
               <li>
-                <strong>Service Delivery:</strong> To provide, operate, and maintain the marketing
-                platform and its features.
+                <strong>Service Delivery:</strong> To provide, operate, and
+                maintain the marketing platform and its features.
               </li>
               <li>
-                <strong>Content Publishing:</strong> To schedule, publish, and manage your marketing
-                content across connected social media platforms.
+                <strong>Content Publishing:</strong> To schedule, publish, and
+                manage your marketing content across connected social media
+                platforms, including Google Business Profile.
               </li>
               <li>
-                <strong>Authentication:</strong> To verify your identity and manage access to your
-                account and connected services.
+                <strong>Authentication:</strong> To verify your identity and
+                manage access to your account and connected services.
               </li>
               <li>
-                <strong>Communication:</strong> To send administrative notifications, updates, and
-                support responses related to the Service.
+                <strong>Communication:</strong> To send administrative
+                notifications, updates, and support responses related to the
+                Service.
               </li>
               <li>
-                <strong>Improvement:</strong> To analyze usage patterns and improve the functionality,
-                performance, and user experience of the platform.
+                <strong>Improvement:</strong> To analyze usage patterns and
+                improve the functionality, performance, and user experience of
+                the platform.
               </li>
               <li>
-                <strong>Security:</strong> To detect, prevent, and address technical issues, fraud,
-                and unauthorized access.
+                <strong>Security:</strong> To detect, prevent, and address
+                technical issues, fraud, and unauthorized access.
               </li>
               <li>
-                <strong>Legal Compliance:</strong> To comply with applicable laws, regulations, and
-                legal processes.
+                <strong>Legal Compliance:</strong> To comply with applicable
+                laws, regulations, and legal processes.
               </li>
             </ul>
           </Section>
@@ -171,104 +224,112 @@ function PrivacyPolicy() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="mt-0.5 size-5 text-amber-600 dark:text-amber-400" />
                 <p className="text-sm text-amber-800 dark:text-amber-200">
-                  <strong>We do not sell, trade, or rent your personal information to third parties.</strong>
+                  <strong>
+                    We do not sell, trade, or rent your personal information to
+                    third parties.
+                  </strong>
                 </p>
               </div>
             </div>
-            <p className="mt-4">We may share your information in the following circumstances:</p>
+            <p className="mt-4">
+              We may share your information in the following circumstances:
+            </p>
             <ul>
               <li>
-                <strong>With Social Media Platforms:</strong> When you connect and publish content,
-                we share necessary data with the respective platforms (e.g., Meta/Facebook, Instagram)
-                to fulfill your publishing requests.
+                <strong>With Connected Platforms:</strong> When you connect and
+                publish content, we share necessary data with the respective
+                platforms (e.g., Meta/Facebook, Instagram, Google Business
+                Profile) to fulfill your publishing requests.
               </li>
               <li>
-                <strong>Service Providers:</strong> We may share information with trusted third-party
-                service providers who assist us in operating the platform (e.g., hosting, analytics),
-                subject to confidentiality obligations.
+                <strong>Service Providers:</strong> We may share information
+                with trusted third-party service providers who assist us in
+                operating the platform (e.g., hosting, analytics), subject to
+                confidentiality obligations.
               </li>
               <li>
-                <strong>Legal Requirements:</strong> We may disclose information if required by law,
-                regulation, or valid legal process.
+                <strong>Legal Requirements:</strong> We may disclose information
+                if required by law, regulation, or valid legal process.
               </li>
               <li>
-                <strong>Business Transfers:</strong> In the event of a merger, acquisition, or sale of
-                assets, your information may be transferred as part of that transaction.
+                <strong>Business Transfers:</strong> In the event of a merger,
+                acquisition, or sale of assets, your information may be
+                transferred as part of that transaction.
               </li>
             </ul>
           </Section>
 
-          <Section
-            number="5"
-            title="Data Security"
-            icon={Lock}
-          >
+          <Section number="5" title="Data Security" icon={Lock}>
             <p>
-              We implement industry-standard security measures to protect your personal information,
-              including:
+              We implement industry-standard security measures to protect your
+              personal information, including:
             </p>
             <ul>
               <li>Encryption of data in transit (TLS/SSL) and at rest</li>
               <li>Secure authentication via OAuth 2.0 protocols</li>
               <li>Regular security assessments and vulnerability testing</li>
               <li>Access controls and monitoring of internal systems</li>
-              <li>Social media access tokens are encrypted and stored securely</li>
+              <li>
+                Social media and Google access tokens are encrypted and stored
+                securely
+              </li>
             </ul>
             <p>
-              While we strive to protect your information, no method of electronic transmission or
-              storage is 100% secure. We cannot guarantee absolute security.
+              While we strive to protect your information, no method of
+              electronic transmission or storage is 100% secure. We cannot
+              guarantee absolute security.
             </p>
           </Section>
 
-          <Section
-            number="6"
-            title="Data Retention"
-            icon={Database}
-          >
+          <Section number="6" title="Data Retention" icon={Database}>
             <p>
-              We retain your personal information for as long as your account is active or as needed
-              to provide the Service. When you disconnect a social media account, we remove the
-              associated access tokens and integration data within a reasonable timeframe.
+              We retain your personal information for as long as your account is
+              active or as needed to provide the Service. When you disconnect a
+              social media account or Google Business Profile, we remove the
+              associated access tokens and integration data within a reasonable
+              timeframe.
             </p>
             <p>
-              If you delete your account, we will remove your personal data from our active systems
-              within 30 days, except where retention is required by law or for legitimate business
-              purposes.
+              If you delete your account, we will remove your personal data from
+              our active systems within 30 days, except where retention is
+              required by law or for legitimate business purposes.
             </p>
           </Section>
 
-          <Section
-            number="7"
-            title="Your Rights"
-            icon={Shield}
-          >
+          <Section number="7" title="Your Rights" icon={Shield}>
             <p>Depending on your location, you may have the following rights:</p>
             <ul>
               <li>
-                <strong>Access:</strong> Request a copy of the personal information we hold about
-                you.
+                <strong>Access:</strong> Request a copy of the personal
+                information we hold about you.
               </li>
               <li>
-                <strong>Correction:</strong> Request correction of inaccurate or incomplete data.
+                <strong>Correction:</strong> Request correction of inaccurate or
+                incomplete data.
               </li>
               <li>
-                <strong>Deletion:</strong> Request deletion of your personal data.
+                <strong>Deletion:</strong> Request deletion of your personal
+                data.
               </li>
               <li>
-                <strong>Portability:</strong> Request transfer of your data to another service.
+                <strong>Portability:</strong> Request transfer of your data to
+                another service.
               </li>
               <li>
-                <strong>Objection:</strong> Object to the processing of your personal data for
-                certain purposes.
+                <strong>Objection:</strong> Object to the processing of your
+                personal data for certain purposes.
               </li>
               <li>
-                <strong>Withdraw Consent:</strong> Withdraw consent where processing is based on
-                consent.
+                <strong>Withdraw Consent:</strong> Withdraw consent where
+                processing is based on consent.
               </li>
             </ul>
             <p>
               To exercise any of these rights, please contact us at{" "}
-              <a href="mailto:info@marketingconnective.com" className="font-medium text-primary underline underline-offset-2 hover:text-primary/80">
+              <a
+                href="mailto:info@marketingconnective.com"
+                className="font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+              >
                 info@marketingconnective.com
               </a>
               .
@@ -281,22 +342,20 @@ function PrivacyPolicy() {
             icon={Globe}
           >
             <p>
-              Your information may be processed in countries other than your country of residence.
-              These countries may have different data protection laws. We ensure that appropriate
-              safeguards are in place when transferring data internationally, in compliance with
+              Your information may be processed in countries other than your
+              country of residence. These countries may have different data
+              protection laws. We ensure that appropriate safeguards are in
+              place when transferring data internationally, in compliance with
               applicable data protection regulations.
             </p>
           </Section>
 
-          <Section
-            number="9"
-            title="Children's Privacy"
-            icon={Users}
-          >
+          <Section number="9" title="Children's Privacy" icon={Users}>
             <p>
-              The Service is not intended for individuals under the age of 18. We do not knowingly
-              collect personal information from children. If we become aware that we have collected
-              data from a child, we will take steps to delete it promptly.
+              The Service is not intended for individuals under the age of 18.
+              We do not knowingly collect personal information from children. If
+              we become aware that we have collected data from a child, we will
+              take steps to delete it promptly.
             </p>
           </Section>
 
@@ -306,24 +365,23 @@ function PrivacyPolicy() {
             icon={FileText}
           >
             <p>
-              We may update this Privacy Policy from time to time. We will notify you of any
-              material changes by posting the updated policy on this page with a revised "Last
-              updated" date. We encourage you to review this policy periodically.
+              We may update this Privacy Policy from time to time. We will
+              notify you of any material changes by posting the updated policy
+              on this page with a revised "Last updated" date. We encourage you
+              to review this policy periodically.
             </p>
           </Section>
 
-          <Section
-            number="11"
-            title="Contact Us"
-            icon={Mail}
-          >
+          <Section number="11" title="Contact Us" icon={Mail}>
             <p>
-              If you have any questions or concerns about this Privacy Policy or our data practices,
-              please contact us:
+              If you have any questions or concerns about this Privacy Policy
+              or our data practices, please contact us:
             </p>
             <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
               <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-6 py-4">
-                <h3 className="font-semibold text-foreground">Social Media Connective</h3>
+                <h3 className="font-semibold text-foreground">
+                  Social Media Connective
+                </h3>
               </div>
               <div className="space-y-3 p-6">
                 <div className="flex items-center gap-3">
@@ -370,7 +428,8 @@ function PrivacyPolicy() {
                 Your privacy is important to us.
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                © {new Date().getFullYear()} Marketing Connective. All rights reserved.
+                &copy; {new Date().getFullYear()} Marketing Connective. All
+                rights reserved.
               </p>
             </div>
             <p className="text-xs text-muted-foreground">
