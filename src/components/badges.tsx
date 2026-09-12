@@ -11,6 +11,7 @@ export const platformIcons: Record<Platform, React.ElementType> = {
   "X / Twitter": Twitter,
   LinkedIn: Linkedin,
   Blog: FileText,
+  GBP: FileText,
 };
 
 export function PlatformBadge({ platform }: { platform: Platform }) {

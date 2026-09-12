@@ -48,6 +48,7 @@ const platformColors: Record<Platform, string> = {
   "X / Twitter": "#000000",
   LinkedIn: "#0A66C2",
   Blog: "#F97316",
+  GBP: "#4285F4",
 };
 
 function StatCard({

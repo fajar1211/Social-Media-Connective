@@ -52,7 +52,7 @@ type PlatformConfig = {
   color: string;
   scopes: string[];
   authUrl: string;
-  callbackType: "facebook" | "instagram";
+  callbackType: "facebook" | "instagram" | "gbp";
 };
 
 const PLATFORMS: PlatformConfig[] = [
@@ -75,6 +75,16 @@ const PLATFORMS: PlatformConfig[] = [
     scopes: ["instagram_basic", "instagram_content_publish", "pages_show_list"],
     authUrl: "/api/auth/instagram",
     callbackType: "instagram",
+  },
+  {
+    id: "gbp",
+    name: "Google Business Profile",
+    description: "Connect Google Business Profile to post updates and manage your business presence.",
+    icon: "🏢",
+    color: "#4285F4",
+    scopes: ["https://www.googleapis.com/auth/business.manage"],
+    authUrl: "/api/auth/gbp",
+    callbackType: "gbp",
   },
 ];
 

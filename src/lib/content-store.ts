@@ -15,12 +15,12 @@ import {
 } from "@/lib/db";
 import type { ContentStatus } from "@/lib/database.types";
 
-export type Platform = "Facebook" | "Instagram" | "X / Twitter" | "LinkedIn" | "Blog";
+export type Platform = "Facebook" | "Instagram" | "X / Twitter" | "LinkedIn" | "Blog" | "GBP";
 export type ContentType = "Text Post" | "Image" | "Carousel" | "Short Video" | "Long-form" | "Blog Article";
 export type Status = ContentStatus;
 export type SocialPlatform = "Facebook" | "Instagram" | "YouTube" | "GBP" | "LinkedIn" | "Blog" | "TikTok" | "Xiaohongshu" | "Reddit" | "Threads" | "X (Twitter)";
 
-export const PLATFORMS: Platform[] = ["Facebook", "Instagram", "X / Twitter", "LinkedIn", "Blog"];
+export const PLATFORMS: Platform[] = ["Facebook", "Instagram", "X / Twitter", "LinkedIn", "Blog", "GBP"];
 export const SOCIAL_PLATFORMS: SocialPlatform[] = ["Facebook", "Instagram", "YouTube", "GBP", "LinkedIn", "Blog", "TikTok", "Xiaohongshu", "Reddit", "Threads", "X (Twitter)"];
 export const CONTENT_TYPES: ContentType[] = [
   "Text Post",
@@ -130,6 +130,7 @@ const defaultState: State = {
     { name: "X / Twitter", enabled: true, types: ["Text Post", "Image"] },
     { name: "LinkedIn", enabled: true, types: ["Text Post", "Image", "Blog Article"] },
     { name: "Blog", enabled: false, types: ["Blog Article"] },
+    { name: "GBP", enabled: true, types: ["Text Post", "Image", "Short Video"] },
   ],
   loaded: false,
 };
@@ -511,7 +512,8 @@ export function parseImportFile(content: string, defaultClient: string, clientId
     const captionBody = body;
 
     const platformMap: Record<string, Platform> = {
-      "Google Business Profile": "Facebook",
+      "Google Business Profile": "GBP",
+      "GBP": "GBP",
       "Facebook": "Facebook",
       "Instagram": "Instagram",
       "LinkedIn": "LinkedIn",

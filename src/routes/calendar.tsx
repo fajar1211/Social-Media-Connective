@@ -57,6 +57,7 @@ const platformColors: Record<Platform, string> = {
   "X / Twitter": "bg-black",
   LinkedIn: "bg-[#0A66C2]",
   Blog: "bg-orange-500",
+  GBP: "bg-[#4285F4]",
 };
 
 const platformIcons: Record<Platform, React.ReactNode> = {
@@ -83,6 +84,11 @@ const platformIcons: Record<Platform, React.ReactNode> = {
   Blog: (
     <svg className="size-3 fill-white" viewBox="0 0 24 24">
       <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zM3.009 12c0-1.298.283-2.532.784-3.648L7.694 19.09A8.013 8.013 0 013.009 12zm8.991 9c-.962 0-1.896-.14-2.785-.401l2.965-8.64 3.042 8.345a.588.588 0 00.046.093A7.987 7.987 0 0112 21zm1.251-13.368l-3.468 10.114a.532.532 0 01-.031.078 7.955 7.955 0 01-2.245-5.435c0-3.309 2.577-6.037 5.812-6.32l-.068 1.563zm5.037-1.611L13.338 18.8a7.96 7.96 0 012.377.238c.339-.825.53-1.726.53-2.675 0-2.421-1.318-4.536-3.281-5.673l-.031-.042z"/>
+    </svg>
+  ),
+  GBP: (
+    <svg className="size-3 fill-white" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
     </svg>
   ),
 };
