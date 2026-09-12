@@ -137,16 +137,28 @@ function About() {
           </p>
           <div className="flex flex-wrap gap-3">
             {[
-              "Facebook Pages",
-              "Instagram Business",
-              "Google Business Profile",
+              { name: "Facebook", available: true },
+              { name: "Instagram", available: true },
+              { name: "Google Business Profile", available: true },
+              { name: "X / Twitter", available: true },
+              { name: "LinkedIn", available: true },
+              { name: "Blog", available: false },
             ].map((platform) => (
               <span
-                key={platform}
-                className="inline-flex items-center gap-2 rounded-full border bg-primary/5 px-4 py-2 text-sm font-medium text-primary"
+                key={platform.name}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${
+                  platform.available
+                    ? "border-primary/20 bg-primary/5 text-primary"
+                    : "border-muted bg-muted/50 text-muted-foreground"
+                }`}
               >
                 <Globe className="size-4" />
-                {platform}
+                {platform.name}
+                {!platform.available && (
+                  <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+                    Coming Soon
+                  </span>
+                )}
               </span>
             ))}
           </div>
