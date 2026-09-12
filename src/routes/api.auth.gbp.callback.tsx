@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const GOOGLE_CLIENT_ID = process.env["GOOGLE_CLIENT_ID"] || "";
-const GOOGLE_CLIENT_SECRET = process.env["GOOGLE_CLIENT_SECRET"] || "";
+const GOOGLE_CLIENT_ID = "396802055324-s0iv979okqkku75k1fudsatsmvuocu4t.apps.googleusercontent.com";
+const GOOGLE_CLIENT_SECRET = "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";
 const REDIRECT_URI =
   "https://socmed.marketingconnective.com/api/auth/gbp/callback";
 
